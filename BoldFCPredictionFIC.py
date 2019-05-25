@@ -149,7 +149,6 @@ for kk in range(numG):
 
         # Warm-Up to reach stationarity:
         #--------------------------------
-
         for t in range(1000):
             u = Wmat @ mu + Io
             re = He(u[0:N])
@@ -165,7 +164,6 @@ for kk in range(numG):
 
         # Simulate dynamical model:
         # -------------------------
-
         nn = 0
         for t in range(1,tspan.size):
             u = Wmat @ mu + Io
