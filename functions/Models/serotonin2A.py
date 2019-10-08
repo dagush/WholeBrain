@@ -12,32 +12,37 @@
 #  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
 #
 #
-#   Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
-#   Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
-#       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
+# Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
+# Gustavo Deco, Josephine Cruzat, Joana Cabral, Gitte M. Knudsen, Robin L. Carhart-Harris, Peter C. Whybrow, Nikos K.
+# Logothetis, and Morten L. Kringelbach, Current Biology 28, 3065–3074, October 8, 2018
 #
 #  Code written by Gustavo Deco gustavo.deco@upf.edu 2017
 #  Reviewed by Josephine Cruzat and Joana Cabral
 #
 #  Translated to Python by Gustavo Patow
 # --------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 import numpy as np
 
+print("Going to use the serotonin 2A receptor (5-HT_{2A}R) transfer functions!")
 
 # Regional Drug Receptor Modulation (RDRM) constants for their transfer functions:
+# serotonin 2A receptor (5-HT_{2A}R): the neuronal gain function of the model is modulated
+# by the 5-HT_{2A}R density
 # --------------------------------------------------------------------------
 Receptor = 0
-wgaini=0
-wgaine=0
+wgaini = 0.
+wgaine = 0.
 
 
 # transfer functions:
 # --------------------------------------------------------------------------
 # transfer function: excitatory
-ae=310;
-be=125;
-de=0.16;
+ae = 310.
+be = 125.
+de = 0.16
 def phie(x):
     y = (ae*x-be)*(1+Receptor*wgaine) #  for LSD
     # if (y != 0):
@@ -47,9 +52,9 @@ def phie(x):
 
 
 # transfer function: inhibitory
-ai=615;
-bi=177;
-di=0.087;
+ai = 615
+bi = 177
+di = 0.087
 def phii(x):
     y = (ai*x-bi)*(1+Receptor*wgaini) # for LSD
     # if (y != 0):

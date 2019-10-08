@@ -1,5 +1,5 @@
-# --------------------------------------------------------------------------
-# --------------------------------------------------------------------------
+# ==========================================================================
+# ==========================================================================
 #  Computes the Functional Connectivity Dynamics (FCD)
 #
 #  From the original code:
@@ -10,17 +10,25 @@
 #  - the optimal coupling (we=2.1) for fitting the placebo condition
 #  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
 #
-#  Taken from the code from:
+#  Taken from the code (FCD_LSD_empirical.m) from:
 #    Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #    Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
-#        Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
+#    Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
+#    https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
 #
 #  Translated to Python & refactoring by Gustavo Patow
-# --------------------------------------------------------------------------
-# --------------------------------------------------------------------------
+# ==========================================================================
+# ==========================================================================
 import numpy as np
 import scipy.io as sio
 from functions import FCD
+
+
+# set BOLD filter settings
+import functions.BOLDFilters as filters
+filters.k = 2                             # 2nd order butterworth filter
+filters.flp = .04                         # lowpass frequency of filter
+filters.fhi = 0.07                        # highpass
 
 
 def my_hist(x, bin_centers):
@@ -33,7 +41,8 @@ Subjects = 15
 Conditions = [1, 4]  # 1=LSD rest, 4=PLACEBO rest -> The original code used [2, 5] because arrays in Matlab start with 1...
 
 #load fMRI data
-LSDnew = sio.loadmat('LSDnew.mat')  #load LSDnew.mat tc_aal
+print("Loading Data_Raw/LSDnew.mat")
+LSDnew = sio.loadmat('Data_Raw/LSDnew.mat')  #load LSDnew.mat tc_aal
 tc_aal = LSDnew['tc_aal']
 (N, Tmax) = tc_aal[1,1].shape  # [N, Tmax]=size(tc_aal{1,1}) # N = number of areas; Tmax = total time
 
@@ -53,7 +62,8 @@ for task in range(len(Conditions)):
 
 # Save & Plot
 # ----------------------------------------------------
-sio.savemat('FCD_values_Empirical.mat', {'cotsampling': cotsampling})  # Save all project variables!
+print("Saving Data_Raw/FCD_values_Empirical.mat")
+sio.savemat('Data_Raw/FCD_values_Empirical.mat', {'cotsampling': cotsampling})  # Save all project variables!
 
 cots = cotsampling[0, :]
 cotsf = cots.T.flatten()

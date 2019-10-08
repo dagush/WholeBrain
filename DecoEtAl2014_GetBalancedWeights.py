@@ -1,4 +1,4 @@
-#
+# ================================================================================================================
 #
 # This prog. optimizes the strengh of the feedback inhibition of the FIC model 
 # for varying global couplings (G)
@@ -9,21 +9,21 @@
 # http://www.jneurosci.org/content/34/23/7886.long
 #
 # Adrian Ponce-Alvarez. Refactoring by Gustavo Patow
-#--------------------------------------------------------------------------
+# ================================================================================================================
 
 import numpy as np
 import scipy.io as sio
 from functions import Balance_J9
-from functions import DynamicMeanField as DMF
+from functions import Integrator_EulerMaruyama as integrator
 
-np.random.seed(42)  # Fix the seed for debug purposes...
+# np.random.seed(42)  # Fix the seed for debug purposes...
 
 # ======================================================================
 # ======================================================================
 # ======================================================================
 # Load connectome:
 # --------------------------------
-CFile = sio.loadmat('Human_66.mat')  # load Human_66.mat C
+CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
 C = CFile['C']
 
 # all tested global couplings (G in the paper):
@@ -43,11 +43,11 @@ Se_init = np.zeros((N,numW))
 Si_init = np.zeros((N,numW))
 for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
     J = Balance_J9.JOptim(we, C)
-    Se_init[:, kk] = DMF.sn[:, 0]  # Store steady states S^E (after many iterations/simulations)
-    Si_init[:, kk] = DMF.sg[:, 0]  # Store steady states S^I
+    Se_init[:, kk] = integrator.sn[:, 0]  # Store steady states S^E (after many iterations/simulations)
+    Si_init[:, kk] = integrator.sg[:, 0]  # Store steady states S^I
     JI[:,kk]=J[:,0]
 
-sio.savemat('BenjiBalancedWeights-test.mat', #{'JI': JI})
+sio.savemat('Data_Produced/BenjiBalancedWeights-py.mat', #{'JI': JI})
             {'wes': wes,
              'JI': JI,
              'Se_init': Se_init,

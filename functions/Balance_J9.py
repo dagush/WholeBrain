@@ -19,17 +19,19 @@
 # to the local excitatory pool is fulfilled in all N brain areas.
 #
 # see:
-# Deco et al. (2014) J Neurosci.
+# G. Deco, A. Ponce-Alvarez, P. Hagmann, G.L. Romani, D. Mantini, M. Corbetta
+# How local excitation-inhibition ratio impacts the whole brain dynamics
+# J. Neurosci., 34 (2014), pp. 7886-7898
 # http://www.jneurosci.org/content/34/23/7886.long
 #
-# Adrian Ponce-Alvarez. Refactoring by Gustavo Patow
+# Adrian Ponce-Alvarez. Refactoring (& Python translation) by Gustavo Patow
 # --------------------------------------------------------------------------
 
 import numpy as np
-import scipy.io as sio
-from randn2 import randn2
-from functions import DynamicMeanField as DMF
+from functions import Integrator_EulerMaruyama as integrator
+from functions.Models import DynamicMeanField as model
 
+print("Going to use the Balanced J9 (FIC) mechanism...")
 
 def updateJ(N, tmax, delta, curr, J):
     tmin = 1000 if (tmax>1000) else int(tmax/10)
@@ -53,7 +55,7 @@ def updateJ(N, tmax, delta, curr, J):
 
 # =====================================
 # =====================================
-def JOptim(we, C):
+def JOptim(C):
     N = C.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
 
     # simulation fixed parameters:
@@ -61,15 +63,15 @@ def JOptim(we, C):
     dt = 0.1
     tmax = 10000
 
-    DMF.initJ(N)
+    model.initJ(N)
 
     # initialization:
     # -------------------------
-    DMF.initBookkeeping(N, tmax)
+    integrator.neuronalModel.initBookkeeping(N, tmax)
     delta = 0.02 * np.ones((N, 1))
 
     print()
-    print("we=", we)  # display(we)
+    print("we=", model.we)  # display(we)
     print("  Trials:", end=" ", flush=True)
 
     ### Balance (greedy algorithm)
@@ -77,15 +79,15 @@ def JOptim(we, C):
     # Doing that gives more stable solutions as the JIs for each node will be
     # a function of the variance.
     for k in range(5000):  # 5000 trials
-        DMF.resetBookkeeping()
+        integrator.neuronalModel.resetBookkeeping()
         Tmaxneuronal = int((tmax+dt))  # (tmax+dt)/dt, but with steps of 1 unit...
-        DMF.simulate(dt, Tmaxneuronal, C, we)
+        integrator.simulate(dt, Tmaxneuronal, C)
         print(k, end=",", flush=True)
 
-        flagJ = updateJ(N, tmax, delta, DMF.curr_xn, DMF.J)
+        flagJ = updateJ(N, tmax, delta, model.curr_xn, model.J)
         if flagJ:
             print('Out !!!', flush=True)
             break
 
-    return DMF.J
+    return model.J
 
