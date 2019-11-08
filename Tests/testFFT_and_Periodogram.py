@@ -1,3 +1,8 @@
+# ======================================================================
+# Comparison between signal.periodogram and the periodogram manually computed with the FFT.
+# Taken from: https://www.mathworks.com/help/signal/ug/power-spectral-density-estimates-using-fft.html
+# ======================================================================
+
 import numpy as np
 import matplotlib.pyplot as plt
 import functions.randn2 as randn
@@ -10,36 +15,47 @@ def buildFunc():
     return x
 
 def testFFT(x):
+    # Obtain the periodogram using fft. The signal is real-valued and has even length. Because the signal is
+    # real-valued, you only need power estimates for the positive or negative frequencies. In order to conserve
+    # the total power, multiply all frequencies that occur in both sets — the positive and negative frequencies — by
+    # a factor of 2. Zero frequency (DC) and the Nyquist frequency do not occur twice.
     N = len(x)
     xdft = np.fft.fft(x)
     xdft = xdft[0:int(N/2)]
     psdx = (1/(Fs*N)) * np.square(np.abs(xdft))
     psdx[1:] = 2*psdx[1:]
-    freq = np.arange(0, Fs/2, Fs/len(x))
+    freq = np.arange(0, 1./2., 1/len(x))
+    return freq, psdx
 
-    plt.plot(freq, 10*np.log10(psdx))
-    plt.title('Periodogram Using FFT')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Power/Frequency (dB/Hz)')
-    plt.show()
 
 def testPeriodogram(x):
+    # Compute the periodogram using signal.periodogram
     import scipy.signal as sig
-    # sig.periodogram(x,rectwin(length(x)),len(x),Fs)
     psp_f, psp_pxx = sig.periodogram(x, axis=0) # nfft=1024, fs=200,
-    plt.plot(psp_f[1:], 10*np.log10(psp_pxx[1:]))
-    plt.title('Periodogram Using priodogram')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Power/Frequency (dB/Hz)')
-    plt.show()
+    return psp_f, psp_pxx
 
 # ======================================================================
 # ======================================================================
 # ======================================================================
 if __name__ == '__main__':
     x = buildFunc()
-    testFFT(x)
-    testPeriodogram(x)
+    freqFFT, psdxFFT = testFFT(x)
+    freqPeriodogram, psdxPeriodogram = testPeriodogram(x)
+
+    plt.rcParams.update({'font.size': 22})
+    fig, axs = plt.subplots(2, 1, sharex=True)
+    fig.suptitle('signal.periodogram func vs Periodogram from FFT: comparison')
+
+    axs[0].plot(freqFFT[1:], 10*np.log10(psdxFFT[1:]))
+    axs[0].set_title('Periodogram Using FFT')
+    # axs[0].xlabel('Frequency (Hz)')
+    axs[0].set(ylabel='Power/Frequency (dB/Hz)')
+
+    axs[1].plot(freqPeriodogram[1:], 10*np.log10(psdxPeriodogram[1:]/1000.))
+    axs[1].set_title('Periodogram Using signal.periodogram')
+    # axs[1].xlabel('Frequency (Hz)')
+    axs[1].set(ylabel='Power/Frequency (dB/Hz)', xlabel='Frequency (Hz)')
+    plt.show()
 
 # ======================================================================
 # ======================================================================
