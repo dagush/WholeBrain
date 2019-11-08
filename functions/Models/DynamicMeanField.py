@@ -8,7 +8,7 @@
 # ==========================================================================
 import numpy as np
 
-print("Going to use the Dynamic Mean Field (DMF) model...")
+print("Going to use the Dynamic Mean Field (DMF) neuronal model...")
 
 # ==========================================================================
 # ==========================================================================
@@ -17,13 +17,14 @@ print("Going to use the Dynamic Mean Field (DMF) model...")
 # --------------------------------------------------------------------------
 taon = 100.
 taog = 10.
-gamma = 0.641
-JN = 0.15       # [nA] NMDA current
-I0 = 0.382  ##397;
+gamma_e = 0.641 / 1000
+gamma_i = 1. / 1000.
+J_NMDA = 0.15       # [nA] NMDA current
+I0 = 0.382  #.397  # [nA] overall effective external input
 Jexte = 1.
 Jexti = 0.7
 w = 1.4
-we = 2.1        # Global coupling scaling
+we = 2.1        # Global coupling scaling (G in the paper)
 
 # transfer functions:
 # --------------------------------------------------------------------------
@@ -55,15 +56,15 @@ Hi = phii
 
 # --------------------------------------------------------------------------
 # Simulation variables
-J = None    # WARNING: In general, J must be initialized outside!
 def initSim(N):
-    sn = 0.001 * np.ones((N, 1))  # Initialize sn (S^E in the paper)
-    sg = 0.001 * np.ones((N, 1))  # Initialize sg (S^I in the paper)
+    sn = 0.001 * np.ones(N)  # Initialize sn (S^E in the paper)
+    sg = 0.001 * np.ones(N)  # Initialize sg (S^I in the paper)
     return [sn, sg]
 
+J = None    # WARNING: In general, J must be initialized outside!
 def initJ(N):  # A bit silly, I know...
     global J
-    J = np.ones((N, 1))
+    J = np.ones(N)
 
 
 # Variables of interest, needed for bookkeeping tasks...
@@ -75,12 +76,12 @@ rn = None
 def dfun(simVars, C, I_external):
     global xn, rn
     [sn, sg] = simVars
-    xn = I0 * Jexte + w * JN * sn + we * JN * C @ sn - J * sg + I_external  # Eq for I^E (5). I_external = 0 => resting state condition.
-    xg = I0 * Jexti + JN * sn - sg  # Eq for I^I (6). \lambda = 0 => no long-range feedforward inhibition (FFI)
+    xn = I0 * Jexte + w * J_NMDA * sn + we * J_NMDA * C @ sn - J * sg + I_external  # Eq for I^E (5). I_external = 0 => resting state condition.
+    xg = I0 * Jexti + J_NMDA * sn - sg  # Eq for I^I (6). \lambda = 0 => no long-range feedforward inhibition (FFI)
     rn = He(xn)  # Calls He(xn). r^E = H^E(I^E) in the paper (7)
     rg = Hi(xg)  # Calls Hi(xg). r^I = H^I(I^I) in the paper (8)
-    dsn = -sn / taon + (1. - sn) * gamma * rn / 1000.
-    dsg = -sg / taog + rg / 1000.
+    dsn = -sn / taon + (1. - sn) * gamma_e * rn
+    dsg = -sg / taog + rg * gamma_i
     return [dsn, dsg]
 
 
@@ -96,8 +97,8 @@ nn = 0
 
 def initBookkeeping(N, tmax):
     global curr_xn, curr_rn, nn
-    curr_xn = np.zeros((tmax, N))
-    curr_rn = np.zeros((tmax, N))
+    curr_xn = np.zeros((int(tmax), N))
+    curr_rn = np.zeros((int(tmax), N))
     nn = 0
 
 
@@ -111,11 +112,8 @@ def recordBookkeeping(t):
     global curr_xn, curr_rn
     global nn
     if np.mod(t, ds) == 0:
-        # print(t,ds,nn)
-        curr_xn[nn] = xn.T - be/ae  # 125. / 310.  # record currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
-        # Ut[:, nn] = xn[0:N]  #excitatory synaptic activity
-        curr_rn[nn] = rn.T
-        # Rt[:, nn] = rn       #excitatory firing rate
+        curr_xn[nn] = xn.T  # excitatory synaptic activity
+        curr_rn[nn] = rn.T  # excitatory firing rate
         nn = nn + 1
 
 

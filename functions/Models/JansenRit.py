@@ -1,6 +1,7 @@
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================
+#
 # The Jansen and Rit is a biologically inspired mathematical framework
 # originally conceived to simulate the spontaneous electrical activity of
 # neuronal assemblies, with a particular focus on alpha activity, for instance,
@@ -40,12 +41,12 @@
 #      n = 7 \\
 #      w = 0.005 [s]
 #
+# ==========================================================================
+# ==========================================================================
 import numpy as np
 
-print("Going to use the Jansen-Rit model...")
+print("Going to use the Jansen-Rit neuronal model...")
 
-# ==========================================================================
-# ==========================================================================
 # ==========================================================================
 # Jansen and Rit Model Constants
 # --------------------------------------------------------------------------
@@ -66,17 +67,17 @@ a_1 = 1.0       # C1 = a_1 * C. Average probability of synaptic contacts in the 
 a_2 = 0.8       # C2 = a_2 * C. Average probability of synaptic contacts in the slow feedback excitatory loop.
 a_3 = 0.25      # C3 = a_3 * C. Average probability of synaptic contacts in the feedback inhibitory loop.
 a_4 = 0.25      # C4 = a_4 * C. Average probability of synaptic contacts in the slow feedback inhibitory loop.
-G = 2.1
+we = 2.1
 
 # --------------------------------------------------------------------------
 # Simulation variables
 def initSim(N):
-    y0 = 0.001 * np.zeros((N, 1))  # Initialize y1
-    y1 = 0.001 * np.zeros((N, 1))  # Initialize y1
-    y2 = 0.001 * np.zeros((N, 1))  # Initialize y1
-    y3 = 0.001 * np.zeros((N, 1))  # Initialize y1
-    y4 = 0.001 * np.zeros((N, 1))  # Initialize y1
-    y5 = 0.001 * np.zeros((N, 1))  # Initialize y1
+    y0 = 0.001 * np.zeros(N)  # Initialize y0
+    y1 = 0.001 * np.zeros(N)  # Initialize y1
+    y2 = 0.001 * np.zeros(N)  # Initialize y2
+    y3 = 0.001 * np.zeros(N)  # Initialize y3
+    y4 = 0.001 * np.zeros(N)  # Initialize y4
+    y5 = 0.001 * np.zeros(N)  # Initialize y5
     return [y0, y1, y2, y3, y4, y5]
 
 # Variables of interest, needed for bookkeeping tasks...
@@ -93,7 +94,7 @@ def dfun(simVars, Conn, p):  # p is the stimulus
     dy0 = y3
     dy3 = A * a * sigm(y1-y2) - 2.0 * a * y3 - a**2 * y0
     dy1 = y4
-    dy4 = A * a * (p + G * Conn @ sigm(v) + a_2*C * sigm(a_1*C*y0))       \
+    dy4 = A * a * (p + we * Conn @ sigm(v) + a_2*C * sigm(a_1*C*y0))       \
           - 2.0 * a * y4 - a**2 * y1
     dy2 = y5
     dy5 = B * b * (a_4*C * sigm(a_3*C*y0)) - 2.0 * b * y5 - b**2 * y2

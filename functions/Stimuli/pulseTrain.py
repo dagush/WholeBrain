@@ -8,6 +8,7 @@ import numpy as np
 
 print("Going to use an external PulseTrain stimulus...")
 
+# N = nothing at this moment....
 onset = 30.0
 T = 42.0
 tau = 13.0

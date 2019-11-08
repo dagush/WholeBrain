@@ -1,4 +1,5 @@
-
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # Implementation of the Euler-Maruyama Integrator
 # Based on the code from the paper:
 #
@@ -6,7 +7,7 @@
 # How local excitation-inhibition ratio impacts the whole brain dynamics
 # J. Neurosci., 34 (2014), pp. 7886-7898
 #
-#
+# --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 import numpy as np
 from functions.randn2 import randn2
@@ -23,7 +24,7 @@ verbose = True
 # --------------------------------------------------------------------------
 def randn(N):
     ra = randn2(N)
-    return ra.reshape(-1, 1)
+    return ra.reshape(-1)
 
 
 # # bookkeeping vars & methods -> Just forward them to the neuronal model we are using...
@@ -55,9 +56,6 @@ def integrate(dt, Tmaxneuronal, C, doBookkeeping = True):
             var[var > 1] = 1.  # clamp values to 0..1
             var[var < 0] = 0.
             simVars[varPos] = var
-            # sg = sg + dt * dsg + np.sqrt(dt) * sigma * randn(N)  # Euler-Maruyama integration for S^I (10).
-            # sg[sg > 1] = 1.  # clamp values to 0..1
-            # sg[sg < 0] = 0.
 
         if doBookkeeping:
             neuronalModel.recordBookkeeping(t)

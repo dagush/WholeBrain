@@ -25,7 +25,7 @@ import numpy as np
 def transform_abeta_exp(abeta, max_val=0.05, min_val=0.02, abeta_max=2.65, abeta_off=1.4):
     x_0 = (abeta_max - abeta_off) / 2 + abeta_off      # x value of  sigmoid midpoint
     k = np.log(max_val / ((min_val+0.001) - min_val) - 1) / (abeta_max - x_0)
-    return  max_val / (1 + np.exp(k * (abeta - x_0) )) + min_val
+    return max_val / (1 + np.exp(k * (abeta - x_0) )) + min_val
 
 
 # ======================================================================

@@ -22,7 +22,8 @@ import scipy.io as sio
 from pathlib import Path
 from scipy import signal
 import matplotlib.pyplot as plt
-from functions import Balance_J9, optimBOLD
+from functions import Balance_J9
+from Projects.OptimBOLD import optimBOLD
 from functions.Models import DynamicMeanField #, serotonin2A
 from functions import Integrator_EulerMaruyama as integrator
 from functions import simulateFCD

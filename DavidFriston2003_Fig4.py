@@ -2,8 +2,8 @@
 # ================================================================================================================
 # ================================================================================================================
 #                       Figure 4 from [DF_2003]
-# Olivier David, Karl J. Friston, “A neural mass model for MEG/EEG:: coupling and neuronal dynamics”, NeuroImage,
-# Volume 20, Issue 3, 2003, Pages 1743-1755, ISSN 1053-8119, https://doi.org/10.1016/j.neuroimage.2003.07.015.
+# [DF_2003] Olivier David, Karl J. Friston, “A neural mass model for MEG/EEG:: coupling and neuronal dynamics”, NeuroImage,
+#           Volume 20, Issue 3, 2003, Pages 1743-1755, ISSN 1053-8119, https://doi.org/10.1016/j.neuroimage.2003.07.015.
 #
 # In this example we examine the relationship between changes in the synaptic timescales and the dynamic behavior
 # of the Jansen-Rit model. Thereby, we systematically change the excitatory and inhibitory synaptic timescales and
@@ -11,8 +11,12 @@
 # operationalized as the response frequency band with the highest power-spectral density evaluated via the membrane
 # potential time traces of the pyramidal cell population.
 # Explanation taken from [PyRates]:
-# Gast, R., Daniel, R., Moeller, H. E., Weiskopf, N. and Knoesche, T. R. (2019). “PyRates – A Python Framework
-# for rate-based neural Simulations.” bioRxiv (https://www.biorxiv.org/content/10.1101/608067v2).
+# [PyRates] Gast, R., Daniel, R., Moeller, H. E., Weiskopf, N. and Knoesche, T. R. (2019). “PyRates – A Python Framework
+#           for rate-based neural Simulations.” bioRxiv (https://www.biorxiv.org/content/10.1101/608067v2).
+# Also
+# [SpieglerEtAl2013] Spiegler A1, Kiebel SJ, Atay FM, Knösche TR. (2010). "Bifurcation analysis of neural mass models:
+#           Impact of extrinsic inputs and dendritic time constants."
+#           Neuroimage. Sep;52(3):1041-58. doi: 10.1016/j.neuroimage.2009.12.081. Epub 2010 Jan 4.
 # ================================================================================================================
 import numpy as np
 import matplotlib.pyplot as plt
@@ -78,6 +82,7 @@ for idx_c, tau_e in enumerate(tau_es):
         print("Computing ({},{}) at ({},{})...".format(tau_e, tau_i, idx_c, idx_r), end='')
 
         # Simulate for a given combination of tau_e and tau_i
+        # This uses the definition by [SpieglerEtAl2013] & [PyRates], which are "similar" to the one used in [DF_2003]
         JR.A = H_e_orig*tau_e_orig/tau_e
         JR.B = H_i_orig*tau_i_orig/tau_i
         JR.a = 1./tau_e

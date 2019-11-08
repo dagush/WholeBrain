@@ -26,7 +26,9 @@ np.random.seed(42)  # Fix the seed for debug purposes...
 # Sensibility calibration test... repeat the SAME experiment over and over again,
 # and make a histogram out of the results. It should look like a gaussian...
 # =================================================================================
-# Results with 10000 samples:
+# Results with 10000 samples, Whole Brain (66 nodes):
+# Average= 145.36687427356048 std= 0.7647548023871196
+# Min= 142.10208360603139 Max= 148.59282327264825
 def testMultipleTimes(trials, we, C):
     targetFreq = 3.  # We want the firing rate to be at 3Hz
     def distTo3Hz(curr):
@@ -59,11 +61,12 @@ def testMultipleTimes(trials, we, C):
         results[n] = error
     avg = np.average(results)
     std = np.std(results)
+    print("Testing, multiple {} times... Finished!!!".format(trials))
     print("Average=", avg, "std=", std)
     print("Min=", np.min(results), "Max=", np.max(results))
 
     # the histogram of the data...
-    binwidth = 0.01
+    binwidth = 0.05
     bins = np.arange(np.min(results), np.max(results) + binwidth, binwidth)
     print('bins:', bins)
     n, bins, patches = plt.hist(results, bins=bins, facecolor='g')
@@ -79,39 +82,6 @@ def testMultipleTimes(trials, we, C):
     plt.show()
 
 
-# ======================================================================
-# ======================================================================
-# ======================================================================
-# def computeAllJs(C):
-#     # all tested global couplings (G in the paper):
-#     wStart = 0
-#     wEnd = 6 + 0.001  # 2
-#     wStep = 0.05
-#     wes = np.arange(wStart + wStep,
-#                     wEnd,
-#                     wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
-#     numW = wes.size  # length(wes);
-#
-#     # ==========================
-#     # Some monitoring info: initialization
-#     N = C.shape[0]
-#     JI=np.zeros((N,numW))
-#     Se_init = np.zeros((N,numW))
-#     Si_init = np.zeros((N,numW))
-#     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
-#         J = Balance_J9.JOptim(C, we)
-#         Se_init[:, kk] = integrator.simVars[0].reshape(N)  # Store steady states S^E (after many iterations/simulations) -> sn
-#         Si_init[:, kk] = integrator.simVars[1].reshape(N)   # Store steady states S^I -> sg
-#         JI[:,kk]=J
-#
-#     sio.savemat('Data_Produced/BenjiBalancedWeights-py.mat', #{'JI': JI})
-#                 {'wes': wes,
-#                  'JI': JI,
-#                  'Se_init': Se_init,
-#                  'Si_init': Si_init})  # save Benji_Balanced_weights wes JI Se_init Si_init
-#
-#     return JI
-
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================
@@ -122,13 +92,16 @@ integrator.verbose = False
 # print("phie",DMF.phie(I_e))
 # # result: phie 3.06308542427
 
-# Load connectome:
+# Load/build connectome:
 # --------------------------------
-CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
-C = CFile['C']
-# N = 1
-# C = np.zeros((N,N))
+# print('loading connectome: Data_Raw/Human_66.mat')
+# CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
+# C = CFile['C']
+print('Using single area (zero) connectome!!!')
+N = 1
+C = np.zeros((N,N))
 
+# --------------------------------
 testMultipleTimes(10000, 2.1, C)
 
 # JI = computeAllJs(C)

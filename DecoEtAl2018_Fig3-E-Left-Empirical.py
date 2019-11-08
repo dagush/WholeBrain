@@ -11,17 +11,17 @@
 #  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
 #
 #  Taken from the code (FCD_LSD_empirical.m) from:
-#    Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
-#    Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
-#    Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
-#    https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
+#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
+#       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
+#       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
+#       https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
 #
 #  Translated to Python & refactoring by Gustavo Patow
 # ==========================================================================
 # ==========================================================================
 import numpy as np
 import scipy.io as sio
-from functions import FCD
+import functions.FCD as FCD
 
 
 # set BOLD filter settings

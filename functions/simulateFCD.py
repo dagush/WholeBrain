@@ -62,6 +62,7 @@ def computeSubjectBOLD(neuro_act, areasToSimulate=None):
     bds = BOLD_act[step-1::step, :]
     return bds
 
+
 def simulateSingleSubject(C):
     N=C.shape[0]
     neuro_act = computeSubjectSimulation(C, N)

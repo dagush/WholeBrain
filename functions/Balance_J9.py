@@ -1,5 +1,6 @@
-#
-#
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # This prog. optimizes the strengh of the feedback inhibition of the FIC model
 # for a given global coupling (G)
 # Returns the feedback inhibition (J) (and the the steady states if wanted).
@@ -28,8 +29,8 @@
 # --------------------------------------------------------------------------
 
 import numpy as np
-from functions import Integrator_EulerMaruyama as integrator
-from functions.Models import DynamicMeanField as model
+# import functions.Integrator_EulerMaruyama
+integrator = None  # functions.Integrator_EulerMaruyama
 
 print("Going to use the Balanced J9 (FIC) mechanism...")
 
@@ -55,7 +56,7 @@ def updateJ(N, tmax, delta, curr, J):
 
 # =====================================
 # =====================================
-def JOptim(C):
+def JOptim(C, we):
     N = C.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
 
     # simulation fixed parameters:
@@ -63,15 +64,16 @@ def JOptim(C):
     dt = 0.1
     tmax = 10000
 
-    model.initJ(N)
+    integrator.neuronalModel.we = we
+    integrator.neuronalModel.initJ(N)
 
     # initialization:
     # -------------------------
     integrator.neuronalModel.initBookkeeping(N, tmax)
-    delta = 0.02 * np.ones((N, 1))
+    delta = 0.02 * np.ones(N)
 
     print()
-    print("we=", model.we)  # display(we)
+    print("we=", integrator.neuronalModel.we)  # display(we)
     print("  Trials:", end=" ", flush=True)
 
     ### Balance (greedy algorithm)
@@ -84,10 +86,11 @@ def JOptim(C):
         integrator.simulate(dt, Tmaxneuronal, C)
         print(k, end=",", flush=True)
 
-        flagJ = updateJ(N, tmax, delta, model.curr_xn, model.J)
+        currm = integrator.neuronalModel.curr_xn - integrator.neuronalModel.be/integrator.neuronalModel.ae  # be/ae==125./310. Records currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
+        flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)
         if flagJ:
             print('Out !!!', flush=True)
             break
 
-    return model.J
+    return integrator.neuronalModel.J
 
