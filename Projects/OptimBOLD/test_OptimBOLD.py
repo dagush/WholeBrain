@@ -1,12 +1,28 @@
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
+# Tests the routines in OptimBOLD. Based on the papers
 #
+# * K.J. Friston, L. Harrison, and W. Penny,
+#   Dynamic causal modelling, NeuroImage 19 (2003) 1273–1302
+# * Klaas Enno Stephan, Nikolaus Weiskopf, Peter M. Drysdale, Peter A. Robinson, and Karl J. Friston
+#   Comparing hemodynamic models with DCM, NeuroImage 38 (2007) 387–401
+#
+# Later revisited in
+# * Klaas Enno Stephan, Lars Kasper, Lee M. Harrison, Jean Daunizeau, Hanneke E.M. den Ouden, Michael Breakspear, and Karl J. Friston
+#   Nonlinear Dynamic Causal Models for fMRI, Neuroimage. 2008 Aug 15; 42(2): 649–662.
+#
+# Also, check:
+# * K.J. Friston, Katrin H. Preller, Chris Mathys, Hayriye Cagnan, Jakob Heinzle, Adeel Razi, Peter Zeidman
+#   Dynamic causal modelling revisited, NeuroImage 199 (2019) 730–744
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+
 import numpy as np
 import scipy.io as sio
 from pathlib import Path
 from scipy import signal
 import matplotlib.pyplot as plt
-from functions import Balance_J9
+from functions import Balance_J9, optimBOLD
 from functions.Models import DynamicMeanField #, serotonin2A
 from functions import Integrator_EulerMaruyama as integrator
 from functions import simulateFCD
@@ -14,7 +30,6 @@ from functions import BOLDHemModel_Stephan2008
 from functions.Utils import errorMetrics
 from functions import BOLDFilters
 import time
-import optimBOLD
 
 integrator.neuronalModel = DynamicMeanField
 DynamicMeanField.we = 2.1  # Global Coupling parameter
@@ -232,8 +247,8 @@ def fitSubject(BOLDSignal, rangeToTest):
         rangeToTest = range(N)
     else:
         N = len(rangeToTest)
-    results = np.zeros([N,optimBOLD.numVars])
-    perrs = np.zeros([N,optimBOLD.numVars])
+    results = np.zeros([N, optimBOLD.numVars])
+    perrs = np.zeros([N, optimBOLD.numVars])
     errors = np.zeros(N)
     print("Going to process {} areas".format(N))
     for pos, area in enumerate(rangeToTest):
