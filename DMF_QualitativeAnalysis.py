@@ -91,7 +91,7 @@ else:
 
     numA.plotFancyBifurcationDiagram(numDMF, setControlParmDMF, parmsDMF(),
                                      interval, lbda_space, brute_force=True, index=0,
-                                     drawNullclines=False, fullBifurcationEvaluations=20)
+                                     drawNullclines=True, fullBifurcationEvaluations=20)
 
 # ==========================================================================
 # ==========================================================================
