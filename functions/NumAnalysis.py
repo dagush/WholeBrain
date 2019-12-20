@@ -219,7 +219,7 @@ def fixedPoints(func, interval, n_grid=30, TOLERANCE = 1e-5):
 # --------------------------------------------------------------------------
 # Given an initial position, computes the continuation of `F(u, lambda) = 0`
 # --------------------------------------------------------------------------
-def numerical_continuation(f, set_lbda, initial_u, lbda_values):
+def numerical_continuation(f, set_lbda_func, initial_u, lbda_values):
     """ Find the roots of the parametrised non linear equation.
 
     Iteratively find approximate solutions of `F(u, lambda) = 0`
@@ -239,7 +239,7 @@ def numerical_continuation(f, set_lbda, initial_u, lbda_values):
         https://www.normalesup.org/~doulcier/teaching/modeling/bistable_systems.html
     """
     def func(x,lbda):
-        set_lbda(lbda)
+        set_lbda_func(lbda)
         return f(x,lbda)
     eq = []
     for lbda in lbda_values:
@@ -248,18 +248,17 @@ def numerical_continuation(f, set_lbda, initial_u, lbda_values):
     return eq
 
 
-def get_branches(func, set_lbda, starting_points, lbda_space, index=0):
+def get_branches(func, set_lbda_func, starting_points, lbda_space):
     def stability_fixedPoint_lbda(x, lbda):
-        set_lbda(lbda)
+        set_lbda_func(lbda)
         return stability_fixedPoint(func, x)
 
     branches = []
     for init in starting_points:
         # Perform numerical continuation.
-        equilibrium = numerical_continuation(func, set_lbda, np.array(init), lbda_space)
+        equilibrium = numerical_continuation(func, set_lbda_func, np.array(init), lbda_space)
         nature = [stability_fixedPoint_lbda(x, lbda) for (x, lbda) in zip(equilibrium, lbda_space)]
-        branches.append((np.array([x[index] for x in equilibrium]),
-                         nature))
+        branches.append((equilibrium, nature))
     return branches
 
 
@@ -582,7 +581,7 @@ def get_segments(values):
     return segments
 
 
-def plot_bifurcation(ax, branches, lbdaspace):
+def plot_bifurcation(ax, model, branches, lbdaspace):
     """Function to draw nice bifurcation graph
     Args:
         ax: object of the plt.subplots
@@ -595,33 +594,15 @@ def plot_bifurcation(ax, branches, lbdaspace):
         labels = labels.union(frozenset(nature))
         segments = get_segments(nature)
         for idx, n in segments.items():
-            ax.plot(lbdaspace[idx[0]:idx[1]+1], equilibrium[idx[0]:idx[1]+1],
+            # xdebug = equilibrium[idx[0]]
+            # ydebug = model.getObservationVar(xdebug)[0]
+            # xdebug2 = equilibrium[idx[1]]
+            # ydebug2 = model.getObservationVar(xdebug2)[0]
+            yValues = [model.getObservationVar(x,lbda)[0] for x,lbda in zip(equilibrium[idx[0]:idx[1]+1], lbdaspace[idx[0]:idx[1]+1])]
+            ax.plot(lbdaspace[idx[0]:idx[1]+1], yValues,
                      color=EQUILIBRIUM_COLOR[n] if n in EQUILIBRIUM_COLOR else 'k')
     handles = [mpatches.Patch(color=EQUILIBRIUM_COLOR[n]) for n in labels]
     return ax, handles, labels
-
-
-# def plot_equilibriumVsLambda(ax, f, fixedPoints, lbda, legend=True, index=0):
-#     """Draw equilibrium points at position with the color
-#        corresponding to their nature
-#     Adapted from:
-#         https://www.normalesup.org/~doulcier/teaching/modeling/bistable_systems.html
-#     """
-#     equilibria_nature = []
-#     for fp in fixedPoints:
-#         equilibria_nature.append(stability_fixedPoint(f, fp))
-#         # print("{} in ({} {})".format(equilibria_nature[-1], *fp))
-#     for pos, nat in zip(fixedPoints, equilibria_nature):
-#         ax.scatter(lbda, pos[index],
-#                    color= (EQUILIBRIUM_COLOR[nat]
-#                            if nat in EQUILIBRIUM_COLOR
-#                            else 'k'),
-#                    zorder=100)
-#     if legend:
-#         # Draw a legend for the equilibrium types that were used.
-#         labels = list(frozenset(equilibria_nature))
-#         ax.legend([mpatches.Patch(color=EQUILIBRIUM_COLOR[n]) for n in labels], labels)
-#     return ax
 
 
 # ==========================================================================
@@ -656,7 +637,7 @@ def plotODEInt(f, parms, initialCond):
 # Main plotting method, just an utility to quickly plot ODE Phase Planes
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
-def plotPhasePlane(ax, f, parms, interval, trajectories=[], background='flow', drawNullclines=True):
+def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', drawNullclines=True):
     print('=====================================')
     print('==        Phase plane analysis     ==')
     print('=====================================')
@@ -664,6 +645,7 @@ def plotPhasePlane(ax, f, parms, interval, trajectories=[], background='flow', d
     # plt.rcParams.update({'font.size': 15})
     # fig, ax = plt.subplots(1, 1)
     # parms, eq = f()
+    parms = model.parmNames()
     ax.set_xlabel(parms[0])
     ax.set_ylabel(parms[1])
     ax.set_aspect('equal')
@@ -679,27 +661,27 @@ def plotPhasePlane(ax, f, parms, interval, trajectories=[], background='flow', d
     # ax.set_xlim(interval['left'], interval['right'])
     # ax.set_ylim(interval['bottom'], interval['top'])
     if background == 'flow':
-        ax = plot_flow_field(ax, f, interval)
+        ax = plot_flow_field(ax, model.dfun, interval)
     elif background == 'quiver':
-        ax = plot_quiverplot(ax, f, interval)
+        ax = plot_quiverplot(ax, model.dfun, interval)
     if drawNullclines:
-        ax = plot_nullclines(ax, f, interval)
-    ax = plot_separatrix(ax, f, interval)
-    ax = plot_equilibrium_points(ax, f, interval)
+        ax = plot_nullclines(ax, model.dfun, interval)
+    ax = plot_separatrix(ax, model.dfun, interval)
+    ax = plot_equilibrium_points(ax, model.dfun, interval)
     # ax = plot_equilibrium_points2(ax, f, interval)
 
     # Add some trajectories
     t = np.linspace(0, 100, 400)
     for origin in trajectories:
-        ax = plot_traj(ax, f, np.array(origin), t)
+        ax = plot_traj(ax, model.dfun, np.array(origin), t)
 
     return ax
 
 
-def plot_PhasePlane_Only(f, parms, interval, trajectories=[], background='flow', drawNullclines=True):
+def plot_PhasePlane_Only(model, interval, trajectories=[], background='flow', drawNullclines=True):
     plt.rcParams.update({'font.size': 15})
     fig, ax = plt.subplots(1,1,figsize=(12,5))
-    ax = plotPhasePlane(ax, f, parms, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
+    ax = plotPhasePlane(ax, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
     plt.show()
 
 # --------------------------------------------------------------------------
@@ -707,17 +689,17 @@ def plot_PhasePlane_Only(f, parms, interval, trajectories=[], background='flow',
 # Main plotting method, just an utility to quickly plot ODE Phase Planes
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
-def plotBruteForce_BifurcationDiagram(ax, f, set_lbda, interval, lbda_space, index=0, fullEvaluations=10):
+def plotBifurcationDiagram(ax, model, interval, lbda_space, fullEvaluations=10):
     handles = []; labels = []
     real_lbda_space = lbda_space[::fullEvaluations]
     real_lbda_space = np.append(real_lbda_space, lbda_space[-1])
-    set_lbda(real_lbda_space[0])
-    lastFixedPoints = fixedPoints(f, interval)
+    model.setControlParm(real_lbda_space[0])
+    lastFixedPoints = fixedPoints(model.dfun, interval)
     lastFixedPointCount = len(lastFixedPoints)
     print("Start with {} fixed points".format(lastFixedPoints))
     for pos, lbda in enumerate(real_lbda_space[1:], 1):  # Start from the second element, as the first one is already done!
-        set_lbda(lbda)
-        fps = fixedPoints(f, interval)
+        model.setControlParm(lbda)
+        fps = fixedPoints(model.dfun, interval)
         reduced_lbda_space = lbda_space[(pos-1)*fullEvaluations:pos*fullEvaluations+1]
         if len(fps) > lastFixedPointCount:
             print("Change at {} to {}".format(lbda, len(fps)))
@@ -725,60 +707,47 @@ def plotBruteForce_BifurcationDiagram(ax, f, set_lbda, interval, lbda_space, ind
             fixedPointsToUse = fps
         else:
             fixedPointsToUse = lastFixedPoints
-        # print("I_ext={} ".format(lbda), end='')
-        branches = get_branches(f, set_lbda, fixedPointsToUse, reduced_lbda_space, index=index)
-        ax, handleslbda, labelslbda = plot_bifurcation(ax, branches, reduced_lbda_space)
+        # OK, let's compute the branches starting from each fixed point...
+        branches = get_branches(model.dfun, model.setControlParm, fixedPointsToUse, reduced_lbda_space)
+        ax, handleslbda, labelslbda = plot_bifurcation(ax, model, branches, reduced_lbda_space)
+        # Now, let's CAREFULLY merge all the labels and handles...
         handles = handles + [i for (i,j) in zip(handleslbda, labelslbda) if j not in labels]
         labels = labels + [j for (i,j) in zip(handleslbda, labelslbda) if j not in labels]
         lastFixedPoints = fps
         lastFixedPointCount = len(fps)
-        # plot_equilibriumVsLambda(ax, f, fps, lbda, index=index)
-    return ax, handles, labels
-
-
-def plotBifurcationDiagram(ax, f, set_lbda, parms, interval, lbda_space, brute_force=False, index=0, fullEvaluations=10):
-    if brute_force:
-        ax, handles, labels = plotBruteForce_BifurcationDiagram(ax, f, set_lbda, interval, lbda_space,
-                                                                index=index, fullEvaluations=fullEvaluations)
-    else:
-        set_lbda(lbda_space[0])
-        starting_points = fixedPoints(f, interval)
-        branches = get_branches(f, set_lbda, starting_points, lbda_space, index=index)
-        ax, handles, labels = plot_bifurcation(ax, branches, lbda_space)
     ax.legend(handles, labels)
-    ax.set(xlabel='$I_{ext}$', ylabel=parms[index])
+    ax.set(xlabel=model.getControlParmName(), ylabel=model.getObservationVarName())
     return ax
 
 
-def plot_BifurcationDiagram_Only(f, set_lbda, parms, interval, lbda_space, brute_force=False, index=0, fullEvaluations=10):
+def plot_BifurcationDiagram_Only(model, interval, lbda_space, index=0, fullBifurcationEvaluations=10):
     plt.rcParams.update({'font.size': 15})
     fig, ax = plt.subplots(1,1,figsize=(12,5))
-    ax = plotBifurcationDiagram(ax, f, set_lbda, parms, interval, lbda_space, brute_force=brute_force, index=index, fullEvaluations=fullEvaluations)
+    ax = plotBifurcationDiagram(ax, model, interval, lbda_space, fullEvaluations=fullBifurcationEvaluations)
     plt.show()
 
 
-def plotFancyBifurcationDiagram(f, set_lbda, parms, interval, lbda_space,
-                                brute_force=False, index=0, trajectories=[],
-                                background='flow', drawNullclines=True, fullBifurcationEvaluations=10):
+def plotFancyBifurcationDiagram(model, interval, lbda_space,
+                                trajectories=[], background='flow', drawNullclines=True, fullBifurcationEvaluations=10):
     plt.rcParams.update({'font.size': 15})
     fig = plt.figure(constrained_layout=True)
     grid = plt.GridSpec(2, 3, wspace=0.4, hspace=0.3)
 
     ax1 = fig.add_subplot(grid[0,0])
-    set_lbda(lbda_space[0])
-    ax1 = plotPhasePlane(ax1, f, parms, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
+    model.setControlParm(lbda_space[0])
+    ax1 = plotPhasePlane(ax1, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
 
     ax2 = fig.add_subplot(grid[0,1])
-    set_lbda(lbda_space[int(len(lbda_space)/2)])
-    ax2 = plotPhasePlane(ax2, f, parms, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
+    model.setControlParm(lbda_space[int(len(lbda_space)/2)])
+    ax2 = plotPhasePlane(ax2, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
 
     ax3 = fig.add_subplot(grid[0,2])
-    set_lbda(lbda_space[-1])
-    ax3 = plotPhasePlane(ax3, f, parms, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
+    model.setControlParm(lbda_space[-1])
+    ax3 = plotPhasePlane(ax3, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
 
     ax4 = fig.add_subplot(grid[1, :])
-    ax4 = plotBifurcationDiagram(ax4, f, set_lbda, parms, interval, lbda_space,
-                                 brute_force=brute_force, index=index, fullEvaluations=fullBifurcationEvaluations)
+    ax4 = plotBifurcationDiagram(ax4, model, interval, lbda_space,
+                                 fullEvaluations=fullBifurcationEvaluations)
     ax4.axvline(x=lbda_space[0], color='k', linestyle='--')
     ax4.axvline(x=lbda_space[int(len(lbda_space)/2)], color='k', linestyle='--')
     ax4.axvline(x=lbda_space[-1], color='k', linestyle='--')
