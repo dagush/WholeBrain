@@ -38,8 +38,9 @@ for pos, JR.C in enumerate([68., 128., 135., 270., 675., 1350.]):
     print("Computing {} with {}...".format(pos,JR.C))
 
     # Simulate for a given JR.C
+    JR.SC = Conn
     JR.initBookkeeping(N, tmax)
-    integrator.simulate(dt, Tmaxneuronal, Conn)
+    integrator.simulate(dt, Tmaxneuronal)
     v = JR.returnBookkeeping()
 
     # Plot the results!!!

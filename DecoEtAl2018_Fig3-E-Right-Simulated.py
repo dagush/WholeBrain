@@ -63,7 +63,7 @@ neuronalModel.Hi = serotonin2A.phii
 # Load Regional Drug Receptor Map
 print('Loading Data_Raw/mean5HT2A_bindingaal.mat')
 mean5HT2A_aalsymm = sio.loadmat('Data_Raw/mean5HT2A_bindingaal.mat')['mean5HT2A_aalsymm']
-serotonin2A.Receptor = (mean5HT2A_aalsymm[:,0]/np.max(mean5HT2A_aalsymm[:,0])).reshape((-1,1))
+serotonin2A.Receptor = (mean5HT2A_aalsymm[:,0]/np.max(mean5HT2A_aalsymm[:,0])).flatten()
 
 
 # ============================================================================
@@ -75,14 +75,15 @@ serotonin2A.wgaini = 0.  # Placebo conditions, to calibrate the J's...
 serotonin2A.wgaine = 0.
 # ==== J is calculated this only once, then saved
 if not Path("Data_Produced/J_Balance.mat").is_file():
-    from functions import Balance_J9
+    from functions import BalanceFIC
+    BalanceFIC.integrator = integrator
     print("Computing Data_Produced/J_Balance !!!")
-    neuronalModel.J=Balance_J9.JOptim(C) # This is the Feedback Inhibitory Control
+    neuronalModel.J=BalanceFIC.JOptim(C).flatten()  # This is the Feedback Inhibitory Control
     sio.savemat('Data_Produced/J_Balance.mat', {'J': neuronalModel.J})  # save J_Balance J
 else:
     print("Loading Data_Produced/J_Balance !!!")
     # ==== J can be calculated only once and then load J_Balance J
-    neuronalModel.J = sio.loadmat('Data_Produced/J_Balance.mat')['J']
+    neuronalModel.J = sio.loadmat('Data_Produced/J_Balance.mat')['J'].flatten()
 
 np.random.seed(13)
 
@@ -107,7 +108,7 @@ else:
 # ============= Simulate LSD =================================================
 # ============================================================================
 
-if True: #not Path("FCD_values_lsd.mat").is_file():
+if True: #not Path("Data_Produced/FCD_values_lsd.mat").is_file():
     # SIMULATION OF OPTIMAL LSD fit
     print("SIMULATION OF OPTIMAL LSD fit ")
     wge = 0.2 # 0 for placebo, 0.2 for LSD

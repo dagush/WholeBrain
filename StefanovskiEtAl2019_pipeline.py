@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 from functions.Models import Abeta_StefanovskiEtAl2019 as Abeta
 from functions.Models import JansenRit as JR
 
-
 integrator = None
 # Integration parms...
 dt = 5e-5
@@ -53,7 +52,7 @@ def configSim(abeta_burden):
     # omitting any time delay between regions -> not needed in my implementation...
     # white_matter = connectivity.Connectivity(weights=SCnorm, tract_lengths=np.zeros(SCnorm.shape))
 
-    # set up the simulator -> Already done un my implementation...
+    # set up the simulator -> Already done in my implementation...
     # adjust the simulation_length to your needs/ available computation time
     # in the paper a simulation_length of 120000 was used
     # but only the 2nd minute was used in the analysis to cut out possible transients
@@ -184,19 +183,8 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
 visualizeAll = True
 if __name__ == '__main__':
     plt.rcParams.update({'font.size': 22})
-    # Cause-and-effect model for Abeta: sigmoidal transfer function
-    # --------------------------------------------------------------
-    # visualize
-    if visualizeAll:
-        # Plot Figure 3 in [StefanovskiEtAl2019]
-        x = np.arange(1., 3, 0.01)
-        plt.plot(x, Abeta.transform_abeta_exp(x))
-        plt.xlabel("Abeta PET SUVR")
-        plt.ylabel("inhibitory rate b")
-        plt.suptitle("Sigmoidal transfer function", fontweight="bold", fontsize="18", y = 1.05)
-        plt.grid()
-        plt.show()
-
+    # for the visualization of the ABeta curve, look the file StefanovskiEtAl2019_Fig3.py
+    # ------------------------------------------------
     # Load individual Abeta PET SUVRs
     # ------------------------------------------------
     # select the subject you want to simulate

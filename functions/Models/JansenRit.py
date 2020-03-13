@@ -68,6 +68,7 @@ a_2 = 0.8       # C2 = a_2 * C. Average probability of synaptic contacts in the 
 a_3 = 0.25      # C3 = a_3 * C. Average probability of synaptic contacts in the feedback inhibitory loop.
 a_4 = 0.25      # C4 = a_4 * C. Average probability of synaptic contacts in the slow feedback inhibitory loop.
 we = 2.1
+SC = None       # Structural connectivity (should be provided externally)
 
 # --------------------------------------------------------------------------
 # Simulation variables
@@ -87,14 +88,14 @@ v = None
 def sigm(y):
     return 2.0 * e_0 / (1.0 + np.exp(r * (v0 - y)))
 
-def dfun(simVars, Conn, p):  # p is the stimulus
+def dfun(simVars, p):  # p is the stimulus
     global v
     [y0, y1, y2, y3, y4, y5] = simVars
     v = y1 - y2
     dy0 = y3
     dy3 = A * a * sigm(y1-y2) - 2.0 * a * y3 - a**2 * y0
     dy1 = y4
-    dy4 = A * a * (p + we * Conn @ sigm(v) + a_2*C * sigm(a_1*C*y0))       \
+    dy4 = A * a * (p + we * SC @ sigm(v) + a_2*C * sigm(a_1*C*y0))       \
           - 2.0 * a * y4 - a**2 * y1
     dy2 = y5
     dy5 = B * b * (a_4*C * sigm(a_3*C*y0)) - 2.0 * b * y5 - b**2 * y2

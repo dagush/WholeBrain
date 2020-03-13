@@ -87,8 +87,9 @@ for idx_c, tau_e in enumerate(tau_es):
         JR.B = H_i_orig*tau_i_orig/tau_i
         JR.a = 1./tau_e
         JR.b = 1./tau_i
+        JR.SC = Conn
         JR.initBookkeeping(N, tmax)
-        integrator.simulate(dt, Tmaxneuronal, Conn)
+        integrator.simulate(dt, Tmaxneuronal)
         v = JR.returnBookkeeping()
 
         lowCut = int(1./JR.ds)  # Ignore the first steps for warm-up...

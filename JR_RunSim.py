@@ -11,7 +11,7 @@ JR = None  # importlib.import_module("functions.Models.JansenRit+FIC")
 import functions.Integrator_Euler as integrator
 # integrator.neuronalModel = JR
 integrator.clamping = False
-import functions.Balance_J9 as Balance_J9
+import functions.BalanceFIC as Balance_J9
 Balance_J9.integrator = integrator
 
 
@@ -22,8 +22,9 @@ Tmaxneuronal = int((tmax+dt))
 
 def runSim(Conn):
     N = Conn.shape[0]
+    JR.SC = Conn
     JR.initBookkeeping(N, tmax)
-    integrator.simulate(dt, Tmaxneuronal, Conn)
+    integrator.simulate(dt, Tmaxneuronal)
     v = JR.returnBookkeeping()
 
     freqs, power = fft.fft(v, JR.ds)  # we make use of linearity of the fft to avoid too high values...
@@ -41,8 +42,9 @@ def runSim2(Conn):
     import scipy.signal as sig
 
     N = Conn.shape[0]
+    JR.SC = Conn
     JR.initBookkeeping(N, tmax)
-    integrator.simulate(dt, Tmaxneuronal, Conn)
+    integrator.simulate(dt, Tmaxneuronal)
     v = JR.returnBookkeeping()
     PSP = v[400:,:]
 

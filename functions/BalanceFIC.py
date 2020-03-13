@@ -32,6 +32,9 @@ import numpy as np
 # import functions.Integrator_EulerMaruyama
 integrator = None  # functions.Integrator_EulerMaruyama
 
+veryVerbose = False
+verbose = True
+
 print("Going to use the Balanced J9 (FIC) mechanism...")
 
 def updateJ(N, tmax, delta, curr, J):
@@ -40,6 +43,8 @@ def updateJ(N, tmax, delta, curr, J):
     # This is the "averaged level of the input of the local excitatory pool of each brain area,
     # i.e., I_i^{(E)}" in the text (pp 7889, right column, subsection "FIC").
     flag = 0
+    if veryVerbose: print()
+    if veryVerbose: print("[", end='')
     for n in range(N):
         if np.abs(currm[n] + 0.026) > 0.005:  # if currm_i < -0.026 - 0.005 or currm_i > -0.026 + 0.005 (a tolerance)
             if currm[n] < -0.026:  # if currm_i < -0.026
@@ -47,16 +52,22 @@ def updateJ(N, tmax, delta, curr, J):
                 delta[n] = delta[n] - 0.001
                 if delta[n] < 0.001:
                     delta[n] = 0.001
+                if veryVerbose: print("v", end='')
             else:  # if currm_i >= -0.026 (in the paper, it reads =)
                 J[n] = J[n] + delta[n]  # up-regulate
+                if veryVerbose: print("^", end='')
         else:
             flag = flag + 1
-    return flag == N
+            if veryVerbose: print("-", end='')
+    if veryVerbose: print("]")
+    return flag
 
 
 # =====================================
 # =====================================
-def JOptim(C, we):
+# Computes the optimum of the J_i for a given structural connectivity matrix C and
+# a coupling coefficient G, which should be set externally directly at the neuronal model.
+def JOptim(C):
     N = C.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
 
     # simulation fixed parameters:
@@ -64,33 +75,46 @@ def JOptim(C, we):
     dt = 0.1
     tmax = 10000
 
-    integrator.neuronalModel.we = we
+    # integrator.neuronalModel.we = we
     integrator.neuronalModel.initJ(N)
 
     # initialization:
     # -------------------------
+    integrator.neuronalModel.SC = C
     integrator.neuronalModel.initBookkeeping(N, tmax)
     delta = 0.02 * np.ones(N)
 
-    print()
-    print("we=", integrator.neuronalModel.we)  # display(we)
-    print("  Trials:", end=" ", flush=True)
+    if verbose:
+        print()
+        print("we=", integrator.neuronalModel.we)  # display(we)
+        print("  Trials:", end=" ", flush=True)
 
     ### Balance (greedy algorithm)
     # note that we used stochastic equations to estimate the JIs
     # Doing that gives more stable solutions as the JIs for each node will be
     # a function of the variance.
+    bestJ = np.ones(N); bestJCount = -1; bestTrial = -1
     for k in range(5000):  # 5000 trials
         integrator.neuronalModel.resetBookkeeping()
         Tmaxneuronal = int((tmax+dt))  # (tmax+dt)/dt, but with steps of 1 unit...
-        integrator.simulate(dt, Tmaxneuronal, C)
-        print(k, end=",", flush=True)
+        # integrator.simulate(dt, Tmaxneuronal)
+        integrator.warmUpAndSimulate(dt, Tmaxneuronal)
+        if verbose: print(k, end='', flush=True)
 
         currm = integrator.neuronalModel.curr_xn - integrator.neuronalModel.be/integrator.neuronalModel.ae  # be/ae==125./310. Records currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
         flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)
-        if flagJ:
-            print('Out !!!', flush=True)
+        if verbose: print("({})".format(flagJ), end='', flush=True)
+        if flagJ > bestJCount:
+            bestJCount = flagJ
+            bestJ = integrator.neuronalModel.J
+            bestTrial = k
+            if verbose: print(' New min!!!', end='', flush=True)
+        if flagJ == N:
+            if verbose: print('Out !!!', flush=True)
             break
+        else:
+            if verbose: print(', ', end='', flush=True)
 
-    return integrator.neuronalModel.J
+    if verbose: print("\nFinal (we={}): {} trials, with {}/{} nodes solved at trial {}".format(integrator.neuronalModel.we, k, bestJCount, N, bestTrial))
+    return bestJ
 

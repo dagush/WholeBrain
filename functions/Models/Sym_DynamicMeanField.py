@@ -25,6 +25,8 @@ Jexte = 1.
 Jexti = 0.7
 w = 1.4
 we = 2.1        # Global coupling scaling (G in the paper)
+SC = None       # Structural connectivity (should be provided externally)
+
 
 # transfer functions:
 # --------------------------------------------------------------------------
@@ -54,11 +56,12 @@ def phii(x):
 He = phie
 Hi = phii
 
+J = None    # WARNING: In general, J must be initialized outside!
 
 # ----------------- Dynamic Mean Field (a.k.a., reducedWongWang) ----------------------
-def dfun(simVars, C, I_external):
+def dfun(simVars, I_external):
     [sn, sg] = simVars
-    xn = I0 * Jexte + w * J_NMDA * sn + we * J_NMDA * (C * sn) - J * sg + I_external  # Eq for I^E (5). I_external = 0 => resting state condition.
+    xn = I0 * Jexte + w * J_NMDA * sn + we * J_NMDA * (SC * sn) - J * sg + I_external  # Eq for I^E (5). I_external = 0 => resting state condition.
     xg = I0 * Jexti + J_NMDA * sn - sg  # Eq for I^I (6). \lambda = 0 => no long-range feedforward inhibition (FFI)
     rn = He(xn)  # Calls He(xn). r^E = H^E(I^E) in the paper (7)
     rg = Hi(xg)  # Calls Hi(xg). r^I = H^I(I^I) in the paper (8)

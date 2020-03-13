@@ -15,21 +15,26 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import matplotlib.patches as mpatches #used to write custom legends
 
+trajectoyLength = 500
+
 # ==========================================================================
 # ==========================================================================
 # EVALUATION FUNCTIONS
 # ==========================================================================
 # ==========================================================================
 def Jac(f, x, dx=1e-8):
-    n = len(x)
-    t = 0.
-    fx = f(x, t)
-    jac = np.zeros((n, n))
-    for j in range(n): #through columns to allow for vector addition
-        Dxj = (abs(x[j])*dx if x[j] != 0 else dx)
-        x_plus = [(xi if k != j else xi+Dxj) for k, xi in enumerate(x)]
-        jac[:, j] = (f(x_plus, t)-fx)/Dxj
-    return jac
+    # n = len(x)
+    # t = 0.
+    # fx = f(x, t)
+    # jac = np.zeros((n, n))
+    # for j in range(n): #through columns to allow for vector addition
+    #     Dxj = (abs(x[j])*dx if x[j] != 0 else dx)
+    #     x_plus = [(xi if k != j else xi+Dxj) for k, xi in enumerate(x)]
+    #     jac[:, j] = (f(x_plus, t)-fx)/Dxj
+    # return jac
+    import numdifftools as nd
+    J = nd.Jacobian(f)
+    return J(x)
 
 
 # -----------------------------------------------------------------------------
@@ -217,6 +222,36 @@ def fixedPoints(func, interval, n_grid=30, TOLERANCE = 1e-5):
 
 
 # --------------------------------------------------------------------------
+# finds limit cycles
+# --------------------------------------------------------------------------
+def findLimitCycles(model, fixedPoints, interval, n_grid=10):
+    def isFixedPoint(x):
+        return any(np.isnan(x)) or \
+               any([all(np.isclose(x, e, rtol=1e-3, atol=1e-3)) for e in fixedPoints])
+    def alreadySeen(bbox):
+        return [np.isclose(bbox, e, rtol=1e-3) for e in limitCycles]
+
+    # Set up u,v space
+    u = np.linspace(interval['left'], interval['right'], n_grid)
+    v = np.linspace(interval['bottom'], interval['top'], n_grid)
+    uu, vv = np.meshgrid(u, v)
+
+    limitCycles = []
+
+    t = np.linspace(0, 100, trajectoyLength)
+    for i in range(uu.shape[0]):
+        for j in range(uu.shape[1]):
+            y = computeTrajectory(model.dfun, np.array([uu[i,j], vv[i,j]]), t=t)  # fsolve(eq, np.array([uu[i,j], vv[i,j]]), args=0.)
+            lastPoint = y[-1]
+            minValues = np.min(y[300:], axis=0); maxValues = np.max(y[300:], axis=0)
+            bbox = np.array([minValues, maxValues])
+            if not isFixedPoint(lastPoint):
+                if not alreadySeen(bbox):
+                    limitCycles.append(bbox)
+    return limitCycles
+
+
+# --------------------------------------------------------------------------
 # Given an initial position, computes the continuation of `F(u, lambda) = 0`
 # --------------------------------------------------------------------------
 def numerical_continuation(f, set_lbda_func, initial_u, lbda_values):
@@ -260,6 +295,38 @@ def get_branches(func, set_lbda_func, starting_points, lbda_space):
         nature = [stability_fixedPoint_lbda(x, lbda) for (x, lbda) in zip(equilibrium, lbda_space)]
         branches.append((equilibrium, nature))
     return branches
+
+
+def computeTrajectory(f, y0, t, args=()):
+    # print('===================================== computing trajectories:', y0)
+    """
+    computes a trajectory on a phase portrait.
+
+    Parameters
+    ----------
+    f : function for form f(y, t, *args)
+        The right-hand-side of the dynamical system.
+        Must return a 2-array.
+    y0 : array_like, shape (2,)
+        Initial condition.
+    t : array_like
+        Time points for trajectory.
+    args : tuple, default ()
+        Additional arguments to be passed to f
+    n_grid : int, default 100
+        Number of grid points to use in computing
+        derivatives on phase portrait.
+
+    Returns
+    -------
+    output : the integrated trajectory
+    """
+    def rhs(ab, t):
+        # Unpack variables
+        return f(ab, t)
+
+    y = scipy.integrate.odeint(rhs, y0, t, args=args)
+    return y
 
 
 # ==========================================================================
@@ -315,12 +382,19 @@ def plot_traj(ax, f, y0, t, args=(), color='black', lw=2):
     output : Matplotlib Axis instance
         Axis with streamplot included.
     """
-    def rhs(ab, t):
-        # Unpack variables
-        return f(ab, t)
-
-    y = scipy.integrate.odeint(rhs, y0, t, args=args)
+    y = computeTrajectory(f, y0, t, args=args)
     ax.plot(*y.transpose(), color=color, lw=lw)
+    return ax
+
+
+# --------------------------------------------------------------------------
+# plots limit cycles
+# --------------------------------------------------------------------------
+def plotLimitCycles(ax, model, fixedPts, interval, lmbda):
+    limits = findLimitCycles(model, fixedPts, interval, n_grid=10)
+    for lim in limits:
+        ax.scatter(lmbda, model.selectObservationVar(lim[0]))
+        ax.scatter(lmbda, model.selectObservationVar(lim[1]))
     return ax
 
 
@@ -352,7 +426,7 @@ def plot_separatrix(ax, f, interval, t_max=30, eps=1e-6,
         return ax
 
     # Parameters for building separatrix
-    t = np.linspace(0, t_max, 400)
+    t = np.linspace(0, t_max, trajectoyLength)
 
     for fp in fps:
         if classify_fixedPoint(f, fp) == UNSTABLE_FP:
@@ -372,6 +446,7 @@ def plot_separatrix(ax, f, interval, t_max=30, eps=1e-6,
             ax.plot(sep_a, sep_b, '-', color=color, lw=lw)
 
     return ax
+
 
 # --------------------------------------------------------------------------
 # Plots the flow field with line thickness proportional to speed.
@@ -621,7 +696,7 @@ def plotODEInt(f, parms, initialCond):
 
     # Solve
     #parms, eq = f()
-    t = np.linspace(0, 100, 600)
+    t = np.linspace(0, 100, trajectoyLength)
     ab = scipy.integrate.odeint(f, initialCond, t)
 
     # Plot
@@ -637,7 +712,7 @@ def plotODEInt(f, parms, initialCond):
 # Main plotting method, just an utility to quickly plot ODE Phase Planes
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
-def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', drawNullclines=True):
+def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', drawNullclines=True, labelLoc='best'):
     print('=====================================')
     print('==        Phase plane analysis     ==')
     print('=====================================')
@@ -654,7 +729,8 @@ def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', draw
                     lines.Line2D([0], [0], color='tomato', lw=3),
                     lines.Line2D([0], [0], marker='.', linestyle='None', color='black', markersize=20),
                     lines.Line2D([0], [0], marker='.', linestyle='None', markerfacecolor='white', markeredgecolor='black', markeredgewidth=2, markersize=20)]
-    ax.legend(custom_lines, [parms[0]+'-nullcline', parms[1]+'-nullcline', 'separatrix', 'stable fp', 'unstable fp'])
+    ax.legend(custom_lines, [parms[0]+'-nullcline', parms[1]+'-nullcline', 'separatrix', 'stable fp', 'unstable fp'],
+              loc=labelLoc)
 
     # Build the plot
     ax.grid()
@@ -671,17 +747,17 @@ def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', draw
     # ax = plot_equilibrium_points2(ax, f, interval)
 
     # Add some trajectories
-    t = np.linspace(0, 100, 400)
+    t = np.linspace(0, 100, trajectoyLength)
     for origin in trajectories:
         ax = plot_traj(ax, model.dfun, np.array(origin), t)
 
     return ax
 
 
-def plot_PhasePlane_Only(model, interval, trajectories=[], background='flow', drawNullclines=True):
+def plot_PhasePlane_Only(model, interval, trajectories=[], background='flow', drawNullclines=True, labelLoc='best'):
     plt.rcParams.update({'font.size': 15})
     fig, ax = plt.subplots(1,1,figsize=(12,5))
-    ax = plotPhasePlane(ax, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
+    ax = plotPhasePlane(ax, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines, labelLoc=labelLoc)
     plt.show()
 
 # --------------------------------------------------------------------------
@@ -700,6 +776,9 @@ def plotBifurcationDiagram(ax, model, interval, lbda_space, fullEvaluations=10):
     for pos, lbda in enumerate(real_lbda_space[1:], 1):  # Start from the second element, as the first one is already done!
         model.setControlParm(lbda)
         fps = fixedPoints(model.dfun, interval)
+        # Perhaps this is a bit redundant (i.e., computing the fixed points and then the limit cycles), but I
+        # think it is not, as a trajectory may converge to a STABLE fixed point, to a limit cycle or simply diverge.
+        plotLimitCycles(ax, model, fps, interval, lbda)
         reduced_lbda_space = lbda_space[(pos-1)*fullEvaluations:pos*fullEvaluations+1]
         if len(fps) > lastFixedPointCount:
             print("Change at {} to {}".format(lbda, len(fps)))
@@ -728,22 +807,23 @@ def plot_BifurcationDiagram_Only(model, interval, lbda_space, index=0, fullBifur
 
 
 def plotFancyBifurcationDiagram(model, interval, lbda_space,
-                                trajectories=[], background='flow', drawNullclines=True, fullBifurcationEvaluations=10):
+                                trajectories=[], background='flow', drawNullclines=True, fullBifurcationEvaluations=10,
+                                phaseLabelLoc='best'):
     plt.rcParams.update({'font.size': 15})
     fig = plt.figure(constrained_layout=True)
     grid = plt.GridSpec(2, 3, wspace=0.4, hspace=0.3)
 
     ax1 = fig.add_subplot(grid[0,0])
     model.setControlParm(lbda_space[0])
-    ax1 = plotPhasePlane(ax1, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
+    ax1 = plotPhasePlane(ax1, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines, labelLoc=phaseLabelLoc)
 
     ax2 = fig.add_subplot(grid[0,1])
     model.setControlParm(lbda_space[int(len(lbda_space)/2)])
-    ax2 = plotPhasePlane(ax2, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
+    ax2 = plotPhasePlane(ax2, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines, labelLoc=phaseLabelLoc)
 
     ax3 = fig.add_subplot(grid[0,2])
     model.setControlParm(lbda_space[-1])
-    ax3 = plotPhasePlane(ax3, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines)
+    ax3 = plotPhasePlane(ax3, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines, labelLoc=phaseLabelLoc)
 
     ax4 = fig.add_subplot(grid[1, :])
     ax4 = plotBifurcationDiagram(ax4, model, interval, lbda_space,
