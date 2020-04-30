@@ -19,7 +19,8 @@
 
 
 import numpy as np
-#from numba import vectorize, float64
+# from numba import vectorize, float64
+from numba import jit
 
 print("Going to use Stephan2008 BOLD model...")
 
@@ -45,15 +46,16 @@ epsilon = 0.34 # Intravascular:extravascular ratio (should be one epsilon for ea
                # Lu and Van Zijl 2005 found values that make it 1 [Stephan et al. 2007]...
                # [Friston2019] initializes this as 1
 
-Eo=0.4   # region-specific resting oxygen extraction fractions. This value is from [Obata et al. 2004]
-TE=0.04  # Echo time (seconds), TE, from [Stephan et al. 2007].
+Eo = 0.4   # region-specific resting oxygen extraction fractions. This value is from [Obata et al. 2004]
+TE = 0.04  # Echo time (seconds), TE, from [Stephan et al. 2007].
          # In [Friston2019] they use phi = Eo*TE as another variable
-vo=0.08  # resting venous volume, DCM CODE reads 100*0.08...
+vo = 0.08  # resting venous volume, DCM CODE reads 100*0.08...
 r0 = 25  # (s)^-1 --> slope r0 of intravascular relaxation rate R_iv as a function of oxygen
          # saturation Y:  R_iv = r0*[(1-Y)-(1-Y0)]. This value of r0 from [Stephan et al. 2007]
 theta0 = 40.3  # (s)^-1, frequency offset at the outer surface of magnetized vessels
 
-#@vectorize([float64(float64, float64)])
+# @vectorize([float64(float64, float64)])
+@jit(nopython=True)
 def BOLDModel(T, x):
     # The Hemodynamic model with one simplified neural activity
     #
@@ -75,19 +77,19 @@ def BOLDModel(T, x):
     # these equations during parameter estimation.
     # Warning! The DCM CODE does not apply the change to s, only to {f,v,q} !!!
 
-    global t_min, dt
+    # global t_min, dt
+    # global Eo
     n_min = int(np.round(t_min / dt))
-    global Eo
     itau = 1 / tau
     ialpha = 1 / alpha
 
     n_t = int(T/dt)
 
     # Euler method
-    s = np.zeros([n_t]); #stilde = np.zeros([n_t])
-    f = np.zeros([n_t]); ftilde = np.zeros([n_t])
-    v = np.zeros([n_t]); vtilde = np.zeros([n_t])
-    q = np.zeros([n_t]); qtilde = np.zeros([n_t])
+    s = np.zeros(n_t); #stilde = np.zeros(n_t)
+    f = np.zeros(n_t); ftilde = np.zeros(n_t)
+    v = np.zeros(n_t); vtilde = np.zeros(n_t)
+    q = np.zeros(n_t); qtilde = np.zeros(n_t)
     # Initial conditions x0 = np.array([0, 1, 1, 1]) <- they should have been all 0...
     s[0] = 1; f[0]=1; v[0]=1; q[0]=1
     ftilde[0]=0; vtilde[0]=0; qtilde[0]=0; # stilde[0] = 0

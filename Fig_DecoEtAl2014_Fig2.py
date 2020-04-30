@@ -14,16 +14,17 @@ import os, csv
 from pathlib import Path
 import matplotlib.pyplot as plt
 import functions.Models.DynamicMeanField as DMF
-import functions.Integrator_EulerMaruyama as integrator
+# import functions.Integrator_EulerMaruyama as integrator
+# integrationMode = ''
+import functions.Integrator_Euler as integrator
 integrator.neuronalModel = DMF
-# import functions.Balance_J9 as Balance_J9
-# Balance_J9.integrator = integrator
-import DecoEtAl2014_GetBalancedWeights as getJs
+integrationMode = 'Deterministic/'
+import Prepro_DecoEtAl2014_GetBalancedWeights as getJs
+getJs.integrator = integrator
 
 np.random.seed(42)  # Fix the seed for debug purposes...
 
 
-# filePath = 'Data_Produced/BenjiBalancedWeights-py.mat'
 # def computeAllJs(C, wStart=0, wEnd=6+0.001, wStep=0.05):
 #     wes = np.arange(wStart + wStep, wEnd, wStep)  # warning: the range of wes depends on the conectome.
 #     # ==== J is calculated this only once, then saved
@@ -39,84 +40,104 @@ np.random.seed(42)  # Fix the seed for debug purposes...
 #     return JI, wes
 
 
-def runAndPlotSim(Conn, title):
-    print("Running simulation for we={}...".format(DMF.we))
+# def runAndPlotSim(Conn, title):
+#     print("Running simulation for we={}...".format(DMF.we))
+#
+#     # Integration parms...
+#     dt = 0.1
+#     tmax = 10000.
+#     Tmaxneuronal = int((tmax+dt))
+#
+#     N = Conn.shape[0]
+#     integrator.initBookkeeping(N, tmax)
+#     v = integrator.simulate(dt, Tmaxneuronal, Conn)[1]  # [1] is the output from the excitatory pool, in Hz.
+#
+#     f = np.mean(v,0)  # takes the mean of all xn values along dimension 0...
+#                       # This is the "averaged level of the input of the local excitatory pool of each brain area,
+#                       # i.e., I_i^{(E)}" in the text (pp 7889, right column, subsection "FIC").
+#     print('Finished sim for we={}. Mean of means = {}'.format(DMF.we, np.mean(f)))
+#     plt.bar(np.arange(N)+1, f)
+#     plt.title(title + ' (we={})'.format(DMF.we))
+#     plt.xlabel('Cortical Area')
+#     plt.ylabel('freq')
+#     plt.show()
 
-    # Integration parms...
-    dt = 0.1
-    tmax = 10000.
-    Tmaxneuronal = int((tmax+dt))
 
-    N = Conn.shape[0]
-    DMF.initBookkeeping(N, tmax)
-    integrator.simulate(dt, Tmaxneuronal, Conn)
-    v = DMF.returnBookkeeping()[1]  # [1] is the output from the excitatory pool, in Hz.
-
-    f = np.mean(v,0)  # takes the mean of all xn values along dimension 0...
-                      # This is the "averaged level of the input of the local excitatory pool of each brain area,
-                      # i.e., I_i^{(E)}" in the text (pp 7889, right column, subsection "FIC").
-    print('Finished sim for we={}. Mean of means = {}'.format(DMF.we, np.mean(f)))
-    plt.bar(np.arange(N)+1, f)
-    plt.title(title + ' (we={})'.format(DMF.we))
-    plt.xlabel('Cortical Area')
-    plt.ylabel('freq')
-    plt.show()
-
-
-def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05):
+def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05, extraTitle=''):
     # Integration parms...
     dt = 0.1
     tmax = 10000.
     Tmaxneuronal = int((tmax+dt))
     # all tested global couplings (G in the paper):
     wes = np.arange(wStart + wStep, wEnd, wStep)  # warning: the range of wes depends on the conectome.
+    # wes = np.arange(2.0, 2.11, 0.1)  # only for debug purposes...
     # numW = wes.size  # length(wes);
     N = C.shape[0]
 
     DMF.SC = C
 
-    # print("======================================")
-    # print("=    simulating E-E (no FIC)         =")
-    # print("======================================")
-    # maxRateNoFIC = np.zeros(len(wes))
-    # DMF.J = np.ones(N)  # E-E = No FIC...
-    # for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
-    #     print("Processing: {}".format(we))
-    #     DMF.we = we
-    #     DMF.initBookkeeping(N, tmax)
-    #     integrator.simulate(dt, Tmaxneuronal)
-    #     v = DMF.returnBookkeeping()[1]  # [1] is the output from the excitatory pool, in Hz.
-    #     maxRateNoFIC[kk] = np.max(np.mean(v,0))
-    # ee, = plt.plot(wes, maxRateNoFIC)
-    # ee.set_label("E-E")
+    print("======================================")
+    print("=    simulating E-E (no FIC)         =")
+    print("======================================")
+    maxRateNoFIC = np.zeros(len(wes))
+    DMF.J = np.ones(N)  # E-E = Excitatory-Excitatory, no FIC...
+    for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
+        print("Processing: {}".format(we), end='')
+        DMF.we = we
+        integrator.recompileSignatures()
+        v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
+        maxRateNoFIC[kk] = np.max(np.mean(v,0))
+        print(" => {}".format(maxRateNoFIC[kk]))
+    ee, = plt.plot(wes, maxRateNoFIC)
+    ee.set_label("E-E")
 
     print("======================================")
     print("=    simulating FIC                  =")
     print("======================================")
     # DMF.lambda = 0.  # make sure no long-range feedforward inhibition (FFI) is computed
     maxRateFIC = np.zeros(len(wes))
-    getJs.subjectPath = filePath
     JI = getJs.computeAllJs(C, wStart, wEnd, wStep)
     # JI, origWes = computeAllJs(C, wStart, wEnd, wStep)
     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
-        print("Processing: {}".format(we))
+        print("Processing: {}".format(we), end='')
         DMF.we = we
-        wePos, = np.where(np.isclose(wes, we))  #origwes may be differeent than the wes we are using now... be careful!!
+        wePos, = np.where(np.isclose(wes, we))  #original wes values may be differeent than the wes we are using now... be careful!!
         DMF.J = JI[:,wePos].flatten()
-        DMF.initBookkeeping(N, tmax)
-        integrator.simulate(dt, Tmaxneuronal)
-        v = DMF.returnBookkeeping()[1]  # [1] is the output from the excitatory pool, in Hz.
+        integrator.recompileSignatures()
+        v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
         maxRateFIC[kk] = np.max(np.mean(v,0))
+        print("=> {}".format(maxRateFIC[kk]))
     fic, = plt.plot(wes, maxRateFIC)
     fic.set_label("FIC")
 
     for line, color in zip([1.47, 4.45], ['r','b']):
         plt.axvline(x=line, label='line at x = {}'.format(line), c=color)
-    plt.title("Large-scale network (DMF)")
+    plt.title("Large-scale network (DMF)" + extraTitle)
     plt.ylabel("Maximum rate (Hz)")
     plt.xlabel("Global Coupling (G = we)")
     plt.legend()
     plt.show()
+
+
+def setFileName(fileName):
+    getJs.subjectPath = fileName
+
+
+def debug_one_we(C):
+    DMF.SC = C
+    dt = 0.1
+    tmax = 10000.
+    Tmaxneuronal = int((tmax+dt))
+    we = 2.1
+
+    DMF.we = we
+    # wePos, = np.where(np.isclose(wes, we))  #origwes may be differeent than the wes we are using now... be careful!!
+    DMF.J = np.ones(C.shape[0])  # E-E = Excitatory-Excitatory, no FIC...
+    print("Processing: {}".format(we), end='')
+    integrator.recompileSignatures()
+    v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
+    maxRateFIC = np.max(np.mean(v,0))
+    print("=> {}".format(maxRateFIC))
 
 
 # ================================================================================================================
@@ -126,7 +147,7 @@ if __name__ == '__main__':
     integrator.verbose = False
 
     # Simple verification test, to check the info from the paper...
-    print("Simple test: phie={}".format(DMF.phie(-0.026+DMF.be/DMF.ae)))
+    # print("Simple test for verification: phie={}".format(DMF.phie(-0.026+DMF.be/DMF.ae)))
     # result: phie 3.06308542427
 
     plt.rcParams.update({'font.size': 15})
@@ -142,6 +163,7 @@ if __name__ == '__main__':
     # --------------------------------
     CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
     C = CFile['C']
+    setFileName('Data_Produced/Human_66/'+integrationMode+'Benji_Human66_{}.mat')
 
     # ================================================================
     # This plots the graphs at Fig 2, d of [D*2014]
@@ -166,6 +188,7 @@ if __name__ == '__main__':
     # runAndPlotSim(C, "Full connectivity matrix simulation with FIC control")
 
     plotMaxFrecForAllWe(C)
+    # debug_one_we(C)
 # ================================================================================================================
 # ================================================================================================================
-# ================================================================================================================
+# ================================================================================================================EOF

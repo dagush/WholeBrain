@@ -14,9 +14,8 @@
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 import numpy as np
-import functions.Integrator_EulerMaruyama as integrator
-import functions.BOLDHemModel_Stephan2007 as BOLDModel
-# from functions import BOLDHemModel_Stephan2008 as BOLDModel
+integrator = None  # import functions.Integrator_EulerMaruyama as integrator
+BOLDModel = None  # import functions.BOLDHemModel_Stephan2007 as Stephan2007 # import functions.BOLDHemModel_Stephan2008 as Stephan2008
 import functions.FCD as FCD
 
 print("Going to use Functional Connectivity Dynamics (FCD)...")
@@ -45,13 +44,13 @@ N_windows = len(np.arange(0,Tmax-windowSize,3))  # This shouldn't be done like t
 warmUpFactor = 10.
 def computeSubjectSimulation(C, N, warmup):
     integrator.neuronalModel.SC = C
-    integrator.neuronalModel.initBookkeeping(N, Tmaxneuronal)
+    # integrator.initBookkeeping(N, Tmaxneuronal)
     if warmup:
-        integrator.warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp=Tmaxneuronal/warmUpFactor)
+        currObsVars = integrator.warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp=Tmaxneuronal/warmUpFactor)
     else:
-        integrator.simulate(dt, Tmaxneuronal)
-    curr_xn, curr_rn = integrator.neuronalModel.returnBookkeeping()
-    neuro_act = curr_rn
+        currObsVars = integrator.simulate(dt, Tmaxneuronal)
+    # currObsVars = integrator.returnBookkeeping()  # curr_xn, curr_rn
+    neuro_act = currObsVars[:,1,:]  # curr_rn
     return neuro_act
 
 
@@ -75,9 +74,6 @@ def computeSubjectBOLD(neuro_act, areasToSimulate=None):
     return bds
 
 
-# ============================================================================
-# simulates the neuronal activity + BOLD for ONE subject
-# ============================================================================
 def simulateSingleSubject(C, warmup=False):
     N=C.shape[0]
     neuro_act = computeSubjectSimulation(C, N, warmup)
@@ -107,3 +103,8 @@ def simulate(NumSubjects, C, warmup=False):
         cotsampling[nsub,:] = simSingleSubjectFCD(C, warmup=warmup)
 
     return cotsampling
+
+
+# ============================================================================
+# ============================================================================
+# ============================================================================EOF

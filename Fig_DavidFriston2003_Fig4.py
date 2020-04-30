@@ -37,10 +37,18 @@ stimuli.mu = 220.
 stimuli.sigma = 22.
 integrator.stimuli = stimuli
 
+
+def recompileSignatures():
+    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+    # print("\n\nRecompiling signatures!!!")
+    integrator.recompileSignatures()
+
+
 # Integration parms...
 dt = 5e-5
 tmax = 10.
-JR.ds = 1e-4
+integrator.ds = 1e-4
 Tmaxneuronal = int((tmax+dt))
 N = 1
 Conn = np.zeros((N,N))
@@ -88,12 +96,12 @@ for idx_c, tau_e in enumerate(tau_es):
         JR.a = 1./tau_e
         JR.b = 1./tau_i
         JR.SC = Conn
-        JR.initBookkeeping(N, tmax)
-        integrator.simulate(dt, Tmaxneuronal)
-        v = JR.returnBookkeeping()
+        integrator.initBookkeeping(N, tmax)
+        recompileSignatures()
+        v = integrator.simulate(dt, Tmaxneuronal)
 
-        lowCut = int(1./JR.ds)  # Ignore the first steps for warm-up...
-        freqs, power = fft.fft(v[lowCut:]/1e3, JR.ds)  # we make use of linearity of the fft to avoid too high values...
+        lowCut = int(1./integrator.ds)  # Ignore the first steps for warm-up...
+        freqs, power = fft.fft(v[lowCut:]/1e3, integrator.ds)  # we make use of linearity of the fft to avoid too high values...
         p = np.max(power)
         f = freqs[np.argmax(power)]
         if p < 140.:

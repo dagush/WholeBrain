@@ -11,73 +11,137 @@
 # --------------------------------------------------------------------------
 import numpy as np
 from functions.randn2 import randn2
-
-neuronalModel = None  # To be able to choose the model externally...
-stimuli = None        # To add some stimuli, if needed...
+from functions.Utils import numTricks as iC
+from numba import jit
 
 print("Going to use the Euler-Maruyama Integrator...")
 
+neuronalModel = None  # To be able to choose the model externally...
 verbose = True
+
+
+def recompileSignatures():
+    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+    neuronalModel.recompileSignatures()
+    recordBookkeeping.recompile()
+    integrationStep.recompile()
+
+
+# Functions to convert the stimulus from a function to an array
+# --------------------------------------------------------------------------
+stimuli = None  # To add some stimuli, if needed...
+allStimuli = None
+def initStimuli(dt, Tmaxneuronal):
+    global allStimuli
+    tValues = np.arange(0, Tmaxneuronal, dt)
+    if stimuli:
+        allStimuli = np.array(map(stimuli.stimulus, tValues))
+    else:
+        allStimuli = np.zeros(len(tValues))
 
 
 # Matlab compatible definitions
 # --------------------------------------------------------------------------
-def randn(N):
-    ra = randn2(N)
-    return ra.reshape(-1)
+MatlabCompatibility = False
+if MatlabCompatibility:
+    def randn(vars,N):
+        ra = randn2(vars,N)
+        return ra #.reshape(-1)
+else:
+    from numpy.random import randn
 
 
 # # bookkeeping vars & methods -> Just forward them to the neuronal model we are using...
-# # -------------------------------------------------------------------------------------
-# def initBookkeeping(N, tmax):
-#     neuronalModel.initBookkeeping(N, tmax)
-#
-#
-# def returnBookkeeping():
-#     return neuronalModel.returnBookkeeping()
+# ==========================================================================
+# ==========================================================================
+# ==========================================================================
+# Bookkeeping variables of interest...
+# --------------------------------------------------------------------------
+ds = 1  # downsampling stepsize
+def initBookkeeping(N, tmax):
+    # global curr_xn, curr_rn, nn
+    # global curr_obsVars
+    # curr_xn = np.zeros((int(tmax), N))
+    # curr_rn = np.zeros((int(tmax), N))
+    obsVars = neuronalModel.numObsVars()
+    timeElements = int(tmax/ds) + 1  # the last +1 because of isClose roundings...
+    return np.zeros((timeElements, obsVars, N))
 
 
+@jit(nopython=True)
+def recordBookkeeping(t, obsVars, curr_obsVars):
+    # global curr_obsVars
+    if iC.isInt(t/ds):
+        nn = int(np.round(t/ds))  # is is an int-ish...
+        curr_obsVars[nn,:,:] = obsVars[:,:]
+    return curr_obsVars
+
+
+# ==========================================================================
+# ==========================================================================
+# ==========================================================================
 # Euler-Maruyama Integration
 # --------------------------------------------------------------------------
-simVars = []
 sigma = 0.01
-def integrate(dt, Tmaxneuronal, doBookkeeping = True):
-    global simVars
-    N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
+clamping = True
+@jit(nopython=True)
+def integrationStep(simVars, dt, stimulus):  #, curr_obsVars, doBookkeeping):
+    numSimVars = simVars.shape[0]; N = simVars.shape[1]
+    dvars_obsVars = neuronalModel.dfun(simVars, stimulus)
+    dvars = dvars_obsVars[0]; obsVars = dvars_obsVars[1]  # cannot use unpacking in numba...
+    simVars = simVars + dt * dvars + np.sqrt(dt) * sigma * randn(numSimVars,N)  # Euler-Maruyama integration for S^E (9).
+    if clamping:
+        simVars = np.where(simVars > 1., 1., simVars)  # clamp values to 0..1
+        simVars = np.where(simVars < 0., 0., simVars)
+    return simVars, obsVars
+
+
+# @jit(nopython=True)
+def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
     for t in np.arange(0, Tmaxneuronal, dt):
-        if stimuli:
-            stimulus = stimuli.stimulus(t)
-        else:
-            stimulus = 0.
-        dvars = neuronalModel.dfun(simVars, stimulus)
-        for varPos, dvar in enumerate(dvars):
-            var = simVars[varPos]
-            var = var + dt * dvar + np.sqrt(dt) * sigma * randn(N)  # Euler-Maruyama integration for S^E (9).
-            var[var > 1] = 1.  # clamp values to 0..1
-            var[var < 0] = 0.
-            simVars[varPos] = var
-
+        stimulus = allStimuli[int(t / dt)]
+        simVars_obsVars = integrationStep(simVars, dt, stimulus)  #, doBookkeeping, curr_obsVars)
+        simVars = simVars_obsVars[0]; obsVars = simVars_obsVars[1]  # cannot use unpacking in numba...
         if doBookkeeping:
-            neuronalModel.recordBookkeeping(t)
+            curr_obsVars = recordBookkeeping(t, obsVars, curr_obsVars)
+    return simVars, curr_obsVars
 
 
+# @jit(nopython=True)
+def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
+    # numSimVars = simVars.shape[0]
+    N = simVars.shape[1]  # N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
+    curr_obsVars = initBookkeeping(N, Tmaxneuronal)
+    return integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars)
+
+
+# ==========================================================================
+# ==========================================================================
+# ==========================================================================
 def simulate(dt, Tmaxneuronal):
-    global simVars
     if verbose:
         print("Simulating...", flush=True)
     N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     simVars = neuronalModel.initSim(N)
-    integrate(dt, Tmaxneuronal)
+    initStimuli(dt, Tmaxneuronal)
+    simVars, obsVars = integrate(dt, Tmaxneuronal, simVars)
+    return obsVars
 
 
 def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp = 10000):
-    global simVars
     N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
+    initStimuli(dt, Tmaxneuronal)
     simVars = neuronalModel.initSim(N)
     if verbose:
         print("Warming Up...", end=" ", flush=True)
-    integrate(dt, TWarmUp, doBookkeeping=False)
+    simVars, obsVars = integrate(dt, TWarmUp, simVars, doBookkeeping=False)
     if verbose:
         print("and simulating!!!", flush=True)
-    integrate(dt, Tmaxneuronal, doBookkeeping=True)
+    simVars, obsVars = integrate(dt, Tmaxneuronal, simVars, doBookkeeping=True)
+    return obsVars
 
+
+# ==========================================================================
+# ==========================================================================
+# ========================================================================== --EOF

@@ -25,8 +25,16 @@
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 import numpy as np
+from numba import jit
 
 print("Going to use the serotonin 2A receptor (5-HT_{2A}R) transfer functions!")
+
+
+def recompileSignatures():
+    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+    phie.recompile(); phii.recompile()
+
 
 # Regional Drug Receptor Modulation (RDRM) constants for their transfer functions:
 # serotonin 2A receptor (5-HT_{2A}R): the neuronal gain function of the model is modulated
@@ -43,8 +51,9 @@ wgaine = 0.
 ae = 310.
 be = 125.
 de = 0.16
+@jit(nopython=True)
 def phie(x):
-    y = (ae*x-be)*(1+Receptor*wgaine) #  for LSD
+    y = (ae*x-be)*(1+Receptor*wgaine)  # for LSD
     # if (y != 0):
     return y/(1-np.exp(-de*y))
     # else:
@@ -55,8 +64,9 @@ def phie(x):
 ai = 615
 bi = 177
 di = 0.087
+@jit(nopython=True)
 def phii(x):
-    y = (ai*x-bi)*(1+Receptor*wgaini) # for LSD
+    y = (ai*x-bi)*(1+Receptor*wgaini)  # for LSD
     # if (y != 0):
     return y/(1-np.exp(-di*y))
     # else:

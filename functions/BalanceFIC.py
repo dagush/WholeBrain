@@ -27,15 +27,23 @@
 #
 # Adrian Ponce-Alvarez. Refactoring (& Python translation) by Gustavo Patow
 # --------------------------------------------------------------------------
-
 import numpy as np
-# import functions.Integrator_EulerMaruyama
+from pathlib import Path
+import scipy.io as sio
 integrator = None  # functions.Integrator_EulerMaruyama
 
 veryVerbose = False
 verbose = True
 
 print("Going to use the Balanced J9 (FIC) mechanism...")
+
+
+def recompileSignatures():
+    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+    # print("\n\nRecompiling signatures!!!")
+    integrator.recompileSignatures()
+
 
 def updateJ(N, tmax, delta, curr, J):
     tmin = 1000 if (tmax>1000) else int(tmax/10)
@@ -67,7 +75,7 @@ def updateJ(N, tmax, delta, curr, J):
 # =====================================
 # Computes the optimum of the J_i for a given structural connectivity matrix C and
 # a coupling coefficient G, which should be set externally directly at the neuronal model.
-def JOptim(C):
+def JOptim(C, warmUp = False):
     N = C.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
 
     # simulation fixed parameters:
@@ -81,7 +89,7 @@ def JOptim(C):
     # initialization:
     # -------------------------
     integrator.neuronalModel.SC = C
-    integrator.neuronalModel.initBookkeeping(N, tmax)
+    # integrator.initBookkeeping(N, tmax)
     delta = 0.02 * np.ones(N)
 
     if verbose:
@@ -95,13 +103,16 @@ def JOptim(C):
     # a function of the variance.
     bestJ = np.ones(N); bestJCount = -1; bestTrial = -1
     for k in range(5000):  # 5000 trials
-        integrator.neuronalModel.resetBookkeeping()
+        # integrator.resetBookkeeping()
         Tmaxneuronal = int((tmax+dt))  # (tmax+dt)/dt, but with steps of 1 unit...
-        # integrator.simulate(dt, Tmaxneuronal)
-        integrator.warmUpAndSimulate(dt, Tmaxneuronal)
+        recompileSignatures()
+        if warmUp:
+            curr_xn = integrator.warmUpAndSimulate(dt, Tmaxneuronal)[:,0,:]  # take the xn component of the observation variables...
+        else:
+            curr_xn = integrator.simulate(dt, Tmaxneuronal)[:,0,:]  # take the xn component of the observation variables...
         if verbose: print(k, end='', flush=True)
 
-        currm = integrator.neuronalModel.curr_xn - integrator.neuronalModel.be/integrator.neuronalModel.ae  # be/ae==125./310. Records currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
+        currm = curr_xn - integrator.neuronalModel.be/integrator.neuronalModel.ae  # be/ae==125./310. Records currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
         flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)
         if verbose: print("({})".format(flagJ), end='', flush=True)
         if flagJ > bestJCount:
@@ -115,6 +126,29 @@ def JOptim(C):
         else:
             if verbose: print(', ', end='', flush=True)
 
-    if verbose: print("\nFinal (we={}): {} trials, with {}/{} nodes solved at trial {}".format(integrator.neuronalModel.we, k, bestJCount, N, bestTrial))
-    return bestJ
+    if verbose: print("\nFinal (we={}): {} trials, with {}/{} nodes solved at trial {}\n".format(integrator.neuronalModel.we, k, bestJCount, N, bestTrial))
+    if verbose: print('DONE!') if flagJ == N else print('FAILED!!!')
+    return bestJ, bestJCount
 
+
+# =====================================
+# =====================================
+# Auxiliary function to simplify work: if it was computed, load it. If not, compute (and save) it!
+baseName = "Data_Produced/test_J_Balance_we{}.mat"
+def Balance_J9(we, C, warmUp = False):
+    fileName = baseName.format(we)
+    # ==== J is calculated this only once, then saved
+    integrator.neuronalModel.we = we
+    if not Path(fileName).is_file():
+        print("Computing {} !!!".format(fileName))
+        bestJ, nodeCount = JOptim(C, warmUp=warmUp)  # This is the Feedback Inhibitory Control
+        sio.savemat(fileName, {'we': we, 'J': integrator.neuronalModel.J})
+    else:
+        # ==== J can be calculated only once and then load J_Balance J
+        print("Loading {} !!!".format(fileName))
+        bestJ = sio.loadmat(fileName)['J']
+    integrator.neuronalModel.J = bestJ.flatten()
+
+# ==========================================================================
+# ==========================================================================
+# ==========================================================================EOF

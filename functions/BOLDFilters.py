@@ -28,7 +28,7 @@ def BandPassFilter(boldSignal):
     signal_filt = np.zeros(boldSignal.shape)
     for seed in range(N):
         ts = demean.demean(detrend(boldSignal[seed, :]))
-        ts[ts>3.*np.std(ts)] = 3.*np.std(ts)   # Remove strong artefacts
+        ts[ts>3.*np.std(ts)] = 3.*np.std(ts)    # Remove strong artefacts
         ts[ts<-3.*np.std(ts)] = -3.*np.std(ts)  # Remove strong artefacts
         signal_filt[seed,:] = filtfilt(bfilt, afilt, ts, padlen=3*(max(len(bfilt),len(afilt))-1))  # Band pass filter. padlen modified to get the same result as in Matlab
     return signal_filt

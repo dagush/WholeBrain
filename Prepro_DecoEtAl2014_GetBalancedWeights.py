@@ -15,11 +15,9 @@
 import numpy as np
 import scipy.io as sio
 from pathlib import Path
-import functions.Models.DynamicMeanField as DMF
-import functions.Integrator_EulerMaruyama as integrator
-integrator.neuronalModel = DMF
-import functions.BalanceFIC as BalanceFIC
-BalanceFIC.integrator = integrator
+# import functions.Models.DynamicMeanField as DMF
+integrator = None  # import functions.Integrator_EulerMaruyama as integrator
+# integrator.neuronalModel = DMF
 
 
 np.random.seed(42)  # Fix the seed for debug purposes...
@@ -29,30 +27,36 @@ np.random.seed(42)  # Fix the seed for debug purposes...
 # ======================================================================
 # ======================================================================
 # filePath = 'Data_Produced/BenjiBalancedWeights-py.mat'
-subjectPath = 'Data_Produced/BenjiBalancedWeights_{}.mat'
+subjectPath = 'Data_Produced/BenjiBalancedWeights_{}_kk.mat'
 def computeSingleJ(C, we):
+    import functions.BalanceFIC as BalanceFIC
+    BalanceFIC.integrator = integrator
+
     N = C.shape[0]
     filePath = subjectPath.format(we)
     # ==== J is calculated this only once, then saved
     if not Path(filePath).is_file():
         print("Computing "+ filePath +" !!!")
 
-        DMF.we = we
-        J = BalanceFIC.JOptim(C)
+        integrator.neuronalModel.we = we
+        J, nodesSolved = BalanceFIC.JOptim(C)
 
-        Se_init = integrator.simVars[0].reshape(N)  # Store steady states S^E (after many iterations/simulations) -> sn
-        Si_init = integrator.simVars[1].reshape(N)   # Store steady states S^I -> sg
+        # Se_init = integrator.simVars[0].reshape(N)  # Store steady states S^E (after many iterations/simulations) -> sn
+        # Si_init = integrator.simVars[1].reshape(N)   # Store steady states S^I -> sg
         sio.savemat(filePath, #{'JI': JI})
                     {'we': we,
                      'J': J,
-                     'Se_init': Se_init,
-                     'Si_init': Si_init})  # save Benji_Balanced_weights wes JI Se_init Si_init
+                     # 'Se_init': Se_init,
+                     # 'Si_init': Si_init
+                    })  # save Benji_Balanced_weights wes JI Se_init Si_init
     else:
         print("Loading "+ filePath +" !!!")
         # ==== J can be calculated only once and then load J_Balance J
         JIfile = sio.loadmat(filePath)
-        J = JIfile['J']
-    return J
+        Jpos = np.where(JIfile['we']==we)[0][0]
+        J = JIfile['J'][Jpos]
+        nodesSolved = len(J)
+    return J, nodesSolved
 
 
 def computeAllJs(C, wStart=0, wEnd=6+0.001, wStep=0.05):
@@ -65,9 +69,13 @@ def computeAllJs(C, wStart=0, wEnd=6+0.001, wStep=0.05):
     # ==========================
     # Some monitoring info: initialization
     N = C.shape[0]
+    failedGs = []
     JI=np.zeros((N,numW))
     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
-        J = computeSingleJ(C, we)
+        J, nodesSolved = computeSingleJ(C, we)
+        JI[:,kk] = J
+        if nodesSolved < N:
+            failedGs.append((we, nodesSolved))
 
     # sio.savemat(filePath, #{'JI': JI})
     #             {'wes': wes,
@@ -75,6 +83,7 @@ def computeAllJs(C, wStart=0, wEnd=6+0.001, wStep=0.05):
     #              'Se_init': Se_init,
     #              'Si_init': Si_init})  # save Benji_Balanced_weights wes JI Se_init Si_init
 
+    print('Failed G computations:', failedGs)
     return JI
 
 # ================================================================================================================
@@ -84,14 +93,15 @@ if __name__ == '__main__':
     integrator.verbose = False
 
     # Simple verification test, to check the info from the paper...
-    I_e = -0.026+DMF.be/DMF.ae
-    print("phie",DMF.phie(I_e))
+    # I_e = -0.026+DMF.be/DMF.ae
+    # print("phie",DMF.phie(I_e))
     # result: phie 3.06308542427
 
     # Load connectome:
     # --------------------------------
     CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
     C = CFile['C']
+    subjectPath = 'Data_Produced/Human_66/Benji_Human66_{}.mat'
     # import functions.Utils.plotSC as plotSC
     # plotSC.plotSC_and_Histogram("Human_66", np.log(C+1))
 

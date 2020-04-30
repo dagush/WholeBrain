@@ -152,10 +152,13 @@ def getClassifications(subjects):
 
 
 modality = "Amyloid" # Amyloid or Tau
-def loadSubjectData(subject):
+def loadSubjectData(subject, correctSCMatrix=True):
     sc_folder = base_folder+'/connectomes/'+subject+"/DWI_processing"
     SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
-    SCnorm = correctSC(SC)
+    if correctSCMatrix:
+        SCnorm = correctSC(SC)
+    else:
+        SCnorm = np.log(SC + 1)
 
     pet_path = base_folder+"/PET_loads/"+subject+"/PET_PVC_MG/" + modality
     RH_pet = np.loadtxt(pet_path+"/"+"L."+modality+"_load_MSMAll.pscalar.txt")
@@ -171,6 +174,35 @@ def loadSubjectData(subject):
     return SCnorm, abeta_burden, fullSeries
 
 
+def loadXData(dataset=1):
+    x_path = "Data_Raw/from_Xenia/"
+    if dataset == 0:
+        xfile = 'sc_fromXenia.mat'
+        M = sio.loadmat(x_path + xfile); print('{} File contents:'.format(xfile), [k for k in M.keys()])
+        mat0 = M['mat_zero']; print('mat_zero.shape={}'.format(mat0.shape))
+        SCnorm = correctSC(mat0)
+        fc = M['fc']; print('fc.shape={}'.format(fc.shape))
+        ts = M['timeseries']; print('timeseries.shape={}'.format(ts.shape))
+        return SCnorm, fc, ts
+    elif dataset == 1:
+        xfile = '002_S_0413-reduced-sc.mat'
+        M = sio.loadmat(x_path + xfile); print('{} File contents:'.format(xfile), [k for k in M.keys()])
+        xfile_ts = '002_S_0413-reduced-timeseries.mat'
+        ts = sio.loadmat(x_path + xfile_ts); print('{} File contents:'.format(xfile_ts), [k for k in ts.keys()])
+
+        mat0 = M['mat_zero']; print('mat_zero.shape={}'.format(mat0.shape))
+        SCnorm = correctSC(mat0)
+        mat = M['mat']; print('mat.shape={}'.format(mat.shape))
+        FC = ts['FC']; print('FC.shape={}'.format(FC.shape))
+        timeseries = ts['timeseries']; print('timeseries.shape={}'.format(timeseries.shape))
+        return SCnorm, FC, timeseries
+    else:
+        xfile = 'timeseries.mat'
+        ts = sio.loadmat(x_path + xfile); print('{} File contents:'.format(xfile), [k for k in ts.keys()])
+        timeseries = ts['timeseries']; print('timeseries.shape={}'.format(timeseries.shape))
+        return None, None, timeseries
+
+
 # def thresholdSCMatrix(SC):
 #     SC[SC > 0.05] = 0.05
 
@@ -178,20 +210,26 @@ def loadSubjectData(subject):
 normalizationFactor = 0.2
 avgHuman66 = 0.0035127188987848714
 areasHuman66 = 66  # yeah, a bit redundant... ;-)
+maxNodeInput66 = 0.7135693141327057
 def correctSC(SC):
+    N = SC.shape[0]
     logMatrix = np.log(SC+1)
-    areasSC = logMatrix.shape[0]
-    avgSC = np.average(logMatrix)
+    # areasSC = logMatrix.shape[0]
+    # avgSC = np.average(logMatrix)
     # === Normalization ===
-    # finalMatrix = normalizationFactor * logMatrix / logMatrix.max()
-    finalMatrix = logMatrix * avgHuman66/avgSC  #* areasHuman66/areasSC
+    # finalMatrix = normalizationFactor * logMatrix / logMatrix.max()  # normalize to the maximum
+    # finalMatrix = logMatrix * avgHuman66/avgSC * (areasHuman66*areasHuman66)/(areasSC * areasSC)  # normalize to the avg AND the number of connections...
+    maxNodeInput = np.max(np.sum(logMatrix, axis=0))  # This is the same as np.max(logMatrix @ np.ones(N))
+    finalMatrix = logMatrix * maxNodeInput66 / maxNodeInput
     return finalMatrix
 
 
 def analyzeMatrix(name, C):
-    max, min, avg, std = FCD.characterizeConnectivityMatrix(C)
+    max, min, avg, std, maxNodeInput, avgNodeInput = FCD.characterizeConnectivityMatrix(C)
     print(name + " => Shape:{}, Max:{}, Min:{}, Avg:{}, Std:{}".format(C.shape, max, min, avg, std), end='')
-    print(" => impact=Avg*#:{}".format(avg*C.shape[0]))
+    print("  => impact=Avg*#:{}".format(avg*C.shape[0]), end='')
+    print("  => maxNodeInputs:{}".format(maxNodeInput), end='')
+    print("  => avgNodeInputs:{}".format(avgNodeInput))
 
 
 # =====================================================================================
@@ -233,9 +271,9 @@ def comparteTwoSC_WRT_Ref(subjectA, subjectB, refSC=None):
     plt.show()
 
 
-def plotFC_for_G(subject):
+def plotFC_for_G(SCnorm, fMRI):
     # First, load the empirical data
-    SCnorm, abeta, fMRI = loadSubjectData(subject)
+    # SCnorm, abeta, fMRI = loadSubjectData(subject)
     empFC = FCD.FC_from_fMRI(fMRI)
     empFCD = FCD.FCD(fMRI)
 
@@ -311,14 +349,14 @@ def plot_cc_empSC_empFC(subjects):
 # =====================================================================================
 # Test the FIC computation from Deco et al. 2014
 # =====================================================================================
-def testDeco2014_Fig2(subject):
+def testDeco2014_Fig2(SCnorm, subjectName):
     import numpy as np
     # import scipy.io as sio
     # import matplotlib.pyplot as plt
     import functions.Models.DynamicMeanField as DMF
     import functions.Integrator_EulerMaruyama as integrator
     integrator.neuronalModel = DMF
-    import DecoEtAl2014_Fig2 as DecoEtAl2014
+    import Fig_DecoEtAl2014_Fig2 as DecoEtAl2014  # To plot DecoEtAl's 2014 Figure 2...
 
     integrator.verbose = False
 
@@ -330,7 +368,9 @@ def testDeco2014_Fig2(subject):
     # --------------------------------
     # Original code
     # CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
-    # C = np.log(CFile['C'] + 1)
+    # # C = np.log(CFile['C'] + 1)
+    # C = CFile['C']
+    # correctSC(C)
     # ================================ Directly loading
     # sc_folder = base_folder+'/connectomes/'+subject+"/DWI_processing"
     # SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
@@ -340,12 +380,11 @@ def testDeco2014_Fig2(subject):
     # # === Normalization ===
     # # finalMatrix = normalizationFactor * logMatrix / logMatrix.max()
     # finalMatrix = SClog * avgHuman66/avgSC * areasHuman66/areasSC
-    SCnorm, abeta, fMRI = loadSubjectData(subject)
-    DecoEtAl2014.filePath = 'Data_Produced/AD/FICWeights/BenjiBalancedWeights-'+subject+'-{}.mat'
+    DecoEtAl2014.setFileName('Data_Produced/AD/FICWeights/BenjiBalancedWeights-'+subjectName+'-{}.mat')
     DMF.initJ(SCnorm.shape[0])
 
     # BalanceFIC.veryVerbose = True
-    DecoEtAl2014.plotMaxFrecForAllWe(SCnorm)
+    DecoEtAl2014.plotMaxFrecForAllWe(SCnorm, wStart=0, wEnd=4.8+0.001, wStep=0.05, extraTitle=' - {}'.format(subjectName))
 
 # =====================================================================================
 # Methods to simulate and fit AD data
@@ -365,8 +404,7 @@ def preComputeJ_Balance(subject, SC):
     return J
 
 
-def singleSubjectPipeline(subject):
-    SCnorm, abeta, fMRI = loadSubjectData(subject)
+def singleSubjectPipeline(SCnorm, abeta, fMRI):
     empCC = FCD.FCD(fMRI)  # avgFC to get the average FC
     neuronalModel.we = 0.1  # 2.1  # right now, the standard magical value...
 
@@ -387,6 +425,18 @@ def singleSubjectPipeline(subject):
 visualizeAll = True
 if __name__ == '__main__':
     plt.rcParams.update({'font.size': 22})
+
+    # =====================================
+    # Print Human 66 info as reference
+    # =====================================
+    CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
+    C = CFile['C']
+    analyzeMatrix("Human 66", C)
+    # Human 66 => Shape:(66, 66), Max:0.19615559289837184, Min:0.0, Avg:0.0035127188987848714, Std:0.01523519221725181
+    #          => impact=Avg*#:0.23183944731980152
+    #          => maxNodeInputs:0.7135693141327057
+    # plotSC.plotSC_and_Histogram("Human 66", C)
+
     # ------------------------------------------------
     # Load individual Abeta PET SUVRs
     # ------------------------------------------------
@@ -396,31 +446,26 @@ if __name__ == '__main__':
     HCSubjects = [s for s in classification if classification[s] == 'HC']
     ADSubjects = [s for s in classification if classification[s] == 'AD']
 
-    # avgSCMatrix = computeAvgSCMatrix(classification, base_folder + "/connectomes")
-    # finalMatrix = correctSC(avgSCMatrix)
-    # print("# of elements in AVG connectome: {}".format(finalMatrix.shape))
-    # plotSCHistogram(finalMatrix)
-    # plot_cc_empSC_empFC(HCSubjects)
+    avgSCMatrix = computeAvgSCMatrix(classification, base_folder + "/connectomes")
+    finalMatrix = correctSC(avgSCMatrix)
+    print("# of elements in AVG connectome: {}".format(finalMatrix.shape))
+    plotSC.justPlotSC('AVG<HC>', finalMatrix, plotSC.plotSCHistogram)
+    plot_cc_empSC_empFC(HCSubjects)
 
-    HCSubject = HCSubjects[0]
-    SCnorm_HC, abeta_HC, fMRI_HC = loadSubjectData(HCSubject)
-    analyzeMatrix("SC norm HC", SCnorm_HC)
-    # plotSC.plotSC_and_Histogram("SC norm HC", SCnorm_HC)
-    empFC = FCD.FC_from_fMRI(fMRI_HC)
-    analyzeMatrix("EmpiricalFC", empFC)
+    # HCSubject = '002_S_0413'  # HCSubjects[0]
+    # SCnorm_HC, abeta_HC, fMRI_HC = loadSubjectData(HCSubject)
+    # analyzeMatrix("SC norm HC (log({}))".format(HCSubject), SCnorm_HC)
+    # # plotSC.plotSC_and_Histogram("SC norm HC", SCnorm_HC)
+    # empFC = FCD.FC_from_fMRI(fMRI_HC)
+    # analyzeMatrix("EmpiricalFC", empFC)
+    # C norm HC (log(002_S_0413)) => Shape:(379, 379), Max:14.250680446001775, Min:0.0, Avg:3.513063979447963, Std:2.418758388149712
+    #                             => impact=Avg*#:1331.451248210778
+    #                             => maxNodeInputs:2655.478582698918
     # plotSC.plotSC_and_Histogram("EmpiricalFC", empFC)
     # # sio.savemat(save_folder+'/empFC_{}.mat'.format(HCSubject), {'SC': SCnorm_HC, 'FC': empFC})
 
     corr_SC_FCemp = FCD.pearson_r(empFC, SCnorm_HC)
     print("Pearson_r(SCnorm, empFC) = {}".format(corr_SC_FCemp))
-
-    # =====================================
-    # Print Human 66 info as reference
-    # =====================================
-    CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
-    C = CFile['C']
-    analyzeMatrix("Human 66", C)
-    # plotSC.plotSC_and_Histogram("Human 66", C)
 
     # ADSubject = ADSubjects[0]
     # print("Processing Subjects {} and {}".format(HCSubject, ADSubject))
@@ -433,14 +478,14 @@ if __name__ == '__main__':
     # plotSC.plotSC_and_Histogram(HCSubject, SCnorm_HC)
 
     # Compute the FIC params for all G
-    testDeco2014_Fig2(HCSubject)
+    testDeco2014_Fig2(SCnorm_HC, HCSubject)
 
     # Determine optimal G to work with
-    # plotFC_for_G(HCSubject)
+    # plotFC_for_G(SCnorm_HC, fMRI_HC)
 
     # Configure and compute Simulation
     # ------------------------------------------------
-    # singleSubjectPipeline(HCSubject)
+    # singleSubjectPipeline(SCnorm_HC, abeta_HC, fMRI_HC)
 
 
     # ================================================
@@ -466,5 +511,24 @@ if __name__ == '__main__':
     # print("corrcoef(SC,FC)={}".format(corr0))
     # print("corrcoef(SCnorm,FC)={}".format(corr1))
     # print("FCD.pearson_r(SCnorm, FC)={}".format(corr2))
+
+    #
+    # analyzeMatrix(subject_X, SCnorm_X)
+    # empFC = FCD.FC_from_fMRI(fMRI_X.T)
+    # print("KS(empFC, FC(fMRI))=", FCD.KolmogorovSmirnovStatistic(FC_X, empFC))
+    # =================================== do DMF FIC pre-processing
+    # subject_X = '002_S_0413-reduced'
+    # import DecoEtAl2014_Fig2 as DecoEtAl2014
+    # SCnorm_X, FC_X, fMRI_X = loadXData(dataset=1)
+    # DecoEtAl2014.filePath = 'Data_Produced/X/FICWeights/BenjiBalancedWeights-'+subject_X+'-{}.mat'
+    # DMF.initJ(SCnorm_X.shape[0])
+    # DecoEtAl2014.plotMaxFrecForAllWe(SCnorm_X)
+    # =================================== test the phFCD code...
+    # import functions.phaseFCD as phFCD
+    # subject_X = 'timeseries'
+    # SCnorm_X, FC_X, fMRI_X = loadXData(dataset=2)
+    # resu = phFCD.phFCD(fMRI_X)
+    # print(resu.shape)
+    # print(resu)
 
 # -- eof

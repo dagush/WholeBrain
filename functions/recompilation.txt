@@ -1,0 +1,49 @@
+I really hate recompiling at each moment, but in my opinion, there only three options for me:
+
+* TVB option: Only numba (ok, convert to numba...) the Models, not the integrators. This way, I could improve the
+  code by using a generic dfun function. For instance, in TVB style we would do something like:
+
+  def dfun(simVars, I_external):
+     deriv = _numba_dfun(simVars, I_external,
+                         a_e, b_e, d_e, gamma_e, tau_e,
+                         ...)
+     return deriv.T[..., numpy.newaxis]
+
+  In this case, _numba_dfun is the @jit function (jitted), which receives ALL model parameters explicitly...
+  As a consequence, dfun can not be jitted, so it means that everything that calls dfun cannot be, either.
+  Drawbacks: This will give me only one half of the speed. That is, everything will need twice the time.
+  Advantages: Code is much more flexible
+
+* Specialize option: As we want to numba-rize as much as possible (i.e., the integrators, too), but at the
+  same time we want to keep open the possibility of modifying model parameters, we could have model-specialized
+  integrators, such that each model already comes with its numba-rized integrator, which receives all model parms
+  and passes it to the numba-rized model. It would look something like
+
+  def integrate(dt, Tmaxneuronal, simVars, all parms from the model..., doBookkeeping = True):
+     N = simVars.shape[1]
+     curr_obsVars = initBookkeeping(N, Tmaxneuronal)
+     ...
+     dvars_obsVars = neuronalModel.dfun(simVars, stimulus, all parms from the model...)
+     ...
+     return result from obsVars
+
+  def dfun(simVars, I_external, all parms from the model...):
+     ...
+
+  Here, EVERYTHING would be numba-rized.
+  Drawbacks: Code is NOT flexible at all, everything is fixed.
+  Advantages: Maximum speed.
+
+* Recompile option: simply, call method.recompileSignatures() every time a model parm changes. One possibility
+  to simplify the burden a little bit is to have a hierarchical call, where the main code calls the integrator
+  recompilation, and in turn the recompilation calls the model recompilation...
+  Drawbacks: this is a quite dirty approach. Recompilation at every step introduces an overhead that is
+  difficult to ignore. However, for longer runs this penalization is negligible with respect to the simulation
+  timings.
+  Advantages: Code is still flexible, and we RUN the simulation itself at full speed.
+
+
+ +--------------------------------------------------+
+ |     I finally decided for the last option.       |
+ |     Dirty... but flexible and fast...            |
+ +--------------------------------------------------+

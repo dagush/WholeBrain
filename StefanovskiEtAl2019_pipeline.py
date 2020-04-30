@@ -28,6 +28,7 @@ def configSim(abeta_burden):
     integrator = functions.Integrator_Euler
     integrator.neuronalModel = JR
     integrator.clamping = False
+    integrator.ds = ds
 
     # b = 0.07  # default Jansen-Rit inhibitory membrane constant
     JR.b = Abeta.transform_abeta_exp(abeta_burden) * 1000  # I use the original JR values for b...
@@ -71,10 +72,12 @@ def run_sim(SCnorm, lf_mat):
     import scipy.signal as sig
 
     N = SCnorm.shape[0]
-    JR.initBookkeeping(N, tmax)
-    integrator.simulate(dt, Tmaxneuronal, SCnorm)
-    v = JR.returnBookkeeping()
-    PSP = v[400:,:]
+    # JR.initBookkeeping(N, tmax)
+    JR.SC = SCnorm
+    integrator.recompileSignatures()  # just in case...
+    v = integrator.simulate(dt, Tmaxneuronal)
+    # v = integrator.returnBookkeeping()
+    PSP = v[400:,0,:]
 
     # --------------------------------------------------------------
     ##### Analyze PSP
@@ -183,7 +186,7 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
 visualizeAll = True
 if __name__ == '__main__':
     plt.rcParams.update({'font.size': 22})
-    # for the visualization of the ABeta curve, look the file StefanovskiEtAl2019_Fig3.py
+    # for the visualization of the ABeta curve, look the file Fig_StefanovskiEtAl2019_Fig3.py
     # ------------------------------------------------
     # Load individual Abeta PET SUVRs
     # ------------------------------------------------
@@ -209,7 +212,7 @@ if __name__ == '__main__':
     # Configure Simulator
     # ------------------------------------------------
     # load SC
-    sc_folder = "./Data_Raw"
+    sc_folder = "./Data_Raw/surrogate_AD"
     SCnorm = np.loadtxt(sc_folder+"/avg_healthy_normSC_mod_379.txt")
 
     if visualizeAll:

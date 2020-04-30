@@ -44,8 +44,18 @@
 # ==========================================================================
 # ==========================================================================
 import numpy as np
+from numba import jit
 
 print("Going to use the Jansen-Rit neuronal model...")
+
+
+def recompileSignatures():
+    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+    initSim.recompile()
+    sigm.recompile()
+    dfun.recompile()
+
 
 # ==========================================================================
 # Jansen and Rit Model Constants
@@ -72,25 +82,34 @@ SC = None       # Structural connectivity (should be provided externally)
 
 # --------------------------------------------------------------------------
 # Simulation variables
+@jit(nopython=True)
 def initSim(N):
-    y0 = 0.001 * np.zeros(N)  # Initialize y0
-    y1 = 0.001 * np.zeros(N)  # Initialize y1
-    y2 = 0.001 * np.zeros(N)  # Initialize y2
-    y3 = 0.001 * np.zeros(N)  # Initialize y3
-    y4 = 0.001 * np.zeros(N)  # Initialize y4
-    y5 = 0.001 * np.zeros(N)  # Initialize y5
-    return [y0, y1, y2, y3, y4, y5]
+    # y0 = 0.001 * np.zeros(N)  # Initialize y0
+    # y1 = 0.001 * np.zeros(N)  # Initialize y1
+    # y2 = 0.001 * np.zeros(N)  # Initialize y2
+    # y3 = 0.001 * np.zeros(N)  # Initialize y3
+    # y4 = 0.001 * np.zeros(N)  # Initialize y4
+    # y5 = 0.001 * np.zeros(N)  # Initialize y5
+    # return [y0, y1, y2, y3, y4, y5]
+    y0_5 = np.zeros((6, N))  # Here we initialize with np.zeros, but other models use np.ones
+    return y0_5
+
 
 # Variables of interest, needed for bookkeeping tasks...
-v = None
+# v = None
+@jit(nopython=True)
+def numObsVars():
+    return 1
 
 # ----------------- Jansen and Rit model ----------------------
+@jit(nopython=True)
 def sigm(y):
     return 2.0 * e_0 / (1.0 + np.exp(r * (v0 - y)))
 
+@jit(nopython=True)
 def dfun(simVars, p):  # p is the stimulus
-    global v
-    [y0, y1, y2, y3, y4, y5] = simVars
+    # global v
+    y0 = simVars[0]; y1=simVars[1]; y2=simVars[2]; y3=simVars[3]; y4=simVars[4]; y5=simVars[5]
     v = y1 - y2
     dy0 = y3
     dy3 = A * a * sigm(y1-y2) - 2.0 * a * y3 - a**2 * y0
@@ -99,44 +118,9 @@ def dfun(simVars, p):  # p is the stimulus
           - 2.0 * a * y4 - a**2 * y1
     dy2 = y5
     dy5 = B * b * (a_4*C * sigm(a_3*C*y0)) - 2.0 * b * y5 - b**2 * y2
-    return [dy0, dy1, dy2, dy3, dy4, dy5]
+    return np.stack((dy0, dy1, dy2, dy3, dy4, dy5)), np.stack((v,))
 
 
 # ==========================================================================
 # ==========================================================================
-# ==========================================================================
-# Bookkeeping variables of interest...
-# --------------------------------------------------------------------------
-curr_v = None
-nn = 0
-
-
-def initBookkeeping(N, tmax):
-    global curr_v, nn
-    curr_v = np.zeros((int(tmax/ds), N))
-    nn = 0
-
-
-def resetBookkeeping():
-    global nn
-    nn = 0
-
-
-ds = 1  # downsampling stepsize
-def recordBookkeeping(t):
-    global curr_v, nn
-    t2 = int(t * 100000)
-    ds2 = int(ds * 100000)
-    if np.mod(t2, ds2) == 0:
-        # print(t,ds,nn)
-        curr_v[nn] = v
-        nn = nn + 1
-
-
-def returnBookkeeping():
-    return curr_v
-
-
-# ==========================================================================
-# ==========================================================================
-# ==========================================================================
+# ==========================================================================EOF
