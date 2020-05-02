@@ -23,6 +23,12 @@ from functions import BOLDFilters
 #     return r
 
 
+def calc_length(start, end, step):
+    # this fails for a negative step e.g., range(10, 0, -1).
+    # From https://stackoverflow.com/questions/31839032/python-how-to-calculate-the-length-of-a-range-without-creating-the-range
+    return (end - start - 1) // step + 1
+
+
 def pearson_r(x, y):
     """Compute Pearson correlation coefficient between two arrays."""
     # Compute correlation matrix
@@ -36,8 +42,13 @@ def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
     return d
 
 
+def distance(FCD1, FCD2):  # FCD similarity, convenience function
+    return KolmogorovSmirnovStatistic(FCD1, FCD2)
+
+
 windowSize = 30
-def FCD(signal):  # Compute the FCD of an input BOLD signal
+windowStep = 3
+def from_fMRI(signal):  # Compute the FCD of an input BOLD signal
     (N, Tmax) = signal.shape
 
     # subdiag = np.tril(np.ones((N,N)), -1)
@@ -49,15 +60,15 @@ def FCD(signal):  # Compute the FCD of an input BOLD signal
     # For each pair of sliding windows calculate the FC at t and t2 and
     # compute the correlation between the two.
     lastWindow = Tmax - windowSize  # 190 = 220 - 30
-    N_windows=len(np.arange(0,lastWindow,3))  # This shouldn't be done in Python!!!
-    cotsampling=np.zeros((int(N_windows*(N_windows-1)/2)))
+    N_windows = calc_length(0, lastWindow, windowStep)  # N_windows = len(np.arange(0, lastWindow, windowStep))
+    cotsampling = np.zeros((int(N_windows*(N_windows-1)/2)))
     kk = 0
     ii2 = 0
-    for t in range(0,lastWindow,3):
+    for t in range(0, lastWindow, windowStep):
         jj2 = 0
         sfilt = (signal_filt[:, t:t+windowSize+1]).T  # Extracts a (sliding) window between t and t+windowSize (included)
         cc = np.corrcoef(sfilt, rowvar=False)  # Pearson correlation coefficients
-        for t2 in range(0,lastWindow,3):
+        for t2 in range(0, lastWindow, windowStep):
             sfilt2 = (signal_filt[:, t2:t2+windowSize+1]).T  # Extracts a (sliding) window between t2 and t2+windowSize (included)
             cc2 = np.corrcoef(sfilt2, rowvar=False)  # Pearson correlation coefficients
             # ca = corr2(cc[Isubdiag],cc2[Isubdiag])  # Correlation between both FC
@@ -69,3 +80,7 @@ def FCD(signal):  # Compute the FCD of an input BOLD signal
         ii2 = ii2+1
 
     return cotsampling
+
+# ================================================================================================================
+# ================================================================================================================
+# ================================================================================================================EOF

@@ -23,7 +23,18 @@ def pearson_r(x, y):
     return corr_mat[0,1]
 
 
-def FC_from_fMRI(signal, applyFilters = True):
+def FC_Similarity(FC1, FC2):  # FC Similarity
+    (N, N2) = FC1.shape  # should be N == N2
+    Isubdiag = np.tril_indices(N, k=-1)
+    ca = pearson_r(FC1[Isubdiag], FC2[Isubdiag])  # Correlation between both FC
+    return ca
+
+
+def distance(FC1, FC2):  # FC similarity, convenience function
+    return FC_Similarity(FC1, FC2)
+
+
+def from_fMRI(signal, applyFilters = True):
     if applyFilters:
         signal_filt = BOLDFilters.BandPassFilter(signal)
         sfiltT = signal_filt.T
@@ -32,9 +43,6 @@ def FC_from_fMRI(signal, applyFilters = True):
     cc = np.corrcoef(sfiltT, rowvar=False)  # Pearson correlation coefficients
     return cc
 
-
-def FC_Similarity(FC1, FC2):  # FC Similarity
-    (N, N2) = FC1.shape  # should be N == N2
-    Isubdiag = np.tril_indices(N, k=-1)
-    ca = pearson_r(FC1[Isubdiag], FC2[Isubdiag])  # Correlation between both FC
-    return ca
+# ================================================================================================================
+# ================================================================================================================
+# ================================================================================================================EOF
