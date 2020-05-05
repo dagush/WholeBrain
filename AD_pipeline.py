@@ -13,6 +13,8 @@ import scipy.io as sio
 import os, csv
 from pathlib import Path
 import matplotlib.pyplot as plt
+import time
+
 import functions.Utils.plotSC as plotSC
 from functions.Models import Abeta_StefanovskiEtAl2019 as Abeta
 # from functions.Models import JansenRit as JR
@@ -33,6 +35,7 @@ integrator.verbose = False
 # Tmaxneuronal = int((tmax+dt))
 
 import functions.simulateFCD as simulateFCD
+import functions.FC as FC
 import functions.FCD as FCD
 from functions import BalanceFIC
 BalanceFIC.integrator = integrator
@@ -121,14 +124,14 @@ def computeAvgSCMatrix(classification, baseFolder):
     print("HC: {} (0)".format(HC[0]))
     sc_folder = baseFolder+'/'+HC[0]+"/DWI_processing"
     SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
-    SCnorm = SC / SC.max()
-    sumMatrix = SCnorm
+
+    sumMatrix = SC
     for subject in HC[1:]:
         print("HC: {}".format(subject))
         sc_folder = baseFolder+'/'+subject+"/DWI_processing"
         SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
         sumMatrix += SC
-    return sumMatrix / len(HC)  # but we normalize it so we probably do not need this...
+    return sumMatrix / len(HC)  # but we normalize it afterwards, so we probably do not need this...
 
 
 def getClassifications(subjects):
@@ -210,7 +213,7 @@ def loadXData(dataset=1):
 normalizationFactor = 0.2
 avgHuman66 = 0.0035127188987848714
 areasHuman66 = 66  # yeah, a bit redundant... ;-)
-maxNodeInput66 = 0.7135693141327057
+maxNodeInput66 = 0.7275543904602363
 def correctSC(SC):
     N = SC.shape[0]
     logMatrix = np.log(SC+1)
@@ -225,7 +228,7 @@ def correctSC(SC):
 
 
 def analyzeMatrix(name, C):
-    max, min, avg, std, maxNodeInput, avgNodeInput = FCD.characterizeConnectivityMatrix(C)
+    max, min, avg, std, maxNodeInput, avgNodeInput = FC.characterizeConnectivityMatrix(C)
     print(name + " => Shape:{}, Max:{}, Min:{}, Avg:{}, Std:{}".format(C.shape, max, min, avg, std), end='')
     print("  => impact=Avg*#:{}".format(avg*C.shape[0]), end='')
     print("  => maxNodeInputs:{}".format(maxNodeInput), end='')
@@ -274,8 +277,8 @@ def comparteTwoSC_WRT_Ref(subjectA, subjectB, refSC=None):
 def plotFC_for_G(SCnorm, fMRI):
     # First, load the empirical data
     # SCnorm, abeta, fMRI = loadSubjectData(subject)
-    empFC = FCD.FC_from_fMRI(fMRI)
-    empFCD = FCD.FCD(fMRI)
+    empFC = FC.from_fMRI(fMRI)
+    empFCD = FCD.from_fMRI(fMRI)
 
     # Set the interval of G values to compute
     wStart = 0
@@ -296,8 +299,8 @@ def plotFC_for_G(SCnorm, fMRI):
         DMF.we = we
         simBDS = simulateFCD.simulateSingleSubject(SCnorm, warmup=True)
 
-        simFC = FCD.FC_from_fMRI(simBDS.T)
-        ccFCempFCsim[kk] = FCD.FC_Similarity(empFC, simFC)
+        simFC = FC.from_fMRI(simBDS.T)
+        ccFCempFCsim[kk] = FC.FC_Similarity(empFC, simFC)
         print('                 -> cc[FC_emp, FC_sim] = {}'.format(ccFCempFCsim[kk]), end='')
         if ccFCempFCsim[kk] < currentValFC:
             currentValFC = ccFCempFCsim[kk]
@@ -306,7 +309,7 @@ def plotFC_for_G(SCnorm, fMRI):
         else:
             print()
 
-        simFCD = FCD.FCD(simBDS)
+        simFCD = FCD.from_fMRI(simBDS)
         ksFCDempFCDsim[kk] = FCD.KolmogorovSmirnovStatistic(empFCD, simFCD)
         print('                 -> KS[FCD_emp, FCD_sim] = {}'.format(ksFCDempFCDsim[kk]), end='')
         if ksFCDempFCDsim[kk] < currentValFCD:
@@ -332,8 +335,8 @@ def plot_cc_empSC_empFC(subjects):
     results = []
     for subject in subjects:
         empSCnorm, abeta, fMRI = loadSubjectData(subject)
-        empFC = FCD.FC_from_fMRI(fMRI)
-        corr_SC_FCemp = FCD.pearson_r(empFC, empSCnorm)
+        empFC = FC.from_fMRI(fMRI)
+        corr_SC_FCemp = FC.pearson_r(empFC, empSCnorm)
         print("{} -> Pearson_r(SCnorm, empFC) = {}".format(subject, corr_SC_FCemp))
         results.append(corr_SC_FCemp)
 
@@ -389,32 +392,55 @@ def testDeco2014_Fig2(SCnorm, subjectName):
 # =====================================================================================
 # Methods to simulate and fit AD data
 # =====================================================================================
-def preComputeJ_Balance(subject, SC):
-    # fileName = "Data_Produced/AD/"+subject+"-"+str(neuronalModel.we)+"_JBalance.mat"
-    fileName = 'Data_Produced/AD/FICWeights/BenjiBalancedWeights-'+subject+'-{}.mat'.format(neuronalModel.we)
-    if not Path(fileName).is_file():
-        print("Computing " + fileName + " !!!")
-        BalanceFIC.verbose = True
-        J=BalanceFIC.JOptim(SC).flatten()  # This is the Feedback Inhibitory Control
-        sio.savemat(fileName, {'J': neuronalModel.J})  # save J_Balance J
-    else:
-        print("Loading "+fileName+" !!!")
-        # ==== J can be calculated only once and then load J_Balance J
-        J = sio.loadmat(fileName)['J'].flatten()
-    return J
+# def preComputeJ_Balance(subject, SC):
+#     # fileName = "Data_Produced/AD/"+subject+"-"+str(neuronalModel.we)+"_JBalance.mat"
+#     fileName = 'Data_Produced/AD/FICWeights-'+subject+'/BenjiBalancedWeights-{}.mat' #.format(neuronalModel.we)
+#     BalanceFIC.setFileName(fileName)
+#     BalanceFIC.Balance_J9(neuronalModel.we, SC)
+#     # if not Path(fileName).is_file():
+#     #     print("Computing " + fileName + " !!!")
+#     #     BalanceFIC.verbose = True
+#     #     J=BalanceFIC.JOptim(SC).flatten()  # This is the Feedback Inhibitory Control
+#     #     sio.savemat(fileName, {'J': neuronalModel.J})  # save J_Balance J
+#     # else:
+#     #     print("Loading "+fileName+" !!!")
+#     #     # ==== J can be calculated only once and then load J_Balance J
+#     #     J = sio.loadmat(fileName)['J'].flatten()
+#     # return J
 
 
-def singleSubjectPipeline(SCnorm, abeta, fMRI):
-    empCC = FCD.FCD(fMRI)  # avgFC to get the average FC
-    neuronalModel.we = 0.1  # 2.1  # right now, the standard magical value...
+def compareJs(subjectA, subjectB, we):
+    fileNameA = 'Data_Produced/AD/FICWeights-'+subjectA+'/BenjiBalancedWeights-{}.mat'.format(we)
+    fileNameB = 'Data_Produced/AD/FICWeights-'+subjectB+'/BenjiBalancedWeights-{}.mat'.format(we)
 
-    print("Pre-computing J (FIC): Subject {} @ G={}".format(subject, neuronalModel.we))
-    neuronalModel.J = preComputeJ_Balance(subject, SCnorm)
 
-    simBDS = simulateFCD.simulateSingleSubject(SCnorm, warmup=True)
-    simCC = FCD.FCD(simBDS.T)  # avgFC to get the average FC
-    ccFCempFCsim = FCD.KolmogorovSmirnovStatistic(empCC, simCC)  # FC_Similarity for FC comparison
-    print("cc[FCemp,FCsim]", ccFCempFCsim)
+def singleSubjectPipeline(SCnorm, subject,  #, abeta, fMRI,
+                          wStart=0, wEnd=6.0, wStep=0.05,
+                          precompute=True,
+                          useDeterministicIntegrator=False):
+    fileName = 'Data_Produced/AD/FICWeights-'+subject+'/BenjiBalancedWeights-{}.mat'
+    BalanceFIC.useDeterministicIntegrator = useDeterministicIntegrator
+    BalanceFIC.verbose = True
+    if precompute:
+        BalanceFIC.Balance_AllJ9(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep, baseName=fileName)
+    # Let's plot it as a verification measure...
+    import Fig_DecoEtAl2014_Fig2 as Fig2
+    Fig2.plotMaxFrecForAllWe(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep,
+                             extraTitle='', precompute=False, fileName=fileName)  # We already precomputed everything
+
+    # empCC = FCD.from_fMRI(fMRI)  # avgFC to get the average FC
+    # Now, optimize all we (G) values
+    # ...
+
+    # neuronalModel.we = 2.1  # right now, the standard magical value...
+    #
+    # print("Pre-computing J (FIC): Subject {} @ G={}".format(subject, neuronalModel.we))
+    # neuronalModel.J = preComputeJ_Balance(subject, SCnorm)
+    #
+    # simBDS = simulateFCD.simulateSingleSubject(SCnorm, warmup=True)
+    # simCC = FCD.from_fMRI(simBDS.T)  # avgFC to get the average FC
+    # ccFCempFCsim = FCD.KolmogorovSmirnovStatistic(empCC, simCC)  # FC_Similarity for FC comparison
+    # print("cc[FCemp,FCsim]", ccFCempFCsim)
 
 
 # =====================================================================
@@ -431,7 +457,9 @@ if __name__ == '__main__':
     # =====================================
     CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
     C = CFile['C']
-    analyzeMatrix("Human 66", C)
+    analyzeMatrix("Unnormalized Human 66", C)
+    C = 0.2 * C / np.max(C)
+    analyzeMatrix("        Norm Human 66", C)
     # Human 66 => Shape:(66, 66), Max:0.19615559289837184, Min:0.0, Avg:0.0035127188987848714, Std:0.01523519221725181
     #          => impact=Avg*#:0.23183944731980152
     #          => maxNodeInputs:0.7135693141327057
@@ -441,22 +469,25 @@ if __name__ == '__main__':
     # Load individual Abeta PET SUVRs
     # ------------------------------------------------
     subjects = [os.path.basename(f.path) for f in os.scandir(base_folder+"/connectomes/") if f.is_dir()]
-    # plotAllAbetaHistograms(subjects)
+    # plotAllAbetaHistograms(subjects)  # generates a series of histograms of the Abeta burden...
     classification = getClassifications(subjects)
     HCSubjects = [s for s in classification if classification[s] == 'HC']
     ADSubjects = [s for s in classification if classification[s] == 'AD']
 
     avgSCMatrix = computeAvgSCMatrix(classification, base_folder + "/connectomes")
-    finalMatrix = correctSC(avgSCMatrix)
-    print("# of elements in AVG connectome: {}".format(finalMatrix.shape))
-    plotSC.justPlotSC('AVG<HC>', finalMatrix, plotSC.plotSCHistogram)
-    plot_cc_empSC_empFC(HCSubjects)
+    analyzeMatrix("AvgHC", avgSCMatrix)
+    finalAvgMatrixHC = correctSC(avgSCMatrix)
+    sio.savemat('Data_Produced/AD/AvgHC_SC.mat', {'SC':finalAvgMatrixHC})
+    analyzeMatrix("AvgHC norm", finalAvgMatrixHC)
+    print("# of elements in AVG connectome: {}".format(finalAvgMatrixHC.shape))
+    # plotSC.justPlotSC('AVG<HC>', finalMatrix, plotSC.plotSCHistogram)
+    # plot_cc_empSC_empFC(HCSubjects)
 
     # HCSubject = '002_S_0413'  # HCSubjects[0]
     # SCnorm_HC, abeta_HC, fMRI_HC = loadSubjectData(HCSubject)
     # analyzeMatrix("SC norm HC (log({}))".format(HCSubject), SCnorm_HC)
     # # plotSC.plotSC_and_Histogram("SC norm HC", SCnorm_HC)
-    # empFC = FCD.FC_from_fMRI(fMRI_HC)
+    # empFC = FC.from_fMRI(fMRI_HC)
     # analyzeMatrix("EmpiricalFC", empFC)
     # C norm HC (log(002_S_0413)) => Shape:(379, 379), Max:14.250680446001775, Min:0.0, Avg:3.513063979447963, Std:2.418758388149712
     #                             => impact=Avg*#:1331.451248210778
@@ -464,8 +495,8 @@ if __name__ == '__main__':
     # plotSC.plotSC_and_Histogram("EmpiricalFC", empFC)
     # # sio.savemat(save_folder+'/empFC_{}.mat'.format(HCSubject), {'SC': SCnorm_HC, 'FC': empFC})
 
-    corr_SC_FCemp = FCD.pearson_r(empFC, SCnorm_HC)
-    print("Pearson_r(SCnorm, empFC) = {}".format(corr_SC_FCemp))
+    # corr_SC_FCemp = FCD.pearson_r(empFC, SCnorm_HC)
+    # print("Pearson_r(SCnorm, empFC) = {}".format(corr_SC_FCemp))
 
     # ADSubject = ADSubjects[0]
     # print("Processing Subjects {} and {}".format(HCSubject, ADSubject))
@@ -478,7 +509,7 @@ if __name__ == '__main__':
     # plotSC.plotSC_and_Histogram(HCSubject, SCnorm_HC)
 
     # Compute the FIC params for all G
-    testDeco2014_Fig2(SCnorm_HC, HCSubject)
+    # testDeco2014_Fig2(SCnorm_HC, HCSubject)
 
     # Determine optimal G to work with
     # plotFC_for_G(SCnorm_HC, fMRI_HC)
@@ -486,7 +517,10 @@ if __name__ == '__main__':
     # Configure and compute Simulation
     # ------------------------------------------------
     # singleSubjectPipeline(SCnorm_HC, abeta_HC, fMRI_HC)
-
+    # singleSubjectPipeline(finalAvgMatrixHC, 'AvgHC', wStart=0, wEnd=4.01, wStep=0.05,
+    #                       precompute=False, useDeterministicIntegrator=False)  # AvgHC => Rnd (Euler-Maruyama) + Adria's algo
+    singleSubjectPipeline(finalAvgMatrixHC, 'AvgHC-N-Rnd', wStart=0, wEnd=4.01, wStep=0.05,
+                          precompute=False, useDeterministicIntegrator=False)
 
     # ================================================
     # ================================================
@@ -507,14 +541,14 @@ if __name__ == '__main__':
     #
     # corr0 = np.corrcoef(SC.flatten(), FC.flatten())
     # corr1 = np.corrcoef(SCnorm.flatten(), FC.flatten())
-    # corr2 = FCD.pearson_r(SCnorm, FC)
+    # corr2 = FC.pearson_r(SCnorm, FC)
     # print("corrcoef(SC,FC)={}".format(corr0))
     # print("corrcoef(SCnorm,FC)={}".format(corr1))
-    # print("FCD.pearson_r(SCnorm, FC)={}".format(corr2))
+    # print("FC.pearson_r(SCnorm, FC)={}".format(corr2))
 
     #
     # analyzeMatrix(subject_X, SCnorm_X)
-    # empFC = FCD.FC_from_fMRI(fMRI_X.T)
+    # empFC = FC.from_fMRI(fMRI_X.T)
     # print("KS(empFC, FC(fMRI))=", FCD.KolmogorovSmirnovStatistic(FC_X, empFC))
     # =================================== do DMF FIC pre-processing
     # subject_X = '002_S_0413-reduced'
@@ -527,8 +561,18 @@ if __name__ == '__main__':
     # import functions.phaseFCD as phFCD
     # subject_X = 'timeseries'
     # SCnorm_X, FC_X, fMRI_X = loadXData(dataset=2)
-    # resu = phFCD.phFCD(fMRI_X)
-    # print(resu.shape)
+    # print("Starting phFCD calculus")
+    # # start_time = time.clock()
+    # resFCD = FCD.from_fMRI(fMRI_X)
+    # # print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
+    #
+    # print("FCD sahpe={}".format(resFCD.shape))
+    # # start_time = time.clock()
+    # resu = phFCD.from_fMRI(fMRI_X)
+    # # print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
+    # print("phFCD shape={}".format(resu.shape))
     # print(resu)
 
-# -- eof
+# ================================================================================================================
+# ================================================================================================================
+# ================================================================================================================EOF

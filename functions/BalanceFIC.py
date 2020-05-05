@@ -20,16 +20,18 @@
 # to the local excitatory pool is fulfilled in all N brain areas.
 #
 # see:
-# G. Deco, A. Ponce-Alvarez, P. Hagmann, G.L. Romani, D. Mantini, M. Corbetta
-# How local excitation-inhibition ratio impacts the whole brain dynamics
-# J. Neurosci., 34 (2014), pp. 7886-7898
-# http://www.jneurosci.org/content/34/23/7886.long
+# [DecoEtAl2014] G. Deco, A. Ponce-Alvarez, P. Hagmann, G.L. Romani, D. Mantini, M. Corbetta
+#     How local excitation-inhibition ratio impacts the whole brain dynamics
+#     J. Neurosci., 34 (2014), pp. 7886-7898
+#     http://www.jneurosci.org/content/34/23/7886.long
 #
 # Adrian Ponce-Alvarez. Refactoring (& Python translation) by Gustavo Patow
 # --------------------------------------------------------------------------
 import numpy as np
 from pathlib import Path
 import scipy.io as sio
+import multiprocessing as mp
+
 integrator = None  # functions.Integrator_EulerMaruyama
 
 veryVerbose = False
@@ -43,6 +45,57 @@ def recompileSignatures():
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     # print("\n\nRecompiling signatures!!!")
     integrator.recompileSignatures()
+
+
+min_largest_distance = np.inf
+slow_factor = 1.0
+def updateJ_N(N, tmax, delta, curr, J):  # 2nd version of updateJ
+    tmin = 1000 if (tmax>1000) else int(tmax/10)
+    currm = np.mean(curr[tmin:tmax, :], 0)  # takes the mean of all xn values along dimension 1...
+    # This is the "averaged level of the input of the local excitatory pool of each brain area,
+    # i.e., I_i^{(E)}" in the text (pp 7889, right column, subsection "FIC").
+    flag = 0
+    if veryVerbose: print()
+    if veryVerbose: print("[", end='')
+    # ===========================================================
+    global min_largest_distance, slow_factor
+    distance = np.full((N,), 10.0)
+    num_above_error = 0
+    largest_distance = 0
+    # total_error = 0.0
+    Si = np.zeros((N,))
+    for i in range(N):
+        # ie_100 = curr[i]  # d_raw[-100:-1, 1, i, 0]  # I_e
+        # ie = currm[i]  # np.average(ie_100)
+        d = currm[i] + 0.026  # ie - be_ae + 0.026
+        distance[i] = d
+        d_abs = abs(d)
+        if largest_distance < d_abs:
+            largest_distance = d_abs
+        # Si[i] = np.average(d_raw[-100:-1, 2, i, 0])  # S_i
+        # error_i = d*d
+        # error[i] = error_i
+        # total_error += error_i
+
+    if largest_distance < min_largest_distance:
+        min_largest_distance = largest_distance
+    else:
+        slow_factor *= 0.5
+
+    for i in range(N):
+        d = distance[i]  # currm[i] + 0.026
+        d_abs = np.abs(d)
+        if d_abs > 0.005:  # if currm_i < -0.026 - 0.005 or currm_i > -0.026 + 0.005 (a tolerance)
+            num_above_error += 1
+            delta_i = slow_factor * d_abs / 0.1  # Si[i]  # 0.003 * abs(d + 0.026) / 0.026
+            if delta_i < 0.005:
+                delta_i = 0.005
+            delta[i] = np.sign(d) * delta_i
+        else:
+            delta[i] = 0.0
+        J[i] = J[i] + delta[i]
+    if veryVerbose: print("]")
+    return N - num_above_error
 
 
 def updateJ(N, tmax, delta, curr, J):
@@ -91,9 +144,10 @@ def JOptim(C, warmUp = False):
     integrator.neuronalModel.SC = C
     # integrator.initBookkeeping(N, tmax)
     delta = 0.02 * np.ones(N)
+    # A couple of initializations, needed only for updateJ_2
+    global min_largest_distance, slow_factor; min_largest_distance = np.inf; slow_factor = 1.0
 
     if verbose:
-        print()
         print("we=", integrator.neuronalModel.we)  # display(we)
         print("  Trials:", end=" ", flush=True)
 
@@ -113,7 +167,9 @@ def JOptim(C, warmUp = False):
         if verbose: print(k, end='', flush=True)
 
         currm = curr_xn - integrator.neuronalModel.be/integrator.neuronalModel.ae  # be/ae==125./310. Records currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
-        flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)
+        # flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)  # Adrian's method, the one from [DecoEtAl2014]
+        flagJ = updateJ_N(N, tmax, delta, currm, integrator.neuronalModel.J)  # Nacho's method... ;-)
+
         if verbose: print("({})".format(flagJ), end='', flush=True)
         if flagJ > bestJCount:
             bestJCount = flagJ
@@ -126,28 +182,82 @@ def JOptim(C, warmUp = False):
         else:
             if verbose: print(', ', end='', flush=True)
 
-    if verbose: print("\nFinal (we={}): {} trials, with {}/{} nodes solved at trial {}\n".format(integrator.neuronalModel.we, k, bestJCount, N, bestTrial))
+    if verbose: print("Final (we={}): {} trials, with {}/{} nodes solved at trial {}".format(integrator.neuronalModel.we, k, bestJCount, N, bestTrial))
     if verbose: print('DONE!') if flagJ == N else print('FAILED!!!')
     return bestJ, bestJCount
 
+# =====================================
+# =====================================
+# Rogue functions to switch to a deterministic Euler integrator...
+oldIntegrator = None
+neuronalModel = None
+def replaceIntegrator():
+    if verbose: print("Going to replace the default integrator for the deterministic Euler Integrator...")
+    global oldIntegrator, neuronalModel, integrator
+    oldIntegrator = integrator
+    neuronalModel = oldIntegrator.neuronalModel
+    import functions.Integrator_Euler as Euler
+    integrator = Euler
+    integrator.neuronalModel = neuronalModel
+    integrator.verbose = False
+
+def restoreIntegrator():
+    if verbose: print("Going to replace back the old integrator...")
+    global integrator
+    integrator = oldIntegrator
 
 # =====================================
 # =====================================
-# Auxiliary function to simplify work: if it was computed, load it. If not, compute (and save) it!
-baseName = "Data_Produced/test_J_Balance_we{}.mat"
-def Balance_J9(we, C, warmUp = False):
+# Auxiliary functions to simplify work: if it was computed, load it. If not, compute (and save) it!
+useDeterministicIntegrator = False
+def Balance_J9(we, C,
+               baseName = "Data_Produced/test_J_Balance_we{}.mat",
+               warmUp = False):
     fileName = baseName.format(we)
     # ==== J is calculated this only once, then saved
     integrator.neuronalModel.we = we
     if not Path(fileName).is_file():
-        print("Computing {} !!!".format(fileName))
+        if verbose: print("Computing {} !!!".format(fileName))
+        if useDeterministicIntegrator:
+            replaceIntegrator()
         bestJ, nodeCount = JOptim(C, warmUp=warmUp)  # This is the Feedback Inhibitory Control
+        if useDeterministicIntegrator:
+            restoreIntegrator()
         sio.savemat(fileName, {'we': we, 'J': integrator.neuronalModel.J})
     else:
         # ==== J can be calculated only once and then load J_Balance J
-        print("Loading {} !!!".format(fileName))
+        if verbose: print("Loading {} !!!".format(fileName))
         bestJ = sio.loadmat(fileName)['J']
     integrator.neuronalModel.J = bestJ.flatten()
+
+
+def Balance_AllJ9(C, wStart=0, wEnd=6+0.001, wStep=0.05,
+                  baseName="Data_Produced/test_J_Balance_we{}.mat",
+                  parallel=False):
+    # all tested global couplings (G in the paper):
+    wes = np.arange(wStart + wStep,
+                    wEnd,
+                    wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
+    # numW = wes.size  # length(wes);
+    if not parallel:
+        for we in wes:  # iterate over the weight range (G in the paper, we here)
+            Balance_J9(we, C, baseName=baseName)
+    else:
+        # G, Ji, t, d = optimize_fic(model, 5.6, white_matter, white_matter_coupling)
+        cpu_count = mp.cpu_count()
+        pool = mp.Pool(cpu_count)
+        print('Using {} processes'.format(cpu_count))
+
+        # # Step 2: `pool.apply` the `howmany_within_range()`
+        results_fic = pool.starmap(Balance_J9, [(we, C, baseName) for we in wes])
+        # results_no_fic = pool.starmap(simulate_no_fic, [(model, we, white_matter, white_matter_coupling) for we in wes])
+
+        # Step 3: Don't forget to close
+        pool.close()
+        # x_fic = [r[0] for r in results_fic]
+        # y_fic = [np.max(r[3][-100:-1, 0, :, 0]) for r in results_fic]
+        # x_no_fic = [r[0] for r in results_no_fic]
+        # y_no_fic = [np.max(r[3][-100:-1, 0, :, 0]) for r in results_no_fic]
 
 # ==========================================================================
 # ==========================================================================

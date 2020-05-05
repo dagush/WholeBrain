@@ -83,8 +83,8 @@ def processEmpiricalSubjects(tc_aal, task, NumSubjects, N, Conditions):
     for s in range(NumSubjects):
         print('   Subject: ', s)
         signal = LR_version_symm(tc_aal[s, cond])
-        FCemp[s] = FC.FC_from_fMRI(signal, applyFilters=False)
-        cotsampling = np.concatenate((cotsampling, FCD.FCD(signal)))
+        FCemp[s] = FC.from_fMRI(signal, applyFilters=False)
+        cotsampling = np.concatenate((cotsampling, FCD.from_fMRI(signal)))
     return np.squeeze(np.mean(FCemp, axis=0)), cotsampling
 
 
@@ -149,8 +149,8 @@ def prepro_Fig3():
         for nsub in range(NumSubjects):  # trials. Originally it was 20.
             print("we={} -> SIM subject {}!!!".format(we, nsub))
             bds = simulateFCD.simulateSingleSubject(C, warmup=False).T
-            FCs[nsub] = FC.FC_from_fMRI(bds, applyFilters=False)
-            cotsamplingsim = np.concatenate((cotsamplingsim, FCD.FCD(bds)))  # Compute the FCD correlations
+            FCs[nsub] = FC.from_fMRI(bds, applyFilters=False)
+            cotsamplingsim = np.concatenate((cotsamplingsim, FCD.from_fMRI(bds)))  # Compute the FCD correlations
         print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
 
         FCDfitt5[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling5, cotsamplingsim)

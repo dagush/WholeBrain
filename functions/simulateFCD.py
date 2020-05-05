@@ -86,7 +86,7 @@ def simulateSingleSubject(C, warmup=False):
 # ============================================================================
 def simSingleSubjectFCD(C, warmup=False):
     bds = simulateSingleSubject(C, warmup=warmup)
-    cotsampling = FCD.FCD(bds.T)  # Compute the FCD correlations
+    cotsampling = FCD.from_fMRI(bds.T)  # Compute the FCD correlations
     return cotsampling
 
 

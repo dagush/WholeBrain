@@ -57,7 +57,7 @@ for task in range(len(Conditions)):
     for s in range(Subjects):
         print('   Subject: ', s)
         signal = tc_aal[s, Conditions[task]]
-        cotsampling[task, s, :] = FCD.FCD(signal)
+        cotsampling[task, s, :] = FCD.from_fMRI(signal)
 
 
 # Save & Plot

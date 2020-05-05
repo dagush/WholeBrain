@@ -14,13 +14,17 @@ import os, csv
 from pathlib import Path
 import matplotlib.pyplot as plt
 import functions.Models.DynamicMeanField as DMF
-# import functions.Integrator_EulerMaruyama as integrator
-# integrationMode = ''
-import functions.Integrator_Euler as integrator
+# ============== chose an integrator
+import functions.Integrator_EulerMaruyama as integrator
+integrationMode = ''
+# import functions.Integrator_Euler as integrator
+# integrationMode = 'Deterministic/'
+# ============== done !!!
 integrator.neuronalModel = DMF
-integrationMode = 'Deterministic/'
-import Prepro_DecoEtAl2014_GetBalancedWeights as getJs
-getJs.integrator = integrator
+# import Prepro_DecoEtAl2014_GetBalancedWeights as getJs
+# getJs.integrator = integrator
+import functions.BalanceFIC as BalanceFIC
+BalanceFIC.integrator = integrator
 
 np.random.seed(42)  # Fix the seed for debug purposes...
 
@@ -63,7 +67,8 @@ np.random.seed(42)  # Fix the seed for debug purposes...
 #     plt.show()
 
 
-def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05, extraTitle=''):
+def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
+                        extraTitle='', precompute=True, fileName='Data_Produced/test_J_{}.mat'):
     # Integration parms...
     dt = 0.1
     tmax = 10000.
@@ -96,17 +101,20 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05, extraTitle=''):
     print("======================================")
     # DMF.lambda = 0.  # make sure no long-range feedforward inhibition (FFI) is computed
     maxRateFIC = np.zeros(len(wes))
-    JI = getJs.computeAllJs(C, wStart, wEnd, wStep)
+    # JI = getJs.computeAllJs(C, wStart, wEnd, wStep)
+    if precompute:
+        BalanceFIC.Balance_AllJ9(C, wStart, wEnd, wStep, baseName=fileName)
     # JI, origWes = computeAllJs(C, wStart, wEnd, wStep)
     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
-        print("Processing: {}".format(we), end='')
+        print("\nProcessing: {}  ".format(we), end='')
         DMF.we = we
-        wePos, = np.where(np.isclose(wes, we))  #original wes values may be differeent than the wes we are using now... be careful!!
-        DMF.J = JI[:,wePos].flatten()
+        # wePos, = np.where(np.isclose(wes, we))  #original wes values may be differeent than the wes we are using now... be careful!!
+        # DMF.J = JI[:,wePos].flatten()
+        BalanceFIC.Balance_J9(we, C, baseName=fileName)
         integrator.recompileSignatures()
         v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
         maxRateFIC[kk] = np.max(np.mean(v,0))
-        print("=> {}".format(maxRateFIC[kk]))
+        print("maxRateFIC => {}".format(maxRateFIC[kk]))
     fic, = plt.plot(wes, maxRateFIC)
     fic.set_label("FIC")
 
@@ -117,10 +125,6 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05, extraTitle=''):
     plt.xlabel("Global Coupling (G = we)")
     plt.legend()
     plt.show()
-
-
-def setFileName(fileName):
-    getJs.subjectPath = fileName
 
 
 def debug_one_we(C):
