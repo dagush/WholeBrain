@@ -103,8 +103,8 @@ neuronalModel.we = 2.1  # Global Coupling parameter
 serotonin2A.wgaini = 0.  # Placebo conditions, to calibrate the J's...
 serotonin2A.wgaine = 0.
 # ==== J is calculated this only once, then saved
-BalanceFIC.baseName = "Data_Produced/SC90/J_Balance_we{}.mat"
-BalanceFIC.Balance_J9(neuronalModel.we, C)
+baseName = "Data_Produced/SC90/J_Balance_we{}.mat".format(np.round(neuronalModel.we, decimals=2))
+neuronalModel.J = BalanceFIC.Balance_J9(neuronalModel.we, C, baseName)['J'].flatten()
 integrator.recompileSignatures()
 # if not Path(fileName).is_file():
 #     print("Computing {} !!!".format(fileName))

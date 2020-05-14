@@ -6,7 +6,7 @@
 #--------------------------------------------------------------------------
 #--------------------------------------------------------------------------
 import numpy as np
-from scipy import stats
+# from numba import jit
 
 from functions import BOLDFilters
 
@@ -15,6 +15,7 @@ def characterizeConnectivityMatrix(C):
     return np.max(C), np.min(C), np.average(C), np.std(C), np.max(np.sum(C, axis=0)), np.average(np.sum(C, axis=0))
 
 
+# @jit(nopython=True)
 def pearson_r(x, y):
     """Compute Pearson correlation coefficient between two arrays."""
     # Compute correlation matrix
@@ -23,6 +24,7 @@ def pearson_r(x, y):
     return corr_mat[0,1]
 
 
+# @jit(nopython=True)
 def FC_Similarity(FC1, FC2):  # FC Similarity
     (N, N2) = FC1.shape  # should be N == N2
     Isubdiag = np.tril_indices(N, k=-1)
@@ -30,10 +32,12 @@ def FC_Similarity(FC1, FC2):  # FC Similarity
     return ca
 
 
+# @jit(nopython=True)
 def distance(FC1, FC2):  # FC similarity, convenience function
     return FC_Similarity(FC1, FC2)
 
 
+# @jit(nopython=True)
 def from_fMRI(signal, applyFilters = True):
     if applyFilters:
         signal_filt = BOLDFilters.BandPassFilter(signal)

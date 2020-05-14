@@ -15,6 +15,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import time
 
+# --------------------------------------------------------------------------
+#  Begin setup...
+# --------------------------------------------------------------------------
 import functions.Utils.plotSC as plotSC
 from functions.Models import Abeta_StefanovskiEtAl2019 as Abeta
 # from functions.Models import JansenRit as JR
@@ -34,11 +37,20 @@ integrator.verbose = False
 # ds = 1e-4
 # Tmaxneuronal = int((tmax+dt))
 
+import functions.BOLDHemModel_Stephan2007 as Stephan2007
 import functions.simulateFCD as simulateFCD
-import functions.FC as FC
-import functions.FCD as FCD
+simulateFCD.integrator = integrator
+simulateFCD.BOLDModel = Stephan2007
 from functions import BalanceFIC
 BalanceFIC.integrator = integrator
+
+import functions.FC as FC
+import functions.FCD as FCD
+import functions.G_optim as G_optim
+G_optim.integrator = integrator
+# --------------------------------------------------------------------------
+#  End setup...
+# --------------------------------------------------------------------------
 
 
 def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
@@ -119,19 +131,32 @@ def plotAllAbetaHistograms(subjects):
 # =====================================================================================
 # Methods to input AD data
 # =====================================================================================
-def computeAvgSCMatrix(classification, baseFolder):
+def computeAvgSC_HC_Matrix(classification, baseFolder):
     HC = [subject for subject in classification.keys() if classification[subject] == 'HC']
-    print("HC: {} (0)".format(HC[0]))
+    print("SC + HC: {} (0)".format(HC[0]))
     sc_folder = baseFolder+'/'+HC[0]+"/DWI_processing"
     SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
 
     sumMatrix = SC
     for subject in HC[1:]:
-        print("HC: {}".format(subject))
+        print("SC + HC: {}".format(subject))
         sc_folder = baseFolder+'/'+subject+"/DWI_processing"
         SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
         sumMatrix += SC
     return sumMatrix / len(HC)  # but we normalize it afterwards, so we probably do not need this...
+
+
+def load_all_HC_fMRI(classification, baseFolder):
+    HC = [subject for subject in classification.keys() if classification[subject] == 'HC']
+    all_fMRI = {}
+    for subject in HC:
+        print("fMRI HC: {}".format(subject))
+        fMRI_path = base_folder + "/fMRI/" + subject + "/MNINonLinear/Results/Restingstate"
+        series = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean.ptseries.txt")
+        subcSeries = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean_subcort.ptseries.txt")
+        fullSeries = np.concatenate((series,subcSeries))
+        all_fMRI[subject] = fullSeries
+    return all_fMRI
 
 
 def getClassifications(subjects):
@@ -274,61 +299,61 @@ def comparteTwoSC_WRT_Ref(subjectA, subjectB, refSC=None):
     plt.show()
 
 
-def plotFC_for_G(SCnorm, fMRI):
-    # First, load the empirical data
-    # SCnorm, abeta, fMRI = loadSubjectData(subject)
-    empFC = FC.from_fMRI(fMRI)
-    empFCD = FCD.from_fMRI(fMRI)
-
-    # Set the interval of G values to compute
-    wStart = 0
-    wStep = 0.05  # 0.05
-    wEnd = 6 + wStep
-    wes = np.arange(wStart + wStep, wEnd, wStep)  # warning: the range of wes depends on the conectome.
-
-    # now set some simulation variables we need to function...
-    # simulateFCD.Tmax = 20; simulateFCD.recomputeTmaxneuronal()
-    integrator.neuronalModel.initJ(SCnorm.shape[0])
-
-    currentValFC = np.inf; currentWeFC = -1
-    ccFCempFCsim = np.zeros(len(wes))
-    currentValFCD = np.inf; currentWeFCD = -1
-    ksFCDempFCDsim = np.zeros(len(wes))
-    for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
-        print("Processing: {} >> ".format(we), end='')
-        DMF.we = we
-        simBDS = simulateFCD.simulateSingleSubject(SCnorm, warmup=True)
-
-        simFC = FC.from_fMRI(simBDS.T)
-        ccFCempFCsim[kk] = FC.FC_Similarity(empFC, simFC)
-        print('                 -> cc[FC_emp, FC_sim] = {}'.format(ccFCempFCsim[kk]), end='')
-        if ccFCempFCsim[kk] < currentValFC:
-            currentValFC = ccFCempFCsim[kk]
-            currentWeFC = we
-            print(" >> new min FC !!!")
-        else:
-            print()
-
-        simFCD = FCD.from_fMRI(simBDS)
-        ksFCDempFCDsim[kk] = FCD.KolmogorovSmirnovStatistic(empFCD, simFCD)
-        print('                 -> KS[FCD_emp, FCD_sim] = {}'.format(ksFCDempFCDsim[kk]), end='')
-        if ksFCDempFCDsim[kk] < currentValFCD:
-            currentValFCD = ccFCempFCsim[kk]
-            currentWeFCD = we
-            print(" >> new min FCD !!!")
-        else:
-            print()
-
-    plt.plot(wes, ccFCempFCsim, label="FC")
-    plt.plot(wes, ksFCDempFCDsim, label="FCD")
-    # for line, color in zip([1.47, 4.45], ['r','b']):
-    plt.axvline(x=currentWeFC, label='min FC at {}'.format(currentWeFC), c='g')
-    plt.axvline(x=currentWeFCD, label='min FCD at {}'.format(currentWeFCD), c='r')
-    plt.title("Large-scale network (DMF)")
-    plt.ylabel("cc[FC(D)emp,FC(D)sim]")
-    plt.xlabel("Global Coupling (G = we)")
-    plt.legend()
-    plt.show()
+# def plotFC_for_G(SCnorm, fMRI):
+#     # First, load the empirical data
+#     # SCnorm, abeta, fMRI = loadSubjectData(subject)
+#     empFC = FC.from_fMRI(fMRI)
+#     empFCD = FCD.from_fMRI(fMRI)
+#
+#     # Set the interval of G values to compute
+#     wStart = 0
+#     wStep = 0.05  # 0.05
+#     wEnd = 6 + wStep
+#     wes = np.arange(wStart + wStep, wEnd, wStep)  # warning: the range of wes depends on the conectome.
+#
+#     # now set some simulation variables we need to function...
+#     # simulateFCD.Tmax = 20; simulateFCD.recomputeTmaxneuronal()
+#     integrator.neuronalModel.initJ(SCnorm.shape[0])
+#
+#     currentValFC = np.inf; currentWeFC = -1
+#     ccFCempFCsim = np.zeros(len(wes))
+#     currentValFCD = np.inf; currentWeFCD = -1
+#     ksFCDempFCDsim = np.zeros(len(wes))
+#     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
+#         print("Processing: {} >> ".format(we), end='')
+#         DMF.we = we
+#         simBDS = simulateFCD.simulateSingleSubject(SCnorm, warmup=True)
+#
+#         simFC = FC.from_fMRI(simBDS.T)
+#         ccFCempFCsim[kk] = FC.FC_Similarity(empFC, simFC)
+#         print('                 -> cc[FC_emp, FC_sim] = {}'.format(ccFCempFCsim[kk]), end='')
+#         if ccFCempFCsim[kk] < currentValFC:
+#             currentValFC = ccFCempFCsim[kk]
+#             currentWeFC = we
+#             print(" >> new min FC !!!")
+#         else:
+#             print()
+#
+#         simFCD = FCD.from_fMRI(simBDS)
+#         ksFCDempFCDsim[kk] = FCD.KolmogorovSmirnovStatistic(empFCD, simFCD)
+#         print('                 -> KS[FCD_emp, FCD_sim] = {}'.format(ksFCDempFCDsim[kk]), end='')
+#         if ksFCDempFCDsim[kk] < currentValFCD:
+#             currentValFCD = ccFCempFCsim[kk]
+#             currentWeFCD = we
+#             print(" >> new min FCD !!!")
+#         else:
+#             print()
+#
+#     plt.plot(wes, ccFCempFCsim, label="FC")
+#     plt.plot(wes, ksFCDempFCDsim, label="FCD")
+#     # for line, color in zip([1.47, 4.45], ['r','b']):
+#     plt.axvline(x=currentWeFC, label='min FC at {}'.format(currentWeFC), c='g')
+#     plt.axvline(x=currentWeFCD, label='min FCD at {}'.format(currentWeFCD), c='r')
+#     plt.title("Large-scale network (DMF)")
+#     plt.ylabel("cc[FC(D)emp,FC(D)sim]")
+#     plt.xlabel("Global Coupling (G = we)")
+#     plt.legend()
+#     plt.show()
 
 
 def plot_cc_empSC_empFC(subjects):
@@ -349,45 +374,45 @@ def plot_cc_empSC_empFC(subjects):
     plt.show()
 
 
-# =====================================================================================
-# Test the FIC computation from Deco et al. 2014
-# =====================================================================================
-def testDeco2014_Fig2(SCnorm, subjectName):
-    import numpy as np
-    # import scipy.io as sio
-    # import matplotlib.pyplot as plt
-    import functions.Models.DynamicMeanField as DMF
-    import functions.Integrator_EulerMaruyama as integrator
-    integrator.neuronalModel = DMF
-    import Fig_DecoEtAl2014_Fig2 as DecoEtAl2014  # To plot DecoEtAl's 2014 Figure 2...
-
-    integrator.verbose = False
-
-    print("=============================================")
-    print("= Testing with Deco et al 2014, figure 2 !!!")
-    plt.rcParams.update({'font.size': 15})
-
-    # Load connectome:
-    # --------------------------------
-    # Original code
-    # CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
-    # # C = np.log(CFile['C'] + 1)
-    # C = CFile['C']
-    # correctSC(C)
-    # ================================ Directly loading
-    # sc_folder = base_folder+'/connectomes/'+subject+"/DWI_processing"
-    # SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
-    # SClog = np.log(SC+1)  # SCnorm = normalizationFactor * SCnorm / np.max(SCnorm)
-    # areasSC = SClog.shape[0]
-    # avgSC = np.average(SClog)
-    # # === Normalization ===
-    # # finalMatrix = normalizationFactor * logMatrix / logMatrix.max()
-    # finalMatrix = SClog * avgHuman66/avgSC * areasHuman66/areasSC
-    DecoEtAl2014.setFileName('Data_Produced/AD/FICWeights/BenjiBalancedWeights-'+subjectName+'-{}.mat')
-    DMF.initJ(SCnorm.shape[0])
-
-    # BalanceFIC.veryVerbose = True
-    DecoEtAl2014.plotMaxFrecForAllWe(SCnorm, wStart=0, wEnd=4.8+0.001, wStep=0.05, extraTitle=' - {}'.format(subjectName))
+# # =====================================================================================
+# # Test the FIC computation from Deco et al. 2014
+# # =====================================================================================
+# def testDeco2014_Fig2(SCnorm, subjectName):
+#     import numpy as np
+#     # import scipy.io as sio
+#     # import matplotlib.pyplot as plt
+#     import functions.Models.DynamicMeanField as DMF
+#     import functions.Integrator_EulerMaruyama as integrator
+#     integrator.neuronalModel = DMF
+#     import Fig_DecoEtAl2014_Fig2 as DecoEtAl2014  # To plot DecoEtAl's 2014 Figure 2...
+#
+#     integrator.verbose = False
+#
+#     print("=============================================")
+#     print("= Testing with Deco et al 2014, figure 2 !!!")
+#     plt.rcParams.update({'font.size': 15})
+#
+#     # Load connectome:
+#     # --------------------------------
+#     # Original code
+#     # CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
+#     # # C = np.log(CFile['C'] + 1)
+#     # C = CFile['C']
+#     # correctSC(C)
+#     # ================================ Directly loading
+#     # sc_folder = base_folder+'/connectomes/'+subject+"/DWI_processing"
+#     # SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
+#     # SClog = np.log(SC+1)  # SCnorm = normalizationFactor * SCnorm / np.max(SCnorm)
+#     # areasSC = SClog.shape[0]
+#     # avgSC = np.average(SClog)
+#     # # === Normalization ===
+#     # # finalMatrix = normalizationFactor * logMatrix / logMatrix.max()
+#     # finalMatrix = SClog * avgHuman66/avgSC * areasHuman66/areasSC
+#     DecoEtAl2014.setFileName('Data_Produced/AD/FICWeights/BenjiBalancedWeights-'+subjectName+'-{}.mat')
+#     DMF.initJ(SCnorm.shape[0])
+#
+#     # BalanceFIC.veryVerbose = True
+#     DecoEtAl2014.plotMaxFrecForAllWe(SCnorm, wStart=0, wEnd=4.8+0.001, wStep=0.05, extraTitle=' - {}'.format(subjectName))
 
 # =====================================================================================
 # Methods to simulate and fit AD data
@@ -414,26 +439,32 @@ def compareJs(subjectA, subjectB, we):
     fileNameB = 'Data_Produced/AD/FICWeights-'+subjectB+'/BenjiBalancedWeights-{}.mat'.format(we)
 
 
-def singleSubjectPipeline(SCnorm, subject,  #, abeta, fMRI,
+def singleSubjectPipeline(subject, SCnorm, all_fMRI,  #, abeta,
                           wStart=0, wEnd=6.0, wStep=0.05,
-                          precompute=True,
-                          useDeterministicIntegrator=False):
+                          optimizeG=True, precompute=True, plotMaxFrecForAllWe=True):
     fileName = 'Data_Produced/AD/FICWeights-'+subject+'/BenjiBalancedWeights-{}.mat'
-    BalanceFIC.useDeterministicIntegrator = useDeterministicIntegrator
-    BalanceFIC.verbose = True
+    # BalanceFIC.useDeterministicIntegrator = useDeterministicIntegrator
     if precompute:
+        BalanceFIC.verbose = True
         BalanceFIC.Balance_AllJ9(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep, baseName=fileName)
-    # Let's plot it as a verification measure...
-    import Fig_DecoEtAl2014_Fig2 as Fig2
-    Fig2.plotMaxFrecForAllWe(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep,
-                             extraTitle='', precompute=False, fileName=fileName)  # We already precomputed everything
+        # Let's plot it as a verification measure...
+    if plotMaxFrecForAllWe:
+        import Fig_DecoEtAl2014_Fig2 as Fig2
+        Fig2.plotMaxFrecForAllWe(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep,
+                                 extraTitle='', precompute=False, fileName=fileName)  # We already precomputed everything
 
-    # empCC = FCD.from_fMRI(fMRI)  # avgFC to get the average FC
-    # Now, optimize all we (G) values
-    # ...
+    if optimizeG:
+        # Now, optimize all we (G) values: determine optimal G to work with
+        fitting, FCDfitt, maxFC, minFCD = G_optim.distanceForAll_G(SCnorm, all_fMRI, NumSimSubjects=len(all_fMRI),
+                                                                   wStart=wStart, wEnd=wEnd, wStep=wStep,
+                                                                   J_fileNames=fileName,
+                                                                   outFilePath='Data_Produced/AD/'+subject+'-temp')
+        G_optim.plotFitting(fitting, FCDfitt, maxFC, minFCD, wStart=wStart, wEnd=wEnd, wStep=wStep)
+    else:
+        minFCD = 1.8  # Result of a previous calculation
 
-    # neuronalModel.we = 2.1  # right now, the standard magical value...
-    #
+    neuronalModel.we = minFCD  # right now, the standard magical value...
+
     # print("Pre-computing J (FIC): Subject {} @ G={}".format(subject, neuronalModel.we))
     # neuronalModel.J = preComputeJ_Balance(subject, SCnorm)
     #
@@ -448,8 +479,33 @@ def singleSubjectPipeline(SCnorm, subject,  #, abeta, fMRI,
 #                            main
 # =====================================================================
 # =====================================================================
+def processRangeValues(argv):
+    import getopt
+    try:
+        opts, args = getopt.getopt(argv,'',["wStart=","wEnd=","wStep="])
+    except getopt.GetoptError:
+        print('AD_pipeline.py --wStart <wStartValue> --wEnd <wEndValue> --wStep <wStepValue>')
+        sys.exit(2)
+    wStart = 0.; wEnd = 6.0; wStep = 0.05
+    for opt, arg in opts:
+        if opt == '-h':
+            print('AD_pipeline.py -wStart <wStartValue> -wEnd <wEndValue> -wStep <wStepValue>')
+            sys.exit()
+        elif opt in ("--wStart"):
+            wStart = float(arg)
+        elif opt in ("--wEnd"):
+            wEnd = float(arg)
+        elif opt in ("--wStep"):
+            wStep = float(arg)
+    print(f'Input values are: wStart={wStart}, wEnd={wEnd}, wStep={wStep}')
+    return wStart, wEnd, wStep
+
+
 visualizeAll = True
 if __name__ == '__main__':
+    import sys
+    wStart, wEnd, wStep = processRangeValues(sys.argv[1:])
+
     plt.rcParams.update({'font.size': 22})
 
     # =====================================
@@ -474,7 +530,7 @@ if __name__ == '__main__':
     HCSubjects = [s for s in classification if classification[s] == 'HC']
     ADSubjects = [s for s in classification if classification[s] == 'AD']
 
-    avgSCMatrix = computeAvgSCMatrix(classification, base_folder + "/connectomes")
+    avgSCMatrix = computeAvgSC_HC_Matrix(classification, base_folder + "/connectomes")
     analyzeMatrix("AvgHC", avgSCMatrix)
     finalAvgMatrixHC = correctSC(avgSCMatrix)
     sio.savemat('Data_Produced/AD/AvgHC_SC.mat', {'SC':finalAvgMatrixHC})
@@ -483,44 +539,44 @@ if __name__ == '__main__':
     # plotSC.justPlotSC('AVG<HC>', finalMatrix, plotSC.plotSCHistogram)
     # plot_cc_empSC_empFC(HCSubjects)
 
+    all_fMRI = load_all_HC_fMRI(classification, base_folder)
+
     # HCSubject = '002_S_0413'  # HCSubjects[0]
-    # SCnorm_HC, abeta_HC, fMRI_HC = loadSubjectData(HCSubject)
-    # analyzeMatrix("SC norm HC (log({}))".format(HCSubject), SCnorm_HC)
-    # # plotSC.plotSC_and_Histogram("SC norm HC", SCnorm_HC)
-    # empFC = FC.from_fMRI(fMRI_HC)
+    # SCnorm_HCSubject, abeta_HCSubject, fMRI_HCSubject = loadSubjectData(HCSubject)
+    # analyzeMatrix("SC norm HC (log({}))".format(HCSubject), SCnorm_HCSubject)
+    # # plotSC.plotSC_and_Histogram("SC norm HC", SCnorm_HCSubject)
+    # empFC = FC.from_fMRI(fMRI_HCSubject)
     # analyzeMatrix("EmpiricalFC", empFC)
     # C norm HC (log(002_S_0413)) => Shape:(379, 379), Max:14.250680446001775, Min:0.0, Avg:3.513063979447963, Std:2.418758388149712
     #                             => impact=Avg*#:1331.451248210778
     #                             => maxNodeInputs:2655.478582698918
     # plotSC.plotSC_and_Histogram("EmpiricalFC", empFC)
-    # # sio.savemat(save_folder+'/empFC_{}.mat'.format(HCSubject), {'SC': SCnorm_HC, 'FC': empFC})
+    # # sio.savemat(save_folder+'/empFC_{}.mat'.format(HCSubject), {'SC': SCnorm_HCSubject, 'FC': empFC})
 
-    # corr_SC_FCemp = FCD.pearson_r(empFC, SCnorm_HC)
+    # corr_SC_FCemp = FCD.pearson_r(empFC, SCnorm_HCSubject)
     # print("Pearson_r(SCnorm, empFC) = {}".format(corr_SC_FCemp))
 
     # ADSubject = ADSubjects[0]
     # print("Processing Subjects {} and {}".format(HCSubject, ADSubject))
     # checkSubjectVsAvgSC(HCSubject)
     # comparteTwoSC_WRT_Ref(HCSubject, ADSubject)
-    # print("# of elements in {}'s connectome: {}".format(HCSubject, SCnorm_HC.shape))
+    # print("# of elements in {}'s connectome: {}".format(HCSubject, SCnorm_HCSubject.shape))
     # print("# of elements in "+modality+": {}".format(abeta_HC.shape))
     # print("# of elements in fMRI: {}".format(fMRI_HC.shape))
-    # plotSC.justPlotSC(HCSubject, SCnorm_HC, plotSC.plotSC)  # plotSC.plotSCHistogram
-    # plotSC.plotSC_and_Histogram(HCSubject, SCnorm_HC)
+    # plotSC.justPlotSC(HCSubject, SCnorm_HCSubject, plotSC.plotSC)  # plotSC.plotSCHistogram
+    # plotSC.plotSC_and_Histogram(HCSubject, SCnorm_HCSubject)
 
     # Compute the FIC params for all G
     # testDeco2014_Fig2(SCnorm_HC, HCSubject)
-
-    # Determine optimal G to work with
-    # plotFC_for_G(SCnorm_HC, fMRI_HC)
 
     # Configure and compute Simulation
     # ------------------------------------------------
     # singleSubjectPipeline(SCnorm_HC, abeta_HC, fMRI_HC)
     # singleSubjectPipeline(finalAvgMatrixHC, 'AvgHC', wStart=0, wEnd=4.01, wStep=0.05,
-    #                       precompute=False, useDeterministicIntegrator=False)  # AvgHC => Rnd (Euler-Maruyama) + Adria's algo
-    singleSubjectPipeline(finalAvgMatrixHC, 'AvgHC-N-Rnd', wStart=0, wEnd=4.01, wStep=0.05,
-                          precompute=False, useDeterministicIntegrator=False)
+    #                       precompute=False)  # AvgHC => Rnd (Euler-Maruyama) + Adria's algo
+    singleSubjectPipeline('AvgHC-N-Rnd', finalAvgMatrixHC, all_fMRI,
+                          wStart=wStart, wEnd=wEnd+0.01, wStep=wStep,
+                          precompute=True, plotMaxFrecForAllWe=False) #, useDeterministicIntegrator=False
 
     # ================================================
     # ================================================

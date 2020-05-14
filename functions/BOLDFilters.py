@@ -9,6 +9,7 @@ import numpy as np
 from scipy.signal import butter, detrend, filtfilt
 from functions.Utils import demean
 from scipy import signal
+# from numba import jit
 
 
 TR = 2.
@@ -20,11 +21,13 @@ flp = .02                         # lowpass frequency of filter
 fhi = 0.1                         # highpass
 
 
+# @jit(nopython=True)
 def BandPassFilter(boldSignal):
     (N, Tmax) = boldSignal.shape
     fnq = 1./(2.*TR)              # Nyquist frequency
     Wn = [flp/fnq, fhi/fnq]                                   # butterworth bandpass non-dimensional frequency
-    bfilt, afilt = butter(k,Wn, btype='band', analog=False)   # construct the filter
+    bfilt_afilt = butter(k,Wn, btype='band', analog=False)   # construct the filter
+    bfilt = bfilt_afilt[0]; afilt = bfilt_afilt[1]  # numba doesn't like unpacking...
     signal_filt = np.zeros(boldSignal.shape)
     for seed in range(N):
         ts = demean.demean(detrend(boldSignal[seed, :]))
@@ -34,6 +37,7 @@ def BandPassFilter(boldSignal):
     return signal_filt
 
 
+# @jit(nopython=True)
 def filterBrainArea(BOLDSignal, seed):
     ts = signal.detrend(BOLDSignal[seed, :])
 

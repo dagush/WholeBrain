@@ -65,7 +65,7 @@ print("Simulating {} subjects!".format(NumSubjects))
 neuronalModel.we = 2.1  # Global Coupling parameter
 # ==== J is calculated this only once, then saved
 BalanceFIC.baseName = "Data_Produced/SC90/J_Balance_we{}.mat"
-BalanceFIC.Balance_J9(neuronalModel.we, C)
+neuronalModel.J = BalanceFIC.Balance_J9(neuronalModel.we, C)['J'].flatten()
 # if not Path("Data_Produced/J_Balance_SC90.mat").is_file():
 #     from functions import BalanceFIC
 #     BalanceFIC.integrator = integrator

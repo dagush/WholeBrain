@@ -6,6 +6,7 @@
 #--------------------------------------------------------------------------
 #--------------------------------------------------------------------------
 import numpy as np
+# from numba import jit
 from scipy import stats
 
 from functions import BOLDFilters
@@ -29,6 +30,7 @@ def calc_length(start, end, step):
     return (end - start - 1) // step + 1
 
 
+# @jit(nopython=True)
 def pearson_r(x, y):
     """Compute Pearson correlation coefficient between two arrays."""
     # Compute correlation matrix
@@ -37,11 +39,13 @@ def pearson_r(x, y):
     return corr_mat[0,1]
 
 
+# @jit(nopython=True)
 def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
     d, pvalue = stats.ks_2samp(FCD1, FCD2)
     return d
 
 
+# @jit(nopython=True)
 def distance(FCD1, FCD2):  # FCD similarity, convenience function
     return KolmogorovSmirnovStatistic(FCD1, FCD2)
 
@@ -50,12 +54,8 @@ windowSize = 30
 windowStep = 3
 def from_fMRI(signal):  # Compute the FCD of an input BOLD signal
     (N, Tmax) = signal.shape
-
-    # subdiag = np.tril(np.ones((N,N)), -1)
-    # Isubdiag = np.nonzero(subdiag)
-    Isubdiag = np.tril_indices(N, k=-1)  # Indices of triangular lower part of matrix
-
     signal_filt = BOLDFilters.BandPassFilter(signal)
+    Isubdiag = np.tril_indices(N, k=-1)  # Indices of triangular lower part of matrix
 
     # For each pair of sliding windows calculate the FC at t and t2 and
     # compute the correlation between the two.
@@ -71,7 +71,6 @@ def from_fMRI(signal):  # Compute the FCD of an input BOLD signal
         for t2 in range(0, lastWindow, windowStep):
             sfilt2 = (signal_filt[:, t2:t2+windowSize+1]).T  # Extracts a (sliding) window between t2 and t2+windowSize (included)
             cc2 = np.corrcoef(sfilt2, rowvar=False)  # Pearson correlation coefficients
-            # ca = corr2(cc[Isubdiag],cc2[Isubdiag])  # Correlation between both FC
             ca = pearson_r(cc[Isubdiag],cc2[Isubdiag])  # Correlation between both FC
             if jj2 > ii2:  # Only keep the upper triangular part
                 cotsampling[kk] = ca

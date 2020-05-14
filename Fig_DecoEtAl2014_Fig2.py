@@ -10,8 +10,8 @@
 # ================================================================================================================
 import numpy as np
 import scipy.io as sio
-import os, csv
-from pathlib import Path
+# import os, csv
+# from pathlib import Path
 import matplotlib.pyplot as plt
 import functions.Models.DynamicMeanField as DMF
 # ============== chose an integrator
@@ -21,27 +21,10 @@ integrationMode = ''
 # integrationMode = 'Deterministic/'
 # ============== done !!!
 integrator.neuronalModel = DMF
-# import Prepro_DecoEtAl2014_GetBalancedWeights as getJs
-# getJs.integrator = integrator
 import functions.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
 
 np.random.seed(42)  # Fix the seed for debug purposes...
-
-
-# def computeAllJs(C, wStart=0, wEnd=6+0.001, wStep=0.05):
-#     wes = np.arange(wStart + wStep, wEnd, wStep)  # warning: the range of wes depends on the conectome.
-#     # ==== J is calculated this only once, then saved
-#     if not Path(filePath).is_file():
-#         print("Computing "+ filePath +" !!!")
-#         getJs.subjectPath = filePath
-#         JI = getJs.computeAllJs(C, wStart, wEnd, wStep)
-#     else:
-#         print("Loading "+ filePath +" !!!")
-#         # ==== J can be calculated only once and then load J_Balance J
-#         JIfile = sio.loadmat(filePath)
-#         JI = JIfile['JI']
-#     return JI, wes
 
 
 # def runAndPlotSim(Conn, title):
@@ -68,7 +51,7 @@ np.random.seed(42)  # Fix the seed for debug purposes...
 
 
 def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
-                        extraTitle='', precompute=True, fileName='Data_Produced/test_J_{}.mat'):
+                        extraTitle='', precompute=True, fileName=None):
     # Integration parms...
     dt = 0.1
     tmax = 10000.
@@ -101,16 +84,14 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
     print("======================================")
     # DMF.lambda = 0.  # make sure no long-range feedforward inhibition (FFI) is computed
     maxRateFIC = np.zeros(len(wes))
-    # JI = getJs.computeAllJs(C, wStart, wEnd, wStep)
     if precompute:
         BalanceFIC.Balance_AllJ9(C, wStart, wEnd, wStep, baseName=fileName)
-    # JI, origWes = computeAllJs(C, wStart, wEnd, wStep)
     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
         print("\nProcessing: {}  ".format(we), end='')
         DMF.we = we
         # wePos, = np.where(np.isclose(wes, we))  #original wes values may be differeent than the wes we are using now... be careful!!
         # DMF.J = JI[:,wePos].flatten()
-        BalanceFIC.Balance_J9(we, C, baseName=fileName)
+        integrator.neuronalModel.J = BalanceFIC.Balance_J9(we, C, fileName.format(np.round(we, decimals=2)))['J'].flatten()
         integrator.recompileSignatures()
         v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
         maxRateFIC[kk] = np.max(np.mean(v,0))
@@ -167,7 +148,7 @@ if __name__ == '__main__':
     # --------------------------------
     CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
     C = CFile['C']
-    setFileName('Data_Produced/Human_66/'+integrationMode+'Benji_Human66_{}.mat')
+    fileName = 'Data_Produced/Human_66/'+integrationMode+'Benji_Human66_{}.mat'
 
     # ================================================================
     # This plots the graphs at Fig 2, d of [D*2014]
@@ -191,7 +172,7 @@ if __name__ == '__main__':
     # DMF.J = J
     # runAndPlotSim(C, "Full connectivity matrix simulation with FIC control")
 
-    plotMaxFrecForAllWe(C)
+    plotMaxFrecForAllWe(C, fileName=fileName)
     # debug_one_we(C)
 # ================================================================================================================
 # ================================================================================================================

@@ -31,6 +31,7 @@ import numpy as np
 from pathlib import Path
 import scipy.io as sio
 import multiprocessing as mp
+from functions.Utils.decorators import loadOrCompute
 
 integrator = None  # functions.Integrator_EulerMaruyama
 
@@ -189,50 +190,41 @@ def JOptim(C, warmUp = False):
 # =====================================
 # =====================================
 # Rogue functions to switch to a deterministic Euler integrator...
-oldIntegrator = None
-neuronalModel = None
-def replaceIntegrator():
-    if verbose: print("Going to replace the default integrator for the deterministic Euler Integrator...")
-    global oldIntegrator, neuronalModel, integrator
-    oldIntegrator = integrator
-    neuronalModel = oldIntegrator.neuronalModel
-    import functions.Integrator_Euler as Euler
-    integrator = Euler
-    integrator.neuronalModel = neuronalModel
-    integrator.verbose = False
-
-def restoreIntegrator():
-    if verbose: print("Going to replace back the old integrator...")
-    global integrator
-    integrator = oldIntegrator
+# oldIntegrator = None
+# neuronalModel = None
+# def replaceIntegrator():
+#     if verbose: print("Going to replace the default integrator for the deterministic Euler Integrator...")
+#     global oldIntegrator, neuronalModel, integrator
+#     oldIntegrator = integrator
+#     neuronalModel = oldIntegrator.neuronalModel
+#     import functions.Integrator_Euler as Euler
+#     integrator = Euler
+#     integrator.neuronalModel = neuronalModel
+#     integrator.verbose = False
+#
+# def restoreIntegrator():
+#     if verbose: print("Going to replace back the old integrator...")
+#     global integrator
+#     integrator = oldIntegrator
 
 # =====================================
 # =====================================
 # Auxiliary functions to simplify work: if it was computed, load it. If not, compute (and save) it!
-useDeterministicIntegrator = False
-def Balance_J9(we, C,
-               baseName = "Data_Produced/test_J_Balance_we{}.mat",
-               warmUp = False):
-    fileName = baseName.format(we)
-    # ==== J is calculated this only once, then saved
+# useDeterministicIntegrator = False
+@loadOrCompute
+def Balance_J9(we, C, warmUp=False): #, fileName=None):
     integrator.neuronalModel.we = we
-    if not Path(fileName).is_file():
-        if verbose: print("Computing {} !!!".format(fileName))
-        if useDeterministicIntegrator:
-            replaceIntegrator()
-        bestJ, nodeCount = JOptim(C, warmUp=warmUp)  # This is the Feedback Inhibitory Control
-        if useDeterministicIntegrator:
-            restoreIntegrator()
-        sio.savemat(fileName, {'we': we, 'J': integrator.neuronalModel.J})
-    else:
-        # ==== J can be calculated only once and then load J_Balance J
-        if verbose: print("Loading {} !!!".format(fileName))
-        bestJ = sio.loadmat(fileName)['J']
+    # if useDeterministicIntegrator:
+    #     replaceIntegrator()
+    bestJ, nodeCount = JOptim(C, warmUp=warmUp)  # This is the Feedback Inhibitory Control
+    # if useDeterministicIntegrator:
+    #     restoreIntegrator()
     integrator.neuronalModel.J = bestJ.flatten()
+    return {'we': we, 'J': integrator.neuronalModel.J}
 
 
 def Balance_AllJ9(C, wStart=0, wEnd=6+0.001, wStep=0.05,
-                  baseName="Data_Produced/test_J_Balance_we{}.mat",
+                  baseName=None,
                   parallel=False):
     # all tested global couplings (G in the paper):
     wes = np.arange(wStart + wStep,
@@ -241,23 +233,21 @@ def Balance_AllJ9(C, wStart=0, wEnd=6+0.001, wStep=0.05,
     # numW = wes.size  # length(wes);
     if not parallel:
         for we in wes:  # iterate over the weight range (G in the paper, we here)
-            Balance_J9(we, C, baseName=baseName)
+            J = Balance_J9(we, C, baseName.format(np.round(we, decimals=2)))['J'].flatten()
     else:
         # G, Ji, t, d = optimize_fic(model, 5.6, white_matter, white_matter_coupling)
         cpu_count = mp.cpu_count()
         pool = mp.Pool(cpu_count)
         print('Using {} processes'.format(cpu_count))
 
-        # # Step 2: `pool.apply` the `howmany_within_range()`
-        results_fic = pool.starmap(Balance_J9, [(we, C, baseName) for we in wes])
-        # results_no_fic = pool.starmap(simulate_no_fic, [(model, we, white_matter, white_matter_coupling) for we in wes])
+        # Step 2: `pool.apply` the `howmany_within_range()`
+        # Fix this: now Balance_J9 is wrapped !!!!!!  <- build a new unwrapped version
+        # results_fic = pool.starmap(Balance_J9, [(we, C, baseName) for we in wes])
 
         # Step 3: Don't forget to close
         pool.close()
         # x_fic = [r[0] for r in results_fic]
         # y_fic = [np.max(r[3][-100:-1, 0, :, 0]) for r in results_fic]
-        # x_no_fic = [r[0] for r in results_no_fic]
-        # y_no_fic = [np.max(r[3][-100:-1, 0, :, 0]) for r in results_no_fic]
 
 # ==========================================================================
 # ==========================================================================

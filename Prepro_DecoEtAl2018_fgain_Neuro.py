@@ -17,8 +17,8 @@
 # ==========================================================================
 import numpy as np
 import scipy.io as sio
-from pathlib import Path
-from numba import jit
+# from pathlib import Path
+# from numba import jit
 import time
 
 # --------------------------------------------------------------------------
@@ -91,6 +91,14 @@ def processEmpiricalSubjects(tc_aal, task, NumSubjects, N, Conditions):
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================
+# IMPORTANT: This function was created to reproduce Deco et al.'s 2018 code for Figure 3A.
+# Then, later on, we developed the module G_optim using this code as basis. Now, we could refactor it
+# using G_optim, but here we compute two fittings in parallel (PLACEBO and LCD), so it would mean either
+# duplicating the loops, by making two calls in a row; or generalizing G_optim, to be able to process
+# several fittings simultaneously. By now, the second option is not needed and I see no reason for
+# implementing the first one, with the resulting waste of computations (all the simulations would be
+# repeated). By now, we stick with two different codes. Future improvements on G_optim may render
+# this decision different.
 def prepro_Fig3():
     # Load Structural Connectivity Matrix
     print("Loading Data_Raw/all_SC_FC_TC_76_90_116.mat")
@@ -140,7 +148,8 @@ def prepro_Fig3():
     #     BalanceFIC.Balance_J9(we, C, warmUp=False)  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
     for pos, we in enumerate(WEs):  # iteration over values for G (we in this code)
         # neuronalModel.we = we
-        BalanceFIC.Balance_J9(we, C, warmUp=False)  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
+        baseName = "Data_Produced/SC90/J_Balance_we{}.mat".format(np.round(we, decimals=3))
+        neuronalModel.J = BalanceFIC.Balance_J9(we, C, baseName)['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
         integrator.recompileSignatures()
         FCs = np.zeros((NumSubjects, N, N))
         cotsamplingsim = np.array([], dtype=np.float64)
