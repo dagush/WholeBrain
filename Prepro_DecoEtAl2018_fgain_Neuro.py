@@ -136,9 +136,9 @@ def prepro_Fig3():
     # TCs = np.zeros((len(Conditions), NumSubjects, N, Tmax))
     # N_windows = int(np.ceil((Tmax-FCD.windowSize) / 3))  # len(range(0,Tmax-30,3))
 
-    tc_transf5 = transformEmpiricalSubjects(tc_aal, 0, NumSubjects, Conditions)  # PLACEBO
-    FCemp5_cotsampling5 = G_optim.processEmpiricalSubjects(tc_transf5, "Data_Produced/SC90/fNeuro_emp_PLA.mat")
-    FCemp5 = FCemp5_cotsampling5['FCemp']; cotsampling5 = FCemp5_cotsampling5['cotsampling'].flatten()
+    tc_transf_PLA = transformEmpiricalSubjects(tc_aal, 0, NumSubjects, Conditions)  # PLACEBO
+    FCemp_cotsampling_PLA = G_optim.processEmpiricalSubjects(tc_transf_PLA, "Data_Produced/SC90/fNeuro_emp_PLA.mat")
+    FCemp_PLA = FCemp_cotsampling_PLA['FCemp']; cotsampling_PLA = FCemp_cotsampling_PLA['cotsampling'].flatten()
 
     # tc_transf2 = transformEmpiricalSubjects(tc_aal, 1, NumSubjects, Conditions)  # LSD
     # FCemp2_cotsampling2 = G_optim.processEmpiricalSubjects(tc_transf2, "Data_Produced/SC90/fNeuro_emp_LCD.mat")  # LCD
@@ -150,8 +150,8 @@ def prepro_Fig3():
     # DMF.J     = np.ones(N,1)
     # Tmaxneuronal = (Tmax+10)*2000;
     step = 0.025
-    wEnd = 2.5+step
-    WEs = np.arange(0, 0.001, step)  # 100 values values for constant G. Originally was np.arange(0,2.5,0.025)
+    wEnd = 0.001 # 2.5+step
+    WEs = np.arange(0, wEnd, step)  # 100 values values for constant G. Originally was np.arange(0,2.5,0.025)
     numWEs = len(WEs)
 
     FCDfitt5 = np.zeros((numWEs))
