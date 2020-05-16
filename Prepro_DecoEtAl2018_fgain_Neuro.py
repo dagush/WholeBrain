@@ -35,11 +35,14 @@ simulateFCD.integrator = integrator
 simulateFCD.BOLDModel = Stephan2007
 
 import functions.FC as FC
-import functions.FCD as FCD
+import functions.swFCD as FCD
 
 import functions.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
-BalanceFIC.baseName = "Data_Produced/SC90/J_Balance_we{}.mat"
+# BalanceFIC.baseName = "Data_Produced/SC90/J_Balance_we{}.mat"
+
+import functions.G_optim as G_optim
+G_optim.integrator = integrator
 
 # set BOLD filter settings
 import functions.BOLDFilters as filters
@@ -51,12 +54,12 @@ filters.fhi = .1                          # highpass
 # --------------------------------------------------------------------------
 
 
-def recompileSignatures():
-    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
-    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    print("\n\nRecompiling signatures!!!")
-    # serotonin2A.recompileSignatures()
-    integrator.recompileSignatures()
+# def recompileSignatures():
+#     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+#     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+#     print("\n\nRecompiling signatures!!!")
+#     # serotonin2A.recompileSignatures()
+#     integrator.recompileSignatures()
 
 
 # @jit(nopython=True)
@@ -74,18 +77,27 @@ def LR_version_symm(TC):
     return symLR
 
 
-def processEmpiricalSubjects(tc_aal, task, NumSubjects, N, Conditions):
-    # Loop over subjects for a given task
-    FCemp = np.zeros((NumSubjects, N, N))
-    cotsampling = np.array([], dtype=np.float64)
+def transformEmpiricalSubjects(tc_aal, task, NumSubjects, Conditions):
     cond = Conditions[task]
-    print("Task:", task, "(", cond, ")")
+    transformed = {}
     for s in range(NumSubjects):
-        print('   Subject: ', s)
-        signal = LR_version_symm(tc_aal[s, cond])
-        FCemp[s] = FC.from_fMRI(signal, applyFilters=False)
-        cotsampling = np.concatenate((cotsampling, FCD.from_fMRI(signal)))
-    return np.squeeze(np.mean(FCemp, axis=0)), cotsampling
+        # transformed[s] = np.zeros(tc_aal[0,cond].shape)
+        transformed[s] = LR_version_symm(tc_aal[s,cond])
+    return transformed
+
+
+# def processEmpiricalSubjects(tc_aal, task, NumSubjects, N, Conditions, transformed):
+#     # Loop over subjects for a given task
+#     FCemp = np.zeros((NumSubjects, N, N))
+#     cotsampling = np.array([], dtype=np.float64)
+#     cond = Conditions[task]
+#     print("Task:", task, "(", cond, ")")
+#     for s in range(NumSubjects):
+#         print('   Subject: ', s)
+#         signal = LR_version_symm(tc_aal[s, cond])
+#         FCemp[s] = FC.from_fMRI(signal, applyFilters=False)
+#         cotsampling = np.concatenate((cotsampling, FCD.from_fMRI(signal)))
+#     return np.squeeze(np.mean(FCemp, axis=0)), cotsampling
 
 
 # ==========================================================================
@@ -93,12 +105,12 @@ def processEmpiricalSubjects(tc_aal, task, NumSubjects, N, Conditions):
 # ==========================================================================
 # IMPORTANT: This function was created to reproduce Deco et al.'s 2018 code for Figure 3A.
 # Then, later on, we developed the module G_optim using this code as basis. Now, we could refactor it
-# using G_optim, but here we compute two fittings in parallel (PLACEBO and LCD), so it would mean either
-# duplicating the loops, by making two calls in a row; or generalizing G_optim, to be able to process
-# several fittings simultaneously. By now, the second option is not needed and I see no reason for
+# using G_optim (and we did, a bit), but here we compute two fittings in parallel (PLACEBO and LCD), so it would
+# mean either duplicating the loops, by making two calls in a row; or generalizing G_optim.distanceForAll_G, to
+# be able to process several fittings simultaneously. By now, the second option is not needed and I see no reason for
 # implementing the first one, with the resulting waste of computations (all the simulations would be
-# repeated). By now, we stick with two different codes. Future improvements on G_optim may render
-# this decision different.
+# repeated). By now, we stick with two different codes. Future improvements on G_optim.distanceForAll_G may
+# render this decision different.
 def prepro_Fig3():
     # Load Structural Connectivity Matrix
     print("Loading Data_Raw/all_SC_FC_TC_76_90_116.mat")
@@ -124,8 +136,13 @@ def prepro_Fig3():
     # TCs = np.zeros((len(Conditions), NumSubjects, N, Tmax))
     # N_windows = int(np.ceil((Tmax-FCD.windowSize) / 3))  # len(range(0,Tmax-30,3))
 
-    FCemp5, cotsampling5 = processEmpiricalSubjects(tc_aal, 0, NumSubjects, N, Conditions)  # PLACEBO
-    FCemp2, cotsampling2 = processEmpiricalSubjects(tc_aal, 1, NumSubjects, N, Conditions)  # LSD
+    tc_transf5 = transformEmpiricalSubjects(tc_aal, 0, NumSubjects, Conditions)  # PLACEBO
+    FCemp5_cotsampling5 = G_optim.processEmpiricalSubjects(tc_transf5, "Data_Produced/SC90/fNeuro_emp_PLA.mat")
+    FCemp5 = FCemp5_cotsampling5['FCemp']; cotsampling5 = FCemp5_cotsampling5['cotsampling'].flatten()
+
+    # tc_transf2 = transformEmpiricalSubjects(tc_aal, 1, NumSubjects, Conditions)  # LSD
+    # FCemp2_cotsampling2 = G_optim.processEmpiricalSubjects(tc_transf2, "Data_Produced/SC90/fNeuro_emp_LCD.mat")  # LCD
+    # FCemp2 = FCemp2_cotsampling2['FCemp']; cotsampling2 = FCemp2_cotsampling2['cotsampling'].flatten()
 
     # %%%%%%%%%%%%%%% Set General Model Parameters
     # dtt   = 1e-3   # Sampling rate of simulated neuronal activity (seconds)
@@ -133,13 +150,14 @@ def prepro_Fig3():
     # DMF.J     = np.ones(N,1)
     # Tmaxneuronal = (Tmax+10)*2000;
     step = 0.025
-    WEs = np.arange(0, 2.5+step, step)  # 100 values values for constant G. Originally was np.arange(0,2.5,0.025)
+    wEnd = 2.5+step
+    WEs = np.arange(0, 0.001, step)  # 100 values values for constant G. Originally was np.arange(0,2.5,0.025)
     numWEs = len(WEs)
 
     FCDfitt5 = np.zeros((numWEs))
-    FCDfitt2 = np.zeros((numWEs))
+    # FCDfitt2 = np.zeros((numWEs))
     fitting5 = np.zeros((numWEs))
-    fitting2 = np.zeros((numWEs))
+    # fitting2 = np.zeros((numWEs))
     # Isubdiag = np.tril_indices(N, k=-1)
 
     # Model Simulations
@@ -148,35 +166,43 @@ def prepro_Fig3():
     #     BalanceFIC.Balance_J9(we, C, warmUp=False)  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
     for pos, we in enumerate(WEs):  # iteration over values for G (we in this code)
         # neuronalModel.we = we
-        baseName = "Data_Produced/SC90/J_Balance_we{}.mat".format(np.round(we, decimals=3))
-        neuronalModel.J = BalanceFIC.Balance_J9(we, C, baseName)['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
+        J_fileNames = "Data_Produced/SC90/J_test_we{}.mat"
+        # baseName = "Data_Produced/SC90/fitting_we{}.mat"
+        # FC_simul_cotsampling_sim = G_optim.distanceForOne_G(we, C, N, 1, #NumSubjects,
+        #                                                     J_fileNames, baseName.format(np.round(we, decimals=3)))
+        # FC_simul = FC_simul_cotsampling_sim['FC_simul']
+        # cotsampling_sim = FC_simul_cotsampling_sim['cotsampling_sim'].flatten()
+
+        neuronalModel.J = np.ones(N) #BalanceFIC.Balance_J9(we, C, J_fileNames.format(np.round(we, decimals=3)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
         integrator.recompileSignatures()
         FCs = np.zeros((NumSubjects, N, N))
-        cotsamplingsim = np.array([], dtype=np.float64)
-        # cotsamplingsim = simulateFCD.simulate(NumSubjects, C)
+        cotsampling_sim = np.array([], dtype=np.float64)
         start_time = time.clock()
-        for nsub in range(NumSubjects):  # trials. Originally it was 20.
-            print("we={} -> SIM subject {}!!!".format(we, nsub))
+        for nsub in range(1): #NumSubjects):  # trials. Originally it was 20.
+            print("we={} -> SIM subject {}/{}!!!".format(we, nsub, NumSubjects))
             bds = simulateFCD.simulateSingleSubject(C, warmup=False).T
             FCs[nsub] = FC.from_fMRI(bds, applyFilters=False)
-            cotsamplingsim = np.concatenate((cotsamplingsim, FCD.from_fMRI(bds)))  # Compute the FCD correlations
+            cotsampling_sim = np.concatenate((cotsampling_sim, FCD.from_fMRI(bds)))  # Compute the FCD correlations
+            print("just test: FC.FC_Similarity =", FC.FC_Similarity(FCemp5, FCs[nsub]))
         print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
+        FC_simul = np.squeeze(np.mean(FCs, axis=0))
 
-        FCDfitt5[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling5, cotsamplingsim)
-        FCDfitt2[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling2, cotsamplingsim)
+        FCDfitt5[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling5, cotsampling_sim)  # PLACEBO
+        # FCDfitt2[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling2, cotsampling_sim)  # LSD
 
-        FCsimul = np.squeeze(np.mean(FCs, axis=0))
-        fitting5[pos] = FC.FC_Similarity(FCemp5, FCsimul)
-        fitting2[pos] = FC.FC_Similarity(FCemp2, FCsimul)
+        fitting5[pos] = FC.FC_Similarity(FCemp5, FC_simul)  # PLACEBO
+        # fitting2[pos] = FC.FC_Similarity(FCemp2, FC_simul)  # LSD
 
-    filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
-    sio.savemat(filePath, #{'JI': JI})
-                {'we': WEs,
-                 'fitting2': fitting2,
-                 'fitting5': fitting5,
-                 'FCDfitt2': FCDfitt2,
-                 'FCDfitt5': FCDfitt5
-                })  # save('fneuro.mat','WE','fitting2','fitting5','FCDfitt2','FCDfitt5');
+        print("{}/{}: FCDfitt = {}; FCfitt = {}\n".format(we,  2.5+step, FCDfitt5[pos], fitting5[pos]))
+
+    # filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
+    # sio.savemat(filePath, #{'JI': JI})
+    #             {'we': WEs,
+    #              'fitting2': fitting2,
+    #              'fitting5': fitting5,
+    #              'FCDfitt2': FCDfitt2,
+    #              'FCDfitt5': FCDfitt5
+    #             })  # save('fneuro.mat','WE','fitting2','fitting5','FCDfitt2','FCDfitt5');
     print("DONE!!!")
 
 if __name__ == '__main__':

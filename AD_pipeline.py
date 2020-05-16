@@ -45,7 +45,7 @@ from functions import BalanceFIC
 BalanceFIC.integrator = integrator
 
 import functions.FC as FC
-import functions.FCD as FCD
+import functions.swFCD as FCD
 import functions.G_optim as G_optim
 G_optim.integrator = integrator
 # --------------------------------------------------------------------------
@@ -461,7 +461,7 @@ def singleSubjectPipeline(subject, SCnorm, all_fMRI,  #, abeta,
                                                                    outFilePath='Data_Produced/AD/'+subject+'-temp')
         G_optim.plotFitting(fitting, FCDfitt, maxFC, minFCD, wStart=wStart, wEnd=wEnd, wStep=wStep)
     else:
-        minFCD = 1.8  # Result of a previous calculation
+        minFCD = 1.79  # Result of a previous calculation
 
     neuronalModel.we = minFCD  # right now, the standard magical value...
 

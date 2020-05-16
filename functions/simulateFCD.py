@@ -16,7 +16,7 @@
 import numpy as np
 integrator = None  # import functions.Integrator_EulerMaruyama as integrator
 BOLDModel = None  # import functions.BOLDHemModel_Stephan2007 as Stephan2007 # import functions.BOLDHemModel_Stephan2008 as Stephan2008
-import functions.FCD as FCD
+import functions.swFCD as FCD
 
 print("Going to use Functional Connectivity Dynamics (FCD)...")
 
@@ -81,6 +81,8 @@ def simulateSingleSubject(C, warmup=False):
     return bds
 
 
+# ============================================================================
+# ============================================================================
 # ============================================================================
 # simulates the neuronal activity + BOLD + FCD for ONE subject
 # ============================================================================

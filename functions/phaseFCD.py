@@ -42,8 +42,9 @@ def tril_indices_column(N, k=0):
 # We measure KS distance between the upper triangular elements of the empirical and simulated FCD matrices
 # (accumulated over all participants). The KS distance quantifies the maximal difference between the cumulative
 # distribution functions of the 2 samples.
+Isubdiag = np.tril_indices(N, k=-1)  # Indices of triangular lower part of matrix, which is the same ;-)
 def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
-    d, pvalue = stats.ks_2samp(FCD1, FCD2)
+    d, pvalue = stats.ks_2samp(FCD1[Isubdiag], FCD2[Isubdiag])
     return d
 
 

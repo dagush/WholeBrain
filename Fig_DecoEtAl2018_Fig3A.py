@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 
-filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
+filePath = 'Data_Produced/DecoEtAl2018_fneuro_NEW.mat'
 if not Path(filePath).is_file():
     import Prepro_DecoEtAl2018_fgain_Neuro as prepro
     prepro.prepro_Fig3()
@@ -45,6 +45,12 @@ FCDfitt5 = fNeuro['FCDfitt5'].flatten()
 # stdFCDfitt5 = np.std(FCDfitt5,[],2);
 # mfitting5   = np.mean(fitting5,2);
 # stdfitting5 = np.std(fitting5,[],2);
+
+maxFC = WEs[np.argmax(fitting5)]
+minFCD = WEs[np.argmin(FCDfitt5)]
+print("\n\n#####################################################################################################")
+print(f"# Max FC({maxFC}) = {np.max(fitting5)}             ** Min FCD({minFCD}) = {np.min(FCDfitt5)} **")
+print("#####################################################################################################\n\n")
 
 plt.rcParams.update({'font.size': 15})
 plotFCDpla, = plt.plot(WEs, FCDfitt5)

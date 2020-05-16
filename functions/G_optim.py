@@ -35,11 +35,13 @@ integrator = None
 # import functions.BOLDHemModel_Stephan2007 as Stephan2007
 
 import functions.FC as FC
-import functions.FCD as FCD
+import functions.swFCD as FCD
 
 import functions.BalanceFIC as BalanceFIC
 # BalanceFIC.integrator = integrator
 # BalanceFIC.baseName = "Data_Produced/SC90/J_Balance_we{}.mat"
+
+import functions.simulateFCD as simulateFCD
 
 # set BOLD filter settings
 # import functions.BOLDFilters as filters
@@ -51,23 +53,23 @@ import functions.BalanceFIC as BalanceFIC
 # --------------------------------------------------------------------------
 
 
-def recompileSignatures():
-    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
-    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    # print("\n\nRecompiling signatures!!!")
-    # serotonin2A.recompileSignatures()
-    integrator.recompileSignatures()
+# def recompileSignatures():
+#     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+#     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+#     # print("\n\nRecompiling signatures!!!")
+#     # serotonin2A.recompileSignatures()
+#     integrator.recompileSignatures()
 
 
-def LR_version_symm(TC):
-    # returns a symmetrical LR version of the input matrix
-    N = TC.shape[0]  # 90 for AAL 90x90
-    odd = np.arange(0,N,2)
-    even = np.arange(1,N,2)[::-1]  # sort 'descend'
-    symLR = np.zeros((N,TC.shape[1]))
-    symLR[0:int(N/2.),:] = TC[odd,:]
-    symLR[int(N/2.):N,:] = TC[even,:]
-    return symLR
+# def LR_version_symm(TC):
+#     # returns a symmetrical LR version of the input matrix
+#     N = TC.shape[0]  # 90 for AAL 90x90
+#     odd = np.arange(0,N,2)
+#     even = np.arange(1,N,2)[::-1]  # sort 'descend'
+#     symLR = np.zeros((N,TC.shape[1]))
+#     symLR[0:int(N/2.),:] = TC[odd,:]
+#     symLR[int(N/2.):N,:] = TC[even,:]
+#     return symLR
 
 
 @loadOrCompute
@@ -85,15 +87,6 @@ def processEmpiricalSubjects(tc) :#, empiricalSubjectsFile=None):
         FCemp[pos] = FC.from_fMRI(signal, applyFilters=False)
         cotsampling = np.concatenate((cotsampling, FCD.from_fMRI(signal)))
         print(" -> computed in {} seconds".format(time.clock() - start_time))
-    # print("Saving temporary file: {}".format(empiricalSubjectsFile))
-    # sio.savemat(empiricalSubjectsFile,
-    #             {'FCemp': FCemp,
-    #              'cotsampling': cotsampling
-    #             })  # save('fneuro.mat','WE','fitting2','fitting5','FCDfitt2','FCDfitt5');
-    # else:
-    #     data = sio.loadmat(empiricalSubjectsFile)
-    #     FCemp = data['FCemp']
-    #     cotsampling = data['cotsampling']
 
     return {'FCemp': np.squeeze(np.mean(FCemp, axis=0)), 'cotsampling': cotsampling}
 
@@ -104,13 +97,12 @@ def processEmpiricalSubjects(tc) :#, empiricalSubjectsFile=None):
 # ---- convenience method, with the idea of parallelizing the code
 @loadOrCompute
 def distanceForOne_G(we, C, N, NumSimSubjects, J_fileNames):
-    import functions.simulateFCD as simulateFCD
-    simulateFCD.integrator = integrator
-
-    integrator.neuronalModel.J = BalanceFIC.Balance_J9(we, C, False, J_fileNames.format(np.round(we, decimals=2)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
+    integrator.neuronalModel.J = BalanceFIC.Balance_J9(we, C, False, J_fileNames.format(np.round(we, decimals=3)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
     integrator.recompileSignatures()
+
     FCs = np.zeros((NumSimSubjects, N, N))
     cotsamplingsim = np.array([], dtype=np.float64)
+
     print("--- BEGIN TIME @ we={} ---".format(we))
     start_time = time.clock()
     for nsub in range(NumSimSubjects):  # trials. Originally it was 20.
@@ -133,7 +125,7 @@ def distanceForAll_G(C, tc, NumSimSubjects,
     N = tc[next(iter(tc))].shape[0]  # get the first key to retrieve the value of N = number of areas
     print('tc({} subjects): each entry has N={} regions'.format(NumSubjects, N))
 
-    processed = processEmpiricalSubjects(tc, outFilePath+'/fNeuro.mat')
+    processed = processEmpiricalSubjects(tc, outFilePath+'/fNeuro_emp.mat')
     FC_emp = processed['FCemp']
     cotsampling_emp = processed['cotsampling'].flatten()
 
@@ -154,8 +146,8 @@ def distanceForAll_G(C, tc, NumSimSubjects,
     print(' ====================== Model Simulations ======================')
     for pos, we in enumerate(WEs):  # iteration over the values for G (we in this code)
         # ---- Perform the simulation of NumSimSubjects ----
-        FC_simul_cotsampling_sim = distanceForOne_G(we, C, N, NumSimSubjects, J_fileNames,
-                                                    outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3)))
+        FC_simul_cotsampling_sim = distanceForOne_G(we, C, N, NumSimSubjects,
+                                                    J_fileNames, outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3)))
         FC_simul = FC_simul_cotsampling_sim['FC_simul']
         cotsampling_sim = FC_simul_cotsampling_sim['cotsampling_sim'].flatten()
 
@@ -221,7 +213,7 @@ if __name__ == '__main__':
     LSDnew = sio.loadmat('Data_Raw/LSDnew.mat')  #load LSDnew.mat tc_aal
     tc_aal = LSDnew['tc_aal']
 
-    distanceForAll_G(C, tc_aal, 'Data_Produced/error_{}.mat')
+    # distanceForAll_G(C, tc_aal, 'Data_Produced/error_{}.mat')
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================EOF

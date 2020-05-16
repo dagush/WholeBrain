@@ -1,6 +1,6 @@
 #--------------------------------------------------------------------------
 #--------------------------------------------------------------------------
-#  Computes the Functional Connectivity Dynamics (FCD)
+#  Computes the sliding-window Functional Connectivity Dynamics (swFCD)
 #
 #  Translated to Python & refactoring by Gustavo Patow
 #--------------------------------------------------------------------------
@@ -25,7 +25,7 @@ from functions import BOLDFilters
 
 
 def calc_length(start, end, step):
-    # this fails for a negative step e.g., range(10, 0, -1).
+    # This fails for a negative step e.g., range(10, 0, -1).
     # From https://stackoverflow.com/questions/31839032/python-how-to-calculate-the-length-of-a-range-without-creating-the-range
     return (end - start - 1) // step + 1
 
