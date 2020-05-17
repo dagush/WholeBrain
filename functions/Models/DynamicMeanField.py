@@ -87,7 +87,7 @@ def initJ(N):  # A bit silly, I know...
 # Variables of interest, needed for bookkeeping tasks...
 # xn = None  # xn, excitatory synaptic activity
 # rn = None  # rn, excitatory firing rate
-@jit(nopython=True)
+# @jit(nopython=True)
 def numObsVars():  # Returns the number of observation vars used, here xn and rn
     return 2
 

@@ -574,9 +574,10 @@ if __name__ == '__main__':
     # singleSubjectPipeline(SCnorm_HC, abeta_HC, fMRI_HC)
     # singleSubjectPipeline(finalAvgMatrixHC, 'AvgHC', wStart=0, wEnd=4.01, wStep=0.05,
     #                       precompute=False)  # AvgHC => Rnd (Euler-Maruyama) + Adria's algo
-    singleSubjectPipeline('AvgHC-N-Rnd', finalAvgMatrixHC, all_fMRI,
-                          wStart=wStart, wEnd=wEnd+0.01, wStep=wStep,
-                          precompute=True, plotMaxFrecForAllWe=False) #, useDeterministicIntegrator=False
+    G_optim.loadAndPlot(outFilePath='Data_Produced/AD/'+'AvgHC-N-Rnd'+'-temp')
+    # singleSubjectPipeline('AvgHC-N-Rnd', finalAvgMatrixHC, all_fMRI,
+    #                       wStart=wStart, wEnd=wEnd+0.01, wStep=wStep,
+    #                       precompute=True, plotMaxFrecForAllWe=False) #, useDeterministicIntegrator=False
 
     # ================================================
     # ================================================

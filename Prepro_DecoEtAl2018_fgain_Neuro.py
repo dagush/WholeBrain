@@ -140,69 +140,70 @@ def prepro_Fig3():
     FCemp_cotsampling_PLA = G_optim.processEmpiricalSubjects(tc_transf_PLA, "Data_Produced/SC90/fNeuro_emp_PLA.mat")
     FCemp_PLA = FCemp_cotsampling_PLA['FCemp']; cotsampling_PLA = FCemp_cotsampling_PLA['cotsampling'].flatten()
 
-    # tc_transf2 = transformEmpiricalSubjects(tc_aal, 1, NumSubjects, Conditions)  # LSD
-    # FCemp2_cotsampling2 = G_optim.processEmpiricalSubjects(tc_transf2, "Data_Produced/SC90/fNeuro_emp_LCD.mat")  # LCD
-    # FCemp2 = FCemp2_cotsampling2['FCemp']; cotsampling2 = FCemp2_cotsampling2['cotsampling'].flatten()
+    tc_transf_LSD = transformEmpiricalSubjects(tc_aal, 1, NumSubjects, Conditions)  # LSD
+    FCemp_cotsampling_LSD = G_optim.processEmpiricalSubjects(tc_transf_LSD, "Data_Produced/SC90/fNeuro_emp_LCD.mat")  # LCD
+    FCemp_LSD = FCemp_cotsampling_LSD['FCemp']; cotsampling_LSD = FCemp_cotsampling_LSD['cotsampling'].flatten()
 
     # %%%%%%%%%%%%%%% Set General Model Parameters
     # dtt   = 1e-3   # Sampling rate of simulated neuronal activity (seconds)
     # dt    = 0.1
     # DMF.J     = np.ones(N,1)
     # Tmaxneuronal = (Tmax+10)*2000;
-    step = 0.025
-    wEnd = 0.001 # 2.5+step
+    J_fileNames = "Data_Produced/SC90/J_Balance_we{}.mat"  # "Data_Produced/SC90/J_test_we{}.mat"
+    baseName = "Data_Produced/SC90/fitting_we{}.mat"
+
+    step = 0.1  # 0.025
+    wEnd = 2.5+step
     WEs = np.arange(0, wEnd, step)  # 100 values values for constant G. Originally was np.arange(0,2.5,0.025)
     numWEs = len(WEs)
 
-    FCDfitt5 = np.zeros((numWEs))
-    # FCDfitt2 = np.zeros((numWEs))
-    fitting5 = np.zeros((numWEs))
-    # fitting2 = np.zeros((numWEs))
-    # Isubdiag = np.tril_indices(N, k=-1)
+    FCDfitt_PLA = np.zeros((numWEs))
+    FCDfitt_LSD = np.zeros((numWEs))
+    fitting_PLA = np.zeros((numWEs))
+    fitting_LSD = np.zeros((numWEs))
 
     # Model Simulations
     # -----------------
     # for we in WEs:  # Pre-processing, to accelerate latter on calculations.
     #     BalanceFIC.Balance_J9(we, C, warmUp=False)  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
     for pos, we in enumerate(WEs):  # iteration over values for G (we in this code)
-        # neuronalModel.we = we
-        J_fileNames = "Data_Produced/SC90/J_test_we{}.mat"
-        # baseName = "Data_Produced/SC90/fitting_we{}.mat"
-        # FC_simul_cotsampling_sim = G_optim.distanceForOne_G(we, C, N, 1, #NumSubjects,
-        #                                                     J_fileNames, baseName.format(np.round(we, decimals=3)))
-        # FC_simul = FC_simul_cotsampling_sim['FC_simul']
-        # cotsampling_sim = FC_simul_cotsampling_sim['cotsampling_sim'].flatten()
+        neuronalModel.we = we
 
-        neuronalModel.J = np.ones(N) #BalanceFIC.Balance_J9(we, C, J_fileNames.format(np.round(we, decimals=3)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
-        integrator.recompileSignatures()
-        FCs = np.zeros((NumSubjects, N, N))
-        cotsampling_sim = np.array([], dtype=np.float64)
-        start_time = time.clock()
-        for nsub in range(1): #NumSubjects):  # trials. Originally it was 20.
-            print("we={} -> SIM subject {}/{}!!!".format(we, nsub, NumSubjects))
-            bds = simulateFCD.simulateSingleSubject(C, warmup=False).T
-            FCs[nsub] = FC.from_fMRI(bds, applyFilters=False)
-            cotsampling_sim = np.concatenate((cotsampling_sim, FCD.from_fMRI(bds)))  # Compute the FCD correlations
-            print("just test: FC.FC_Similarity =", FC.FC_Similarity(FCemp5, FCs[nsub]))
-        print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
-        FC_simul = np.squeeze(np.mean(FCs, axis=0))
+        FC_simul_cotsampling_sim = G_optim.distanceForOne_G(we, C, N, NumSubjects,
+                                                            J_fileNames, baseName.format(np.round(we, decimals=3)))
+        FC_simul = FC_simul_cotsampling_sim['FC_simul']
+        cotsampling_sim = FC_simul_cotsampling_sim['cotsampling_sim'].flatten()
 
-        FCDfitt5[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling5, cotsampling_sim)  # PLACEBO
-        # FCDfitt2[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling2, cotsampling_sim)  # LSD
+        # neuronalModel.J = np.ones(N) #BalanceFIC.Balance_J9(we, C, J_fileNames.format(np.round(we, decimals=3)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
+        # integrator.recompileSignatures()
+        # FCs = np.zeros((NumSubjects, N, N))
+        # cotsampling_sim = np.array([], dtype=np.float64)
+        # start_time = time.clock()
+        # for nsub in range(NumSubjects):  # trials. Originally it was 20.
+        #     print("we={} -> SIM subject {}/{}!!!".format(we, nsub, NumSubjects))
+        #     bds = simulateFCD.simulateSingleSubject(C, warmup=False).T
+        #     FCs[nsub] = FC.from_fMRI(bds, applyFilters=False)
+        #     cotsampling_sim = np.concatenate((cotsampling_sim, FCD.from_fMRI(bds)))  # Compute the FCD correlations
+        #     print("just test: FC.FC_Similarity =", FC.FC_Similarity(FCemp_PLA, FCs[nsub]))
+        # print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
+        # FC_simul = np.squeeze(np.mean(FCs, axis=0))
 
-        fitting5[pos] = FC.FC_Similarity(FCemp5, FC_simul)  # PLACEBO
-        # fitting2[pos] = FC.FC_Similarity(FCemp2, FC_simul)  # LSD
+        FCDfitt_PLA[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling_PLA, cotsampling_sim)  # PLACEBO
+        FCDfitt_LSD[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling_LSD, cotsampling_sim)  # LSD
 
-        print("{}/{}: FCDfitt = {}; FCfitt = {}\n".format(we,  2.5+step, FCDfitt5[pos], fitting5[pos]))
+        fitting_PLA[pos] = FC.FC_Similarity(FCemp_PLA, FC_simul)  # PLACEBO
+        fitting_LSD[pos] = FC.FC_Similarity(FCemp_LSD, FC_simul)  # LSD
 
-    # filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
-    # sio.savemat(filePath, #{'JI': JI})
-    #             {'we': WEs,
-    #              'fitting2': fitting2,
-    #              'fitting5': fitting5,
-    #              'FCDfitt2': FCDfitt2,
-    #              'FCDfitt5': FCDfitt5
-    #             })  # save('fneuro.mat','WE','fitting2','fitting5','FCDfitt2','FCDfitt5');
+        print("{}/{}: FCDfitt = {}; FCfitt = {}\n".format(we,  2.5+step, FCDfitt_PLA[pos], fitting_PLA[pos]))
+
+    filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
+    sio.savemat(filePath, #{'JI': JI})
+                {'we': WEs,
+                 'fitting_LSD': fitting_LSD,
+                 'fitting_PLA': fitting_PLA,
+                 'FCDfitt_LSD': FCDfitt_LSD,
+                 'FCDfitt_PLA': FCDfitt_PLA
+                })  # save('fneuro.mat','WE','fitting2','fitting5','FCDfitt2','FCDfitt5');
     print("DONE!!!")
 
 if __name__ == '__main__':

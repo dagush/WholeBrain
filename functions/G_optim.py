@@ -97,6 +97,7 @@ def processEmpiricalSubjects(tc) :#, empiricalSubjectsFile=None):
 # ---- convenience method, with the idea of parallelizing the code
 @loadOrCompute
 def distanceForOne_G(we, C, N, NumSimSubjects, J_fileNames):
+    integrator.neuronalModel.we = we
     integrator.neuronalModel.J = BalanceFIC.Balance_J9(we, C, False, J_fileNames.format(np.round(we, decimals=3)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
     integrator.recompileSignatures()
 
@@ -129,17 +130,11 @@ def distanceForAll_G(C, tc, NumSimSubjects,
     FC_emp = processed['FCemp']
     cotsampling_emp = processed['cotsampling'].flatten()
 
-    # %%%%%%%%%%%%%%% Set General Model Parameters
-    # dtt   = 1e-3   # Sampling rate of simulated neuronal activity (seconds)
-    # dt    = 0.1
-    # DMF.J     = np.ones(N,1)
-    # Tmaxneuronal = (Tmax+10)*2000;
     WEs = np.arange(wStart+wStep, wEnd, wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
     numWEs = len(WEs)
 
     FCDfitt = np.zeros((numWEs))
     FCfitt = np.zeros((numWEs))
-    Isubdiag = np.tril_indices(N, k=-1)
 
     # Model Simulations
     # -----------------
@@ -172,6 +167,11 @@ def distanceForAll_G(C, tc, NumSimSubjects,
     return FCfitt, FCDfitt, maxFC, minFCD
 
 
+# ==========================================================================
+# ==========================================================================
+# convenience plotting routines
+# ==========================================================================
+# ==========================================================================
 def plotFitting(fitting5, FCDfitt5, maxFC, minFCD, wStart=0.05, wEnd=6.0, wStep=0.05):
     WEs = np.arange(wStart+wStep, wEnd, wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
     # fitting2 = fNeuro['fitting2'].flatten()
@@ -198,6 +198,54 @@ def plotFitting(fitting5, FCDfitt5, maxFC, minFCD, wStart=0.05, wEnd=6.0, wStep=
     plt.show()
 
 
+def loadAndPlot(outFilePath, wStart=0.05, wEnd=6.0, wStep=0.001):
+    processed = sio.loadmat(outFilePath+'/fNeuro_emp.mat')
+    FC_emp = processed['FCemp']
+    cotsampling_emp = processed['cotsampling'].flatten()
+
+    WEs = np.arange(wStart, wEnd+wStep, wStep)
+    realWEs = np.array([], dtype=np.float64)
+    FCDfitt = np.array([], dtype=np.float64)
+    FCfitt = np.array([], dtype=np.float64)
+
+    for we in WEs:
+        fileName = outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3))
+        if Path(fileName).is_file():
+            result = sio.loadmat(fileName)
+            realWEs = np.append(realWEs, we)
+            FC_simul = result['FC_simul']
+            cotsampling_sim = result['cotsampling_sim'].flatten()
+            # ---- and now compute the final FC and FCD distances for this G (we)!!! ----
+            FCDdist = FCD.distance(cotsampling_emp, cotsampling_sim)
+            FCDfitt = np.append(FCDfitt, FCDdist)
+            # FCfitt[pos] = FC.distance(np.arctanh(FC_emp), np.arctanh(FC_simul))  # as in [Kringelbach2020]
+            FCdist = FC.distance(FC_emp, FC_simul)
+            FCfitt = np.append(FCfitt, FCdist)  # as in [Deco2018]
+            print("{}: FCDfitt = {}; FCfitt = {}".format(fileName, FCDdist, FCdist))
+
+    maxFC = realWEs[np.argmax(FCfitt)]
+    minFCD = realWEs[np.argmin(FCDfitt)]
+    print("\n\n#####################################################################################################")
+    print(f"# Max FC({maxFC}) = {np.max(FCfitt)}             ** Min FCD({minFCD}) = {np.min(FCDfitt)} **")
+    print("#####################################################################################################\n\n")
+
+    plt.rcParams.update({'font.size': 22})
+    plotFCDpla, = plt.plot(realWEs, FCDfitt, 'b')
+    plt.axvline(x=minFCD, ls='--', c='b')
+    plotFCDpla.set_label("FCD")
+    plotFCpla, = plt.plot(realWEs, FCfitt, 'r')
+    plt.axvline(x=maxFC, ls='--', c='r')
+    plotFCpla.set_label("FC")
+    plt.title("Whole-brain fitting")
+    plt.ylabel("Fitting")
+    plt.xlabel("Global Coupling (G)")
+    plt.legend()
+    plt.show()
+
+
+# ==========================================================================
+# ==========================================================================
+# ==========================================================================
 if __name__ == '__main__':
     # Load Structural Connectivity Matrix
     print("Loading Data_Raw/all_SC_FC_TC_76_90_116.mat")
