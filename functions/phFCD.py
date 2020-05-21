@@ -42,9 +42,8 @@ def tril_indices_column(N, k=0):
 # We measure KS distance between the upper triangular elements of the empirical and simulated FCD matrices
 # (accumulated over all participants). The KS distance quantifies the maximal difference between the cumulative
 # distribution functions of the 2 samples.
-Isubdiag = np.tril_indices(N, k=-1)  # Indices of triangular lower part of matrix, which is the same ;-)
 def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
-    d, pvalue = stats.ks_2samp(FCD1[Isubdiag], FCD2[Isubdiag])
+    d, pvalue = stats.ks_2samp(FCD1.flatten(), FCD2.flatten())
     return d
 
 
@@ -59,7 +58,7 @@ def distance(FCD1, FCD2):  # FCD similarity, convenience function
 # For 2 vectors p1 and p2, the cosine similarity is given by (p1.p2)/(||p1||||p2||).
 # Epochs of stable FC(t) configurations are reflected around the FCD diagonal in blocks of elevated
 # inter-FC(t) correlations.
-def from_fMRI(ts_emp):  # Compute the FCD of an input BOLD signal
+def from_fMRI(ts_emp, applyFilters = True):  # Compute the FCD of an input BOLD signal
     (N, Tmax) = ts_emp.shape
     # Data structures we are going to need...
     phases_emp = np.zeros([N, Tmax])
@@ -68,6 +67,7 @@ def from_fMRI(ts_emp):  # Compute the FCD of an input BOLD signal
                 N - 1) / 2)])  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
     syncdata = np.zeros(Tmax - 19)
 
+    # Filters seem to be always applied...
     ts_emp_filt = BOLDFilters.BandPassFilter(ts_emp)  # zero phase filter the data
     for n in range(N):
         Xanalytic = signal.hilbert(demean.demean(ts_emp_filt[n, :]))
@@ -97,6 +97,25 @@ def from_fMRI(ts_emp):  # Compute the FCD of an input BOLD signal
 
     return phfcd
 
+
+# ==================================================================
+# Simple generalization functions to abstract distance measures
+# ==================================================================
+def init(S, N):
+    return np.array([], dtype=np.float64)
+
+
+def accumulate(FCs, nsub, signal):
+    FCs = np.concatenate((FCs, signal))  # Compute the FCD correlations
+    return FCs
+
+
+def postprocess(FCs):
+    return FCs  # nothing to do here
+
+
+def findMinMax(arrayValues):
+    return np.min(arrayValues), np.argmin(arrayValues)
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================EOF

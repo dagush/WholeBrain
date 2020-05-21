@@ -47,6 +47,25 @@ def from_fMRI(signal, applyFilters = True):
     cc = np.corrcoef(sfiltT, rowvar=False)  # Pearson correlation coefficients
     return cc
 
+
+# ==================================================================
+# Simple generalization functions to abstract distance measures
+# ==================================================================
+def init(S, N):
+    return np.zeros((S, N, N))
+
+
+def accumulate(FCs, nsub, signal):
+    FCs[nsub] = signal
+    return FCs
+
+
+def postprocess(FCs):
+    return np.squeeze(np.mean(FCs, axis=0))
+
+
+def findMinMax(arrayValues):
+    return np.max(arrayValues), np.argmax(arrayValues)
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================EOF

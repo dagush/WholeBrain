@@ -129,6 +129,7 @@ def updateJ(N, tmax, delta, curr, J):
 # =====================================
 # Computes the optimum of the J_i for a given structural connectivity matrix C and
 # a coupling coefficient G, which should be set externally directly at the neuronal model.
+use_N_algorithm = True
 def JOptim(C, warmUp = False):
     N = C.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
 
@@ -149,7 +150,7 @@ def JOptim(C, warmUp = False):
     global min_largest_distance, slow_factor; min_largest_distance = np.inf; slow_factor = 1.0
 
     if verbose:
-        print("we=", integrator.neuronalModel.we)  # display(we)
+        print("we={} (use {} optim)".format(integrator.neuronalModel.we, "N" if use_N_algorithm else "A"))
         print("  Trials:", end=" ", flush=True)
 
     ### Balance (greedy algorithm)
@@ -168,8 +169,10 @@ def JOptim(C, warmUp = False):
         if verbose: print(k, end='', flush=True)
 
         currm = curr_xn - integrator.neuronalModel.be/integrator.neuronalModel.ae  # be/ae==125./310. Records currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
-        # flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)  # Adrian's method, the one from [DecoEtAl2014]
-        flagJ = updateJ_N(N, tmax, delta, currm, integrator.neuronalModel.J)  # Nacho's method... ;-)
+        if use_N_algorithm:
+            flagJ = updateJ_N(N, tmax, delta, currm, integrator.neuronalModel.J)  # Nacho's method... ;-)
+        else:
+            flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)  # Adrian's method, the one from [DecoEtAl2014]
 
         if verbose: print("({})".format(flagJ), end='', flush=True)
         if flagJ > bestJCount:

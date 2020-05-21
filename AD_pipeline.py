@@ -14,6 +14,7 @@ import os, csv
 from pathlib import Path
 import matplotlib.pyplot as plt
 import time
+from functions.Utils.decorators import loadOrCompute
 
 # --------------------------------------------------------------------------
 #  Begin setup...
@@ -45,7 +46,8 @@ from functions import BalanceFIC
 BalanceFIC.integrator = integrator
 
 import functions.FC as FC
-import functions.swFCD as FCD
+import functions.swFCD as swFCD
+import functions.phFCD as phFCD
 import functions.G_optim as G_optim
 G_optim.integrator = integrator
 # --------------------------------------------------------------------------
@@ -374,104 +376,39 @@ def plot_cc_empSC_empFC(subjects):
     plt.show()
 
 
-# # =====================================================================================
-# # Test the FIC computation from Deco et al. 2014
-# # =====================================================================================
-# def testDeco2014_Fig2(SCnorm, subjectName):
-#     import numpy as np
-#     # import scipy.io as sio
-#     # import matplotlib.pyplot as plt
-#     import functions.Models.DynamicMeanField as DMF
-#     import functions.Integrator_EulerMaruyama as integrator
-#     integrator.neuronalModel = DMF
-#     import Fig_DecoEtAl2014_Fig2 as DecoEtAl2014  # To plot DecoEtAl's 2014 Figure 2...
-#
-#     integrator.verbose = False
-#
-#     print("=============================================")
-#     print("= Testing with Deco et al 2014, figure 2 !!!")
-#     plt.rcParams.update({'font.size': 15})
-#
-#     # Load connectome:
-#     # --------------------------------
-#     # Original code
-#     # CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
-#     # # C = np.log(CFile['C'] + 1)
-#     # C = CFile['C']
-#     # correctSC(C)
-#     # ================================ Directly loading
-#     # sc_folder = base_folder+'/connectomes/'+subject+"/DWI_processing"
-#     # SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
-#     # SClog = np.log(SC+1)  # SCnorm = normalizationFactor * SCnorm / np.max(SCnorm)
-#     # areasSC = SClog.shape[0]
-#     # avgSC = np.average(SClog)
-#     # # === Normalization ===
-#     # # finalMatrix = normalizationFactor * logMatrix / logMatrix.max()
-#     # finalMatrix = SClog * avgHuman66/avgSC * areasHuman66/areasSC
-#     DecoEtAl2014.setFileName('Data_Produced/AD/FICWeights/BenjiBalancedWeights-'+subjectName+'-{}.mat')
-#     DMF.initJ(SCnorm.shape[0])
-#
-#     # BalanceFIC.veryVerbose = True
-#     DecoEtAl2014.plotMaxFrecForAllWe(SCnorm, wStart=0, wEnd=4.8+0.001, wStep=0.05, extraTitle=' - {}'.format(subjectName))
-
-# =====================================================================================
-# Methods to simulate and fit AD data
-# =====================================================================================
-# def preComputeJ_Balance(subject, SC):
-#     # fileName = "Data_Produced/AD/"+subject+"-"+str(neuronalModel.we)+"_JBalance.mat"
-#     fileName = 'Data_Produced/AD/FICWeights-'+subject+'/BenjiBalancedWeights-{}.mat' #.format(neuronalModel.we)
-#     BalanceFIC.setFileName(fileName)
-#     BalanceFIC.Balance_J9(neuronalModel.we, SC)
-#     # if not Path(fileName).is_file():
-#     #     print("Computing " + fileName + " !!!")
-#     #     BalanceFIC.verbose = True
-#     #     J=BalanceFIC.JOptim(SC).flatten()  # This is the Feedback Inhibitory Control
-#     #     sio.savemat(fileName, {'J': neuronalModel.J})  # save J_Balance J
-#     # else:
-#     #     print("Loading "+fileName+" !!!")
-#     #     # ==== J can be calculated only once and then load J_Balance J
-#     #     J = sio.loadmat(fileName)['J'].flatten()
-#     # return J
-
-
-def compareJs(subjectA, subjectB, we):
-    fileNameA = 'Data_Produced/AD/FICWeights-'+subjectA+'/BenjiBalancedWeights-{}.mat'.format(we)
-    fileNameB = 'Data_Produced/AD/FICWeights-'+subjectB+'/BenjiBalancedWeights-{}.mat'.format(we)
-
-
-def singleSubjectPipeline(subject, SCnorm, all_fMRI,  #, abeta,
-                          wStart=0, wEnd=6.0, wStep=0.05,
-                          optimizeG=True, precompute=True, plotMaxFrecForAllWe=True):
+# =====================================================================
+# =====================================================================
+#                      Single Subject Pipeline
+# =====================================================================
+# =====================================================================
+def preprocessingPipeline(subject, SCnorm, all_fMRI,  #, abeta,
+                          distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
+                          selectedDistance,
+                          wStart=0.0, wEnd=6.0, wStep=0.05,
+                          precompute=False, plotMaxFrecForAllWe=False):
     fileName = 'Data_Produced/AD/FICWeights-'+subject+'/BenjiBalancedWeights-{}.mat'
     # BalanceFIC.useDeterministicIntegrator = useDeterministicIntegrator
-    if precompute:
+    if precompute:  # What's the point of this?
         BalanceFIC.verbose = True
         BalanceFIC.Balance_AllJ9(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep, baseName=fileName)
         # Let's plot it as a verification measure...
     if plotMaxFrecForAllWe:
         import Fig_DecoEtAl2014_Fig2 as Fig2
         Fig2.plotMaxFrecForAllWe(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep,
-                                 extraTitle='', precompute=False, fileName=fileName)  # We already precomputed everything
+                                 extraTitle='', precompute=False, fileName=fileName)  # We already precomputed everything, right?
 
-    if optimizeG:
-        # Now, optimize all we (G) values: determine optimal G to work with
-        fitting, FCDfitt, maxFC, minFCD = G_optim.distanceForAll_G(SCnorm, all_fMRI, NumSimSubjects=len(all_fMRI),
-                                                                   wStart=wStart, wEnd=wEnd, wStep=wStep,
-                                                                   J_fileNames=fileName,
-                                                                   outFilePath='Data_Produced/AD/'+subject+'-temp')
-        G_optim.plotFitting(fitting, FCDfitt, maxFC, minFCD, wStart=wStart, wEnd=wEnd, wStep=wStep)
-    else:
-        minFCD = 1.79  # Result of a previous calculation
+    # Now, optimize all we (G) values: determine optimal G to work with
+    outFilePath = 'Data_Produced/AD/'+subject+'-temp'
+    fitting = G_optim.distanceForAll_G(SCnorm, all_fMRI, NumSimSubjects=len(all_fMRI),
+                                       distanceSettings=distanceSettings,
+                                       wStart=wStart, wEnd=wEnd, wStep=wStep,
+                                       J_fileNames=fileName,
+                                       outFilePath=outFilePath)
+    G_optim.loadAndPlot(outFilePath, distanceSettings)
 
-    neuronalModel.we = minFCD  # right now, the standard magical value...
-
-    # print("Pre-computing J (FIC): Subject {} @ G={}".format(subject, neuronalModel.we))
-    # neuronalModel.J = preComputeJ_Balance(subject, SCnorm)
-    #
-    # simBDS = simulateFCD.simulateSingleSubject(SCnorm, warmup=True)
-    # simCC = FCD.from_fMRI(simBDS.T)  # avgFC to get the average FC
-    # ccFCempFCsim = FCD.KolmogorovSmirnovStatistic(empCC, simCC)  # FC_Similarity for FC comparison
-    # print("cc[FCemp,FCsim]", ccFCempFCsim)
+    # optimal = distanceSettings[selectedDistance][0].findMinMax(fitting[selectedDistance])
+    optimal = {sd: distanceSettings[sd][0].findMinMax(fitting[sd]) for sd in distanceSettings}
+    return optimal
 
 
 # =====================================================================
@@ -571,13 +508,24 @@ if __name__ == '__main__':
 
     # Configure and compute Simulation
     # ------------------------------------------------
-    # singleSubjectPipeline(SCnorm_HC, abeta_HC, fMRI_HC)
-    # singleSubjectPipeline(finalAvgMatrixHC, 'AvgHC', wStart=0, wEnd=4.01, wStep=0.05,
-    #                       precompute=False)  # AvgHC => Rnd (Euler-Maruyama) + Adria's algo
-    G_optim.loadAndPlot(outFilePath='Data_Produced/AD/'+'AvgHC-N-Rnd'+'-temp')
-    # singleSubjectPipeline('AvgHC-N-Rnd', finalAvgMatrixHC, all_fMRI,
-    #                       wStart=wStart, wEnd=wEnd+0.01, wStep=wStep,
-    #                       precompute=True, plotMaxFrecForAllWe=False) #, useDeterministicIntegrator=False
+    # subjectName = 'AvgHC-N'
+    subjectName = 'AvgHC'
+    distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True), 'phFCD': (phFCD, True)}
+    selectedDistance = 'swFCD'
+    G_optim.loadAndPlot(outFilePath='Data_Produced/AD/'+subjectName+'-temp', distanceSettings=distanceSettings)
+    # import functions.BalanceFIC as FIC; FIC.use_N_algorithm = False  # To make sure we use A algorithm
+    # optimal = preprocessingPipeline(subjectName, finalAvgMatrixHC, all_fMRI,
+    #                                 distanceSettings, selectedDistance,
+    #                                 wStart=wStart, wEnd=wEnd+0.01, wStep=wStep,
+    #                                 precompute=False, plotMaxFrecForAllWe=False)
+    # print("".join(f"Optimal {k}({optimal[k][1]})={optimal[k][0]}\n" for k in optimal))
+    # =============================== only to debug FC, swFCD, phFCD code ...
+    # fileName = 'Data_Produced/AD/FICWeights-'+subjectName+'/BenjiBalancedWeights-{}.mat'
+    # fitting = G_optim.distanceForAll_G(finalAvgMatrixHC, all_fMRI, NumSimSubjects=len(all_fMRI),
+    #                                    distanceSettings=distanceSettings,
+    #                                    wStart=3.4, wEnd=3.4, wStep=0.01,
+    #                                    J_fileNames=fileName,
+    #                                    outFilePath='Data_Produced/AD/kk')
 
     # ================================================
     # ================================================

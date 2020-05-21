@@ -23,6 +23,8 @@ from numba import jit
 from functions.Utils.decorators import loadOrCompute
 import time
 
+verbose = True
+
 # --------------------------------------------------------------------------
 #  Begin setup...
 # --------------------------------------------------------------------------
@@ -72,99 +74,109 @@ import functions.simulateFCD as simulateFCD
 #     return symLR
 
 
-@loadOrCompute
-def processEmpiricalSubjects(tc) :#, empiricalSubjectsFile=None):
-    # if not Path(empiricalSubjectsFile).is_file():
-    NumSubjects = len(tc)
-    N = tc[next(iter(tc))].shape[0]  # get the first key to retrieve the value of N = number of areas
-    FCemp = np.zeros((NumSubjects, N, N))
-    cotsampling = np.array([], dtype=np.float64)
+def processBOLDSignals(BOLDsignals, distanceSettings):
+    NumSubjects = len(BOLDsignals)
+    N = BOLDsignals[next(iter(BOLDsignals))].shape[0]  # get the first key to retrieve the value of N = number of areas
+
+    # First, let's create a data structure for the distance measurement operations...
+    measureValues = {}
+    for ds in distanceSettings:  # Initialize data structs for each distance measure
+        measureValues[ds] = distanceSettings[ds][0].init(NumSubjects, N)
+
     # Loop over subjects
-    for pos, s in enumerate(tc):
-        print('   {}/{} Subject: {} ({}x{})'.format(pos, NumSubjects, s, tc[s].shape[0], tc[s].shape[1]), end='', flush=True)
-        signal = tc[s]  # LR_version_symm(tc[s])
+    for pos, s in enumerate(BOLDsignals):
+        if verbose: print('   BOLD {}/{} Subject: {} ({}x{})'.format(pos, NumSubjects, s, BOLDsignals[s].shape[0], BOLDsignals[s].shape[1]), end='', flush=True)
+        signal = BOLDsignals[s]  # LR_version_symm(tc[s])
         start_time = time.clock()
-        FCemp[pos] = FC.from_fMRI(signal, applyFilters=False)
-        cotsampling = np.concatenate((cotsampling, FCD.from_fMRI(signal)))
-        print(" -> computed in {} seconds".format(time.clock() - start_time))
 
-    return {'FCemp': np.squeeze(np.mean(FCemp, axis=0)), 'cotsampling': cotsampling}
+        for ds in distanceSettings:  # Now, let's compute each measure and store the results
+            measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
+            applyFilters = distanceSettings[ds][1]  # whether we apply filters or not...
+            procSignal = measure.from_fMRI(signal, applyFilters=applyFilters)
+            measureValues[ds] = measure.accumulate(measureValues[ds], pos, procSignal)
+
+        if verbose: print(" -> computed in {} seconds".format(time.clock() - start_time))
+
+    for ds in distanceSettings:  # finish computing each distance measure
+        measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
+        measureValues[ds] = measure.postprocess(measureValues[ds])
+
+    return measureValues
 
 
-# ==========================================================================
-# ==========================================================================
-# ==========================================================================
-# ---- convenience method, with the idea of parallelizing the code
+# ============== a practical way to save recomputing necessary (but lengthy) results ==========
 @loadOrCompute
-def distanceForOne_G(we, C, N, NumSimSubjects, J_fileNames):
+def processEmpiricalSubjects(BOLDsignals, distanceSettings):
+    return processBOLDSignals(BOLDsignals, distanceSettings)
+
+
+# ==========================================================================
+# ==========================================================================
+# ==========================================================================
+# ---- convenience method, to parallelize the code (someday)
+@loadOrCompute
+def distanceForOne_G(we, C, N, NumSimSubjects,
+                     distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
+                     J_fileNames):  # a template (i.e., with {}) of the file names where to store temporary data
     integrator.neuronalModel.we = we
     integrator.neuronalModel.J = BalanceFIC.Balance_J9(we, C, False, J_fileNames.format(np.round(we, decimals=3)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
     integrator.recompileSignatures()
 
-    FCs = np.zeros((NumSimSubjects, N, N))
-    cotsamplingsim = np.array([], dtype=np.float64)
-
-    print("--- BEGIN TIME @ we={} ---".format(we))
+    print("   --- BEGIN TIME @ we={} ---".format(we))
+    simulatedBOLDs = {}
     start_time = time.clock()
     for nsub in range(NumSimSubjects):  # trials. Originally it was 20.
-        print("   we={} -> SIM subject {}/{}!!!".format(we, nsub, NumSimSubjects))
+        print("   Simulating we={} -> subject {}/{}!!!".format(we, nsub, NumSimSubjects))
         bds = simulateFCD.simulateSingleSubject(C, warmup=False).T
-        FCs[nsub] = FC.from_fMRI(bds, applyFilters=False)
-        cotsamplingsim = np.concatenate((cotsamplingsim, FCD.from_fMRI(bds)))  # Compute the FCD correlations
-    print("--- TOTAL TIME: {} seconds ---".format(time.clock() - start_time))
-    FC_simul = np.squeeze(np.mean(FCs, axis=0))
-    return {'FC_simul': FC_simul, 'cotsampling_sim': cotsamplingsim}
+        simulatedBOLDs[nsub] = bds
+
+    dist = processBOLDSignals(simulatedBOLDs, distanceSettings)
+    dist["We"] = we
+    print("   --- TOTAL TIME: {} seconds ---".format(time.clock() - start_time))
+    return dist
 
 
 def distanceForAll_G(C, tc, NumSimSubjects,
-                     wStart=0, wEnd=6.0, wStep=0.05,
+                     distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
+                     wStart=0.0, wEnd=6.0, wStep=0.05,
                      J_fileNames=None,
                      outFilePath=None):
-    # simulateFCD.BOLDModel = Stephan2007
-
     NumSubjects = len(tc)
     N = tc[next(iter(tc))].shape[0]  # get the first key to retrieve the value of N = number of areas
     print('tc({} subjects): each entry has N={} regions'.format(NumSubjects, N))
 
-    processed = processEmpiricalSubjects(tc, outFilePath+'/fNeuro_emp.mat')
-    FC_emp = processed['FCemp']
-    cotsampling_emp = processed['cotsampling'].flatten()
+    processed = processEmpiricalSubjects(tc, distanceSettings, outFilePath+'/fNeuro_emp.mat')
 
-    WEs = np.arange(wStart+wStep, wEnd, wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
+    WEs = np.arange(wStart, wEnd+wStep, wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
     numWEs = len(WEs)
 
-    FCDfitt = np.zeros((numWEs))
-    FCfitt = np.zeros((numWEs))
+    fitting = {}
+    for ds in distanceSettings:
+        fitting[ds] = np.zeros((numWEs))
 
     # Model Simulations
     # -----------------
-    print(' ====================== Model Simulations ======================')
+    print('\n\n ====================== Model Simulations ======================\n\n')
     for pos, we in enumerate(WEs):  # iteration over the values for G (we in this code)
         # ---- Perform the simulation of NumSimSubjects ----
-        FC_simul_cotsampling_sim = distanceForOne_G(we, C, N, NumSimSubjects,
-                                                    J_fileNames, outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3)))
-        FC_simul = FC_simul_cotsampling_sim['FC_simul']
-        cotsampling_sim = FC_simul_cotsampling_sim['cotsampling_sim'].flatten()
+        simMeasures = distanceForOne_G(we, C, N, NumSimSubjects, distanceSettings,
+                                       J_fileNames, outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3)))
 
-        # ---- and now compute the final FC and FCD distances for this G (we)!!! ----
-        FCDfitt[pos] = FCD.distance(cotsampling_emp, cotsampling_sim)
-        # FCfitt[pos] = FC.distance(np.arctanh(FC_emp), np.arctanh(FC_simul))  # as in [Kringelbach2020]
-        FCfitt[pos] = FC.distance(FC_emp, FC_simul)  # as in [Deco2018]
-        print("{}/{}: FCDfitt = {}; FCfitt = {}\n".format(we, wEnd, FCDfitt[pos], FCfitt[pos]))
+        # ---- and now compute the final FC, FCD, ... distances for this G (we)!!! ----
+        print(f"{we}/{wEnd}:", end='', flush=True)
+        for ds in distanceSettings:
+            fitting[ds][pos] = distanceSettings[ds][0].distance(simMeasures[ds], processed[ds])
+            print(f" {ds}: {fitting[ds][pos]};", end='', flush=True)
+        print("\n")
 
-    # if outFilePath is not None:
-    #     sio.savemat(outFilePath+'/fNeuro.mat',
-    #                 {'we': WEs,
-    #                  'fitting': FCfitt,
-    #                  'FCDfitt': FCDfitt
-    #                 })  # save('fneuro.mat','WE','fitting2','fitting5','FCDfitt2','FCDfitt5');
-    maxFC = WEs[np.argmax(FCfitt)]
-    minFCD = WEs[np.argmin(FCDfitt)]
     print("\n\n#####################################################################################################")
-    print(f"# Max FC({maxFC}) = {np.max(FCfitt)}             ** Min FCD({minFCD}) = {np.min(FCDfitt)} **")
+    for ds in distanceSettings:
+        optimValDist = distanceSettings[ds][0].findMinMax(fitting[ds])
+        print(f"# Optimal {ds} = {optimValDist[0]} @ {WEs[optimValDist[1]]}")
     print("#####################################################################################################\n\n")
+
     print("DONE!!!")
-    return FCfitt, FCDfitt, maxFC, minFCD
+    return fitting
 
 
 # ==========================================================================
@@ -172,25 +184,20 @@ def distanceForAll_G(C, tc, NumSimSubjects,
 # convenience plotting routines
 # ==========================================================================
 # ==========================================================================
-def plotFitting(fitting5, FCDfitt5, maxFC, minFCD, wStart=0.05, wEnd=6.0, wStep=0.05):
-    WEs = np.arange(wStart+wStep, wEnd, wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
-    # fitting2 = fNeuro['fitting2'].flatten()
-    # fitting5 = fNeuro['fitting5'].flatten()
-    # FCDfitt2 = fNeuro['FCDfitt2'].flatten()
-    # FCDfitt5 = fNeuro['FCDfitt5'].flatten()
-
-    # mFCDfitt5   = np.mean(FCDfitt5,2);
-    # stdFCDfitt5 = np.std(FCDfitt5,[],2);
-    # mfitting5   = np.mean(fitting5,2);
-    # stdfitting5 = np.std(fitting5,[],2);
-
+def plotFitting(WEs, fitting, distanceSettings):
+    print("\n\n#####################################################################################################")
     plt.rcParams.update({'font.size': 22})
-    plotFCDpla, = plt.plot(WEs, FCDfitt5, 'b')
-    plt.axvline(x=minFCD, ls='--', c='b')
-    plotFCDpla.set_label("FCD")
-    plotFCpla, = plt.plot(WEs, fitting5, 'r')
-    plt.axvline(x=maxFC, ls='--', c='r')
-    plotFCpla.set_label("FC")
+    ax = plt.gca()
+    for ds in distanceSettings:
+        optimValDist = distanceSettings[ds][0].findMinMax(fitting[ds])
+        print(f"# - Optimal {ds} = {optimValDist[0]} @ {WEs[optimValDist[1]]}")
+
+        color = next(ax._get_lines.prop_cycler)['color']
+        plotFCpla, = plt.plot(WEs, fitting[ds], color=color)
+        plt.axvline(x=WEs[optimValDist[1]], ls='--', c=color)
+        plotFCpla.set_label(ds)
+
+    print("#####################################################################################################\n\n")
     plt.title("Whole-brain fitting")
     plt.ylabel("Fitting")
     plt.xlabel("Global Coupling (G)")
@@ -198,49 +205,36 @@ def plotFitting(fitting5, FCDfitt5, maxFC, minFCD, wStart=0.05, wEnd=6.0, wStep=
     plt.show()
 
 
-def loadAndPlot(outFilePath, wStart=0.05, wEnd=6.0, wStep=0.001):
+def loadAndPlot(outFilePath,
+                distanceSettings,
+                wStart=0.0, wEnd=6.0, wStep=0.001):
     processed = sio.loadmat(outFilePath+'/fNeuro_emp.mat')
-    FC_emp = processed['FCemp']
-    cotsampling_emp = processed['cotsampling'].flatten()
+    empValues = {}
+    for ds in distanceSettings:
+        empValues[ds] = processed[ds]
 
     WEs = np.arange(wStart, wEnd+wStep, wStep)
     realWEs = np.array([], dtype=np.float64)
-    FCDfitt = np.array([], dtype=np.float64)
-    FCfitt = np.array([], dtype=np.float64)
+    fitting = {}
+    for ds in distanceSettings:
+        fitting[ds] = np.array([], dtype=np.float64)
 
     for we in WEs:
         fileName = outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3))
         if Path(fileName).is_file():
-            result = sio.loadmat(fileName)
+            simValues = sio.loadmat(fileName)
             realWEs = np.append(realWEs, we)
-            FC_simul = result['FC_simul']
-            cotsampling_sim = result['cotsampling_sim'].flatten()
+
             # ---- and now compute the final FC and FCD distances for this G (we)!!! ----
-            FCDdist = FCD.distance(cotsampling_emp, cotsampling_sim)
-            FCDfitt = np.append(FCDfitt, FCDdist)
-            # FCfitt[pos] = FC.distance(np.arctanh(FC_emp), np.arctanh(FC_simul))  # as in [Kringelbach2020]
-            FCdist = FC.distance(FC_emp, FC_simul)
-            FCfitt = np.append(FCfitt, FCdist)  # as in [Deco2018]
-            print("{}: FCDfitt = {}; FCfitt = {}".format(fileName, FCDdist, FCdist))
+            print(f"Loaded {fileName}:", end='', flush=True)
+            for ds in distanceSettings:
+                measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
+                dist = measure.distance(empValues[ds], simValues[ds])
+                fitting[ds] = np.append(fitting[ds], dist)
+                print(f" {ds}={dist}", end='', flush=True)
+            print()
 
-    maxFC = realWEs[np.argmax(FCfitt)]
-    minFCD = realWEs[np.argmin(FCDfitt)]
-    print("\n\n#####################################################################################################")
-    print(f"# Max FC({maxFC}) = {np.max(FCfitt)}             ** Min FCD({minFCD}) = {np.min(FCDfitt)} **")
-    print("#####################################################################################################\n\n")
-
-    plt.rcParams.update({'font.size': 22})
-    plotFCDpla, = plt.plot(realWEs, FCDfitt, 'b')
-    plt.axvline(x=minFCD, ls='--', c='b')
-    plotFCDpla.set_label("FCD")
-    plotFCpla, = plt.plot(realWEs, FCfitt, 'r')
-    plt.axvline(x=maxFC, ls='--', c='r')
-    plotFCpla.set_label("FC")
-    plt.title("Whole-brain fitting")
-    plt.ylabel("Fitting")
-    plt.xlabel("Global Coupling (G)")
-    plt.legend()
-    plt.show()
+    plotFitting(realWEs, fitting, distanceSettings)
 
 
 # ==========================================================================

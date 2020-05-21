@@ -41,7 +41,7 @@ def pearson_r(x, y):
 
 # @jit(nopython=True)
 def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
-    d, pvalue = stats.ks_2samp(FCD1, FCD2)
+    d, pvalue = stats.ks_2samp(FCD1.flatten(), FCD2.flatten())
     return d
 
 
@@ -52,9 +52,9 @@ def distance(FCD1, FCD2):  # FCD similarity, convenience function
 
 windowSize = 30
 windowStep = 3
-def from_fMRI(signal):  # Compute the FCD of an input BOLD signal
+def from_fMRI(signal, applyFilters = True):  # Compute the FCD of an input BOLD signal
     (N, Tmax) = signal.shape
-    signal_filt = BOLDFilters.BandPassFilter(signal)
+    signal_filt = BOLDFilters.BandPassFilter(signal)  # Filters seem to be always applied...
     Isubdiag = np.tril_indices(N, k=-1)  # Indices of triangular lower part of matrix
 
     # For each pair of sliding windows calculate the FC at t and t2 and
@@ -80,6 +80,25 @@ def from_fMRI(signal):  # Compute the FCD of an input BOLD signal
 
     return cotsampling
 
+
+# ==================================================================
+# Simple generalization functions to abstract distance measures
+# ==================================================================
+def init(S, N):
+    return np.array([], dtype=np.float64)
+
+
+def accumulate(FCs, nsub, signal):
+    FCs = np.concatenate((FCs, signal))  # Compute the FCD correlations
+    return FCs
+
+
+def postprocess(FCs):
+    return FCs  # nothing to do here
+
+
+def findMinMax(arrayValues):
+    return np.min(arrayValues), np.argmin(arrayValues)
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================EOF

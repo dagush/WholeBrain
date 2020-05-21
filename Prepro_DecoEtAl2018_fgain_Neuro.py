@@ -169,30 +169,16 @@ def prepro_Fig3():
     for pos, we in enumerate(WEs):  # iteration over values for G (we in this code)
         neuronalModel.we = we
 
-        FC_simul_cotsampling_sim = G_optim.distanceForOne_G(we, C, N, NumSubjects,
+        FCsimul_cotsamplingsim = G_optim.distanceForOne_G(we, C, N, NumSubjects,
                                                             J_fileNames, baseName.format(np.round(we, decimals=3)))
-        FC_simul = FC_simul_cotsampling_sim['FC_simul']
-        cotsampling_sim = FC_simul_cotsampling_sim['cotsampling_sim'].flatten()
+        FC_simul = FCsimul_cotsamplingsim['FC']
+        cotsampling_sim = FCsimul_cotsamplingsim['swFCD'].flatten()
 
-        # neuronalModel.J = np.ones(N) #BalanceFIC.Balance_J9(we, C, J_fileNames.format(np.round(we, decimals=3)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
-        # integrator.recompileSignatures()
-        # FCs = np.zeros((NumSubjects, N, N))
-        # cotsampling_sim = np.array([], dtype=np.float64)
-        # start_time = time.clock()
-        # for nsub in range(NumSubjects):  # trials. Originally it was 20.
-        #     print("we={} -> SIM subject {}/{}!!!".format(we, nsub, NumSubjects))
-        #     bds = simulateFCD.simulateSingleSubject(C, warmup=False).T
-        #     FCs[nsub] = FC.from_fMRI(bds, applyFilters=False)
-        #     cotsampling_sim = np.concatenate((cotsampling_sim, FCD.from_fMRI(bds)))  # Compute the FCD correlations
-        #     print("just test: FC.FC_Similarity =", FC.FC_Similarity(FCemp_PLA, FCs[nsub]))
-        # print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
-        # FC_simul = np.squeeze(np.mean(FCs, axis=0))
+        FCDfitt_PLA[pos] = FCD.distance(cotsampling_PLA, cotsampling_sim)  # PLACEBO
+        FCDfitt_LSD[pos] = FCD.distance(cotsampling_LSD, cotsampling_sim)  # LSD
 
-        FCDfitt_PLA[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling_PLA, cotsampling_sim)  # PLACEBO
-        FCDfitt_LSD[pos] = FCD.KolmogorovSmirnovStatistic(cotsampling_LSD, cotsampling_sim)  # LSD
-
-        fitting_PLA[pos] = FC.FC_Similarity(FCemp_PLA, FC_simul)  # PLACEBO
-        fitting_LSD[pos] = FC.FC_Similarity(FCemp_LSD, FC_simul)  # LSD
+        fitting_PLA[pos] = FC.distance(FCemp_PLA, FC_simul)  # PLACEBO
+        fitting_LSD[pos] = FC.distance(FCemp_LSD, FC_simul)  # LSD
 
         print("{}/{}: FCDfitt = {}; FCfitt = {}\n".format(we,  2.5+step, FCDfitt_PLA[pos], fitting_PLA[pos]))
 
