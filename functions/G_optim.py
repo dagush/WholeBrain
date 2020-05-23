@@ -170,9 +170,10 @@ def distanceForAll_G(C, tc, NumSimSubjects,
         print("\n")
 
     print("\n\n#####################################################################################################")
+    print(f"# Results (in ({WEs[0]}, {WEs[-1]})):")
     for ds in distanceSettings:
         optimValDist = distanceSettings[ds][0].findMinMax(fitting[ds])
-        print(f"# Optimal {ds} = {optimValDist[0]} @ {WEs[optimValDist[1]]}")
+        print(f"# Optimal {ds} = {optimValDist[0]} @ {np.round(WEs[optimValDist[1]], decimals=3)}")
     print("#####################################################################################################\n\n")
 
     print("DONE!!!")
@@ -186,11 +187,12 @@ def distanceForAll_G(C, tc, NumSimSubjects,
 # ==========================================================================
 def plotFitting(WEs, fitting, distanceSettings):
     print("\n\n#####################################################################################################")
+    print(f"# Results (in ({WEs[0]}, {WEs[-1]}):")
     plt.rcParams.update({'font.size': 22})
     ax = plt.gca()
     for ds in distanceSettings:
         optimValDist = distanceSettings[ds][0].findMinMax(fitting[ds])
-        print(f"# - Optimal {ds} = {optimValDist[0]} @ {WEs[optimValDist[1]]}")
+        print(f"# - Optimal {ds} = {optimValDist[0]} @ {np.round(WEs[optimValDist[1]], decimals=3)}")
 
         color = next(ax._get_lines.prop_cycler)['color']
         plotFCpla, = plt.plot(WEs, fitting[ds], color=color)
