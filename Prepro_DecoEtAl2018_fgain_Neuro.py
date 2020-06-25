@@ -35,7 +35,7 @@ simulateFCD.integrator = integrator
 simulateFCD.BOLDModel = Stephan2007
 
 import functions.FC as FC
-import functions.swFCD as FCD
+import functions.swFCD as swFCD
 
 import functions.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
@@ -135,14 +135,15 @@ def prepro_Fig3():
 
     # TCs = np.zeros((len(Conditions), NumSubjects, N, Tmax))
     # N_windows = int(np.ceil((Tmax-FCD.windowSize) / 3))  # len(range(0,Tmax-30,3))
+    distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True)}  #'phFCD': (phFCD, True)}
 
     tc_transf_PLA = transformEmpiricalSubjects(tc_aal, 0, NumSubjects, Conditions)  # PLACEBO
-    FCemp_cotsampling_PLA = G_optim.processEmpiricalSubjects(tc_transf_PLA, "Data_Produced/SC90/fNeuro_emp_PLA.mat")
-    FCemp_PLA = FCemp_cotsampling_PLA['FCemp']; cotsampling_PLA = FCemp_cotsampling_PLA['cotsampling'].flatten()
+    FCemp_cotsampling_PLA = G_optim.processEmpiricalSubjects(tc_transf_PLA, distanceSettings, "Data_Produced/SC90/fNeuro_emp_PLA.mat")
+    FCemp_PLA = FCemp_cotsampling_PLA['FC']; cotsampling_PLA = FCemp_cotsampling_PLA['swFCD'].flatten()
 
     tc_transf_LSD = transformEmpiricalSubjects(tc_aal, 1, NumSubjects, Conditions)  # LSD
-    FCemp_cotsampling_LSD = G_optim.processEmpiricalSubjects(tc_transf_LSD, "Data_Produced/SC90/fNeuro_emp_LCD.mat")  # LCD
-    FCemp_LSD = FCemp_cotsampling_LSD['FCemp']; cotsampling_LSD = FCemp_cotsampling_LSD['cotsampling'].flatten()
+    FCemp_cotsampling_LSD = G_optim.processEmpiricalSubjects(tc_transf_LSD, distanceSettings, "Data_Produced/SC90/fNeuro_emp_LCD.mat")  # LCD
+    FCemp_LSD = FCemp_cotsampling_LSD['FC']; cotsampling_LSD = FCemp_cotsampling_LSD['swFCD'].flatten()
 
     # %%%%%%%%%%%%%%% Set General Model Parameters
     # dtt   = 1e-3   # Sampling rate of simulated neuronal activity (seconds)
@@ -170,12 +171,14 @@ def prepro_Fig3():
         neuronalModel.we = we
 
         FCsimul_cotsamplingsim = G_optim.distanceForOne_G(we, C, N, NumSubjects,
-                                                            J_fileNames, baseName.format(np.round(we, decimals=3)))
+                                                          distanceSettings,
+                                                          J_fileNames,
+                                                          baseName.format(np.round(we, decimals=3)))
         FC_simul = FCsimul_cotsamplingsim['FC']
         cotsampling_sim = FCsimul_cotsamplingsim['swFCD'].flatten()
 
-        FCDfitt_PLA[pos] = FCD.distance(cotsampling_PLA, cotsampling_sim)  # PLACEBO
-        FCDfitt_LSD[pos] = FCD.distance(cotsampling_LSD, cotsampling_sim)  # LSD
+        FCDfitt_PLA[pos] = swFCD.distance(cotsampling_PLA, cotsampling_sim)  # PLACEBO
+        FCDfitt_LSD[pos] = swFCD.distance(cotsampling_LSD, cotsampling_sim)  # LSD
 
         fitting_PLA[pos] = FC.distance(FCemp_PLA, FC_simul)  # PLACEBO
         fitting_LSD[pos] = FC.distance(FCemp_LSD, FC_simul)  # LSD

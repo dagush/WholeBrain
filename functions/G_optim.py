@@ -182,65 +182,6 @@ def distanceForAll_G(C, tc, NumSimSubjects,
 
 # ==========================================================================
 # ==========================================================================
-# convenience plotting routines
-# ==========================================================================
-# ==========================================================================
-def plotFitting(WEs, fitting, distanceSettings):
-    print("\n\n#####################################################################################################")
-    print(f"# Results (in ({WEs[0]}, {WEs[-1]}):")
-    plt.rcParams.update({'font.size': 22})
-    ax = plt.gca()
-    for ds in distanceSettings:
-        optimValDist = distanceSettings[ds][0].findMinMax(fitting[ds])
-        print(f"# - Optimal {ds} = {optimValDist[0]} @ {np.round(WEs[optimValDist[1]], decimals=3)}")
-
-        color = next(ax._get_lines.prop_cycler)['color']
-        plotFCpla, = plt.plot(WEs, fitting[ds], color=color)
-        plt.axvline(x=WEs[optimValDist[1]], ls='--', c=color)
-        plotFCpla.set_label(ds)
-
-    print("#####################################################################################################\n\n")
-    plt.title("Whole-brain fitting")
-    plt.ylabel("Fitting")
-    plt.xlabel("Global Coupling (G)")
-    plt.legend()
-    plt.show()
-
-
-def loadAndPlot(outFilePath,
-                distanceSettings,
-                wStart=0.0, wEnd=6.0, wStep=0.001):
-    processed = sio.loadmat(outFilePath+'/fNeuro_emp.mat')
-    empValues = {}
-    for ds in distanceSettings:
-        empValues[ds] = processed[ds]
-
-    WEs = np.arange(wStart, wEnd+wStep, wStep)
-    realWEs = np.array([], dtype=np.float64)
-    fitting = {}
-    for ds in distanceSettings:
-        fitting[ds] = np.array([], dtype=np.float64)
-
-    for we in WEs:
-        fileName = outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3))
-        if Path(fileName).is_file():
-            simValues = sio.loadmat(fileName)
-            realWEs = np.append(realWEs, we)
-
-            # ---- and now compute the final FC and FCD distances for this G (we)!!! ----
-            print(f"Loaded {fileName}:", end='', flush=True)
-            for ds in distanceSettings:
-                measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
-                dist = measure.distance(empValues[ds], simValues[ds])
-                fitting[ds] = np.append(fitting[ds], dist)
-                print(f" {ds}={dist}", end='', flush=True)
-            print()
-
-    plotFitting(realWEs, fitting, distanceSettings)
-
-
-# ==========================================================================
-# ==========================================================================
 # ==========================================================================
 if __name__ == '__main__':
     # Load Structural Connectivity Matrix

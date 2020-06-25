@@ -193,8 +193,8 @@ if __name__ == '__main__':
     # select the subject you want to simulate
     base_folder = "./Data_Raw/surrogate_AD"
     DX = "MCI" # one of AD, MCI or HC
-    modality="Amyloid"
-    pet_path=base_folder+"/_"+DX
+    modality = "Amyloid"
+    pet_path = base_folder+"/_"+DX
     RH_pet = np.loadtxt(pet_path+"/"+DX+"_RH.txt")
     LH_pet = np.loadtxt(pet_path+"/"+DX+"_LH.txt")
     subcort_pet = np.loadtxt(pet_path+"/"+DX+"_subcortical.txt")

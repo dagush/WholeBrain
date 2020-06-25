@@ -49,6 +49,43 @@ def loadOrCompute(func):
 
 
 # ==================================================
+cache = {}
+
+def loadCache(filePath):
+    global cache
+
+    if Path(filePath).is_file():
+        print('loading cache:', filePath)
+        loaded = sio.loadmat(filePath)
+        for key, value in loaded.items():
+            if key not in ['__header__', '__version__', '__globals__']:
+                cache[eval(key)] = value.flatten()
+    else:
+        print("There is no cache to load")
+
+
+evalCounter = 0
+def vectorCache(cachePath):
+    def inner_function(func):
+        @functools.wraps(func)
+        def vectorCache_wrapper(*args):
+            # if evalCounter % 100 == 0: print(" -> TIME: {} seconds ---".format(time.clock() - start_time), flush=True)
+            global cache
+            key = tuple(args[0].tolist())
+            if key in cache:
+                # if np.array_equal(x,vect):
+                print('.', end='', flush=True)
+                return cache[key]
+            global evalCounter; evalCounter += 1; print(f"{evalCounter}" if evalCounter % 10 == 0 else "!", end='', flush=True);
+            result = func(*args)
+            cache[key] = result
+            sio.savemat(cachePath, cache)
+            return result
+        return vectorCache_wrapper
+    return inner_function
+
+
+# ==================================================
 # ==================================================
 if __name__ == '__main__':
     import numpy as np

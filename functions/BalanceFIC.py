@@ -217,7 +217,7 @@ def JOptim(C, warmUp = False):
 @loadOrCompute
 def Balance_J9(we, C, warmUp=False): #, fileName=None):
     integrator.neuronalModel.we = we
-    # if useDeterministicIntegrator:
+    # if useDeterministicIntegrator:  # To use the deterministic Euler integrator...
     #     replaceIntegrator()
     bestJ, nodeCount = JOptim(C, warmUp=warmUp)  # This is the Feedback Inhibitory Control
     # if useDeterministicIntegrator:
