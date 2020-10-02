@@ -55,7 +55,7 @@ r0 = 25  # (s)^-1 --> slope r0 of intravascular relaxation rate R_iv as a functi
 theta0 = 40.3  # (s)^-1, frequency offset at the outer surface of magnetized vessels
 
 # @vectorize([float64(float64, float64)])
-@jit(nopython=True)
+# @jit(nopython=True)
 def BOLDModel(T, x):
     # The Hemodynamic model with one simplified neural activity
     #
@@ -102,18 +102,24 @@ def BOLDModel(T, x):
         # ff = (1-(1-Eo)**(1/f[n]))/Eo  # oxygen extraction
         # q[n+1] = q[n] + dt * itau * (f[n] * ff - fv * q[n]/v[n]) # Equation (8)-2nd for q.
 
-        # Equation (9) for s in [Stephan et al. 2007]. Now, changed to eq. A6 in [Stephan2008]
+        # Equation (9) for s in [Stephan et al. 2007]. This should be changed to eq. A6 in [Stephan2008]
         # Warning! [Friston2019] and the DCM Code multiplies x[n] by the input efficacies,
-        # as in the CODE: P(7:end)'*u(:), that is the same as Sum_i \beta_i x_i [Friston2019]
+        # as in the CODE: P(7:end)'*u(:), which is the same as Sum_i \beta_i x_i
+        # Equation A6 in [Stephan2008] reads:
         # stilde[n+1] = stilde[n] + dt * ((x[n] - kappa * s[n] - gamma * (f[n] - 1))/s[n])
-        # Warning! Now, the CODE applies the change of variables only to {f,v,q}, not s...
+        # Warning! The DCM code applies this change of variables only to {f,v,q}, not s...
+        # This means that equation A6 in [Stephan2008] is NOT used, but Equation (9) in [Stephan2007] instead...
+        # Changes in vasodilatory signalling s:
         s[n+1] = s[n] + dt * (x[n] - kappa * s[n] - gamma * (f[n] - 1))
         # Equation (10) for f in [Stephan et al. 2007]. Now, changed to eq. A7 in [Stephan2008]
+        # Changes in blood flow f :
         ftilde[n+1] = ftilde[n] + dt * (s[n]/f[n])
         # Equation (8)-1st for v in [Stephan et al. 2007]. Now, changed to eq. A8 in [Stephan2008]
+        # Changes in venous blood volume v:
         fv = v[n]**ialpha  # outflow
         vtilde[n+1] = vtilde[n] + dt * ( (f[n]-fv)/(tau*v[n]) )
         # Equation (8)-2nd for q in [Stephan et al. 2007]. Now, changed to eq. A9 in [Stephan2008]
+        # Changes in deoxyhemoglobin content q:
         ff = (1-(1-Eo)**(1/f[n]))/Eo  # oxygen extraction
         qtilde[n+1] = qtilde[n] + dt * ( (f[n] * ff - fv * q[n]/v[n])/(tau*q[n]) )
 

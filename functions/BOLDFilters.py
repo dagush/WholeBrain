@@ -11,11 +11,9 @@ from functions.Utils import demean
 from scipy import signal
 # from numba import jit
 
-
-TR = 2.
-
 # FILTER SETTINGS (from Gustavo Deco's FCD_LSD_model.m)
 # -----------------------------------------------------
+TR = 2.                           # sampling interval
 k = 2                             # 2nd order butterworth filter
 flp = .02                         # lowpass frequency of filter
 fhi = 0.1                         # highpass

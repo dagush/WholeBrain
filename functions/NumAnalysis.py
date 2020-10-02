@@ -401,8 +401,8 @@ def plotLimitCycles(ax, model, fixedPts, interval, lmbda):
 # --------------------------------------------------------------------------
 # Plots the separatrix on phase portrait.
 # --------------------------------------------------------------------------
-def plot_separatrix(ax, f, interval, t_max=30, eps=1e-6,
-                           color='tomato', lw=3):
+def plot_separatrix(ax, f, interval, t_max=300, eps=1e-6,
+                    color='tomato', lw=3, shadeUnderCurve = False):
     print('===================================== Plotting Separatrix')
     # Negative time function to integrate to compute separatrix
     def rhs(ab, t):
@@ -444,6 +444,9 @@ def plot_separatrix(ax, f, interval, t_max=30, eps=1e-6,
 
             # Plot
             ax.plot(sep_a, sep_b, '-', color=color, lw=lw)
+            if shadeUnderCurve:
+                section = interval['bottom'] * np.ones_like(sep_b)
+                plt.fill_between(sep_a, section, sep_b, alpha=.5, facecolor='lightgray')
 
     return ax
 
@@ -508,7 +511,7 @@ def plot_flow_field(ax, f, interval, args=(), n_grid=100):
 # --------------------------------------------------------------------------
 # Plots the Quiverplot with line color proportional to speed.
 # --------------------------------------------------------------------------
-def plot_quiverplot(ax, f, interval, n_grid=25):
+def plot_quiverplot(ax, f, interval, n_grid=25, normalizeSpeed=True):
     print('===================================== Plotting Quiverplot')
     """
     Plots the Quiverplot with line color proportional to speed.
@@ -552,11 +555,15 @@ def plot_quiverplot(ax, f, interval, n_grid=25):
     # Compute speed
     speed = np.sqrt(u_vel**2 + v_vel**2)
     speed[speed == 0] = 1.
-    u_vel /= speed
-    v_vel /= speed
+    if normalizeSpeed:
+        u_vel /= speed
+        v_vel /= speed
+        ax.quiver(uu, vv, u_vel, v_vel, speed, pivot='mid')
+    else:
+        ax.quiver(uu, vv, u_vel, v_vel, pivot='mid')
 
     # Make stream plot
-    ax.quiver(uu, vv, u_vel, v_vel, speed, pivot='mid')
+
 
     return ax
 
@@ -712,7 +719,12 @@ def plotODEInt(f, parms, initialCond):
 # Main plotting method, just an utility to quickly plot ODE Phase Planes
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
-def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', drawNullclines=True, labelLoc='best'):
+def plotPhasePlane(ax, model, interval,
+                   trajectories=[],
+                   background='flow',
+                   drawNullclines=True,
+                   labelLoc='best', eqPoints='b&w',
+                   shadeUnderSeparatrix=False):
     print('=====================================')
     print('==        Phase plane analysis     ==')
     print('=====================================')
@@ -723,7 +735,6 @@ def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', draw
     parms = model.parmNames()
     ax.set_xlabel(parms[0])
     ax.set_ylabel(parms[1])
-    ax.set_aspect('equal')
     custom_lines = [lines.Line2D([0], [0], color='#1f77b4', lw=3),
                     lines.Line2D([0], [0], color='#1fb477', lw=3),
                     lines.Line2D([0], [0], color='tomato', lw=3),
@@ -740,11 +751,15 @@ def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', draw
         ax = plot_flow_field(ax, model.dfun, interval)
     elif background == 'quiver':
         ax = plot_quiverplot(ax, model.dfun, interval)
+    elif background == 'quiver-B&W':
+        ax = plot_quiverplot(ax, model.dfun, interval, normalizeSpeed=False)
     if drawNullclines:
         ax = plot_nullclines(ax, model.dfun, interval)
-    ax = plot_separatrix(ax, model.dfun, interval)
-    ax = plot_equilibrium_points(ax, model.dfun, interval)
-    # ax = plot_equilibrium_points2(ax, f, interval)
+    ax = plot_separatrix(ax, model.dfun, interval, shadeUnderCurve=shadeUnderSeparatrix)
+    if eqPoints == 'b&w':
+        ax = plot_equilibrium_points(ax, model.dfun, interval)
+    else:
+        ax = plot_equilibrium_points2(ax, model.dfun, interval)
 
     # Add some trajectories
     t = np.linspace(0, 100, trajectoyLength)
@@ -757,6 +772,7 @@ def plotPhasePlane(ax, model, interval, trajectories=[], background='flow', draw
 def plot_PhasePlane_Only(model, interval, trajectories=[], background='flow', drawNullclines=True, labelLoc='best'):
     plt.rcParams.update({'font.size': 15})
     fig, ax = plt.subplots(1,1,figsize=(12,5))
+    ax.set_aspect('equal')
     ax = plotPhasePlane(ax, model, interval, trajectories=trajectories, background=background, drawNullclines=drawNullclines, labelLoc=labelLoc)
     plt.show()
 
@@ -799,7 +815,7 @@ def plotBifurcationDiagram(ax, model, interval, lbda_space, fullEvaluations=10):
     return ax
 
 
-def plot_BifurcationDiagram_Only(model, interval, lbda_space, index=0, fullBifurcationEvaluations=10):
+def plot_BifurcationDiagram_Only(model, interval, lbda_space, fullBifurcationEvaluations=10):
     plt.rcParams.update({'font.size': 15})
     fig, ax = plt.subplots(1,1,figsize=(12,5))
     ax = plotBifurcationDiagram(ax, model, interval, lbda_space, fullEvaluations=fullBifurcationEvaluations)

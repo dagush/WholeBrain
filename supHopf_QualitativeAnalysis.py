@@ -26,11 +26,13 @@ class supHopfModel:
         # integrator.stimuli = stimuli
         self.index = 0
 
-    def dfun(self, simVars, t=0):
+    def dfun(self, simVars, t=None):
         [x, y] = simVars
         vx, vy = np.array([x]), np.array([y])
         N = 1
         supHopf.SC = np.zeros((N,N))
+        supHopf.SCT = np.zeros((N,N))
+        supHopf.ink = supHopf.SCT.sum(axis=1)
         if not t: t = 0.
         dvars = supHopf.dfun([vx, vy], 0.)  # self.stimuli.stimulus(t))
         return np.array(dvars).reshape((2,))
@@ -65,16 +67,23 @@ import functions.NumAnalysis as numA
 import functions.Models.supHopf as supHopf
 model = supHopfModel()
 supHopf.G = 0.
+N = 1
+supHopf.SC = np.zeros((N,N))
+supHopf.SCT = np.zeros((N,N))
+supHopf.ink = supHopf.SCT.sum(axis=1)
 interval = {'left': -0.5, 'right': 0.5, 'bottom': -0.5, 'top': 0.5}
 print("=============================================")
 print("=  supHopf Equations to compute numerically =")
 print("=============================================")
-initialcond = [0.001, 0.001]
-lbda_space = np.linspace(-0.5, 0.5, 100)
-numA.plotFancyBifurcationDiagram(model, interval, lbda_space,
-                                 trajectories=[[-0.5, -0.6], [0.75,0.25]],
-                                 drawNullclines=False, fullBifurcationEvaluations=10,
-                                 phaseLabelLoc='lower right')
+# initialcond = [0.001, 0.001]
+# lbda_space = np.linspace(-0.5, 0.5, 100)
+numA.plot_PhasePlane_Only(model, interval)
+# numA.plot_BifurcationDiagram_Only(model, interval, lbda_space)
+# numA.plotFancyBifurcationDiagram(model, interval, lbda_space,
+#                                  # trajectories=[[-0.5, -0.6], [0.75,0.25]],
+#                                  drawNullclines=False, fullBifurcationEvaluations=10,
+#                                  phaseLabelLoc='lower right')
+
 # ====================== DEBUG CODE
 # model.setControlParm(0.5)
 # numA.plot_PhasePlane_Only(model, interval,

@@ -99,7 +99,7 @@ def updateJ_N(N, tmax, delta, curr, J):  # 2nd version of updateJ
     return N - num_above_error
 
 
-def updateJ(N, tmax, delta, curr, J):
+def updateJ(N, tmax, delta, curr, J):  # This is the original method by Gus, from the paper...
     tmin = 1000 if (tmax>1000) else int(tmax/10)
     currm = np.mean(curr[tmin:tmax, :], 0)  # takes the mean of all xn values along dimension 1...
     # This is the "averaged level of the input of the local excitatory pool of each brain area,
@@ -172,7 +172,7 @@ def JOptim(C, warmUp = False):
         if use_N_algorithm:
             flagJ = updateJ_N(N, tmax, delta, currm, integrator.neuronalModel.J)  # Nacho's method... ;-)
         else:
-            flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)  # Adrian's method, the one from [DecoEtAl2014]
+            flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)  # Gus' method, the one from [DecoEtAl2014]
 
         if verbose: print("({})".format(flagJ), end='', flush=True)
         if flagJ > bestJCount:

@@ -101,4 +101,15 @@ def BOLDModel(T, r):
     q = x[n_min:n_t, 3]
     b = vo * (k1 * (1 - q) + k2 * (1 - q / v) + k3 * (1 - v))  # Equation (12) in Stephan et al. 2007
 
+    # Code to check whether we have a nan in the arrays...
+    # Probably, it comes from a negative value in x[:,1], x[:,2] or x[:,3].
+    # If it happens, then directly us the [Stephan2008] implementation:
+    # * Klaas Enno Stephan, Lars Kasper, Lee M. Harrison, Jean Daunizeau, Hanneke E.M. den Ouden, Michael Breakspear, and Karl J. Friston
+    #   Nonlinear Dynamic Causal Models for fMRI, Neuroimage. 2008 Aug 15; 42(2): 649–662.
+    #
+    # array_sum = np.sum(b)
+    # array_has_nan = np.isnan(array_sum)
+    # if array_has_nan:
+    #     print(f"NAN!!!")
+
     return b

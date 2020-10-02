@@ -24,14 +24,15 @@ class DMFModel:
         # integrator.stimuli = stimuli
         self.index = 0
 
-    def dfun(self, simVars, t):
+    def dfun(self, simVars, t=None):
         [sn, sg] = simVars
         vsn, vsg = np.array([sn]), np.array([sg])
         N = 1
-        C = np.zeros((N,N))
+        DMF.SC = np.zeros((N,N))
         DMF.J = np.ones(N)
-        if not t: t = 0.
-        dvars = DMF.dfun([vsn, vsg], C, self.stimuli.stimulus(t))
+        DMF.recompileSignatures()
+        if t is None: t = 0.
+        dvars = DMF.dfun([vsn, vsg], self.stimuli.stimulus(t))
         return np.array(dvars).reshape((2,))
 
     def parmNames(self):

@@ -183,7 +183,7 @@ def prepro_Fig3():
         fitting_PLA[pos] = FC.distance(FCemp_PLA, FC_simul)  # PLACEBO
         fitting_LSD[pos] = FC.distance(FCemp_LSD, FC_simul)  # LSD
 
-        print("{}/{}: FCDfitt = {}; FCfitt = {}\n".format(we,  2.5+step, FCDfitt_PLA[pos], fitting_PLA[pos]))
+        print("{}/{}: FCDfitt = {}; FCfitt = {}\n".format(we, wEnd, FCDfitt_PLA[pos], fitting_PLA[pos]))
 
     filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
     sio.savemat(filePath, #{'JI': JI})

@@ -6,6 +6,7 @@
 # ==========================================================================
 # ==========================================================================
 import numpy as np
+import matplotlib.pyplot as plt
 import functions.NumAnalysis as numA
 
 # ==========================================================================
@@ -14,21 +15,24 @@ import functions.NumAnalysis as numA
 # http://www.scholarpedia.org/article/FitzHugh-Nagumo_model
 # Also at:
 # https://en.wikipedia.org/wiki/FitzHugh%E2%80%93Nagumo_model
+# values and equations taken from [Izhikevich, Dynamical Systems in Neuroscience, 2010, fig 4.20]
 # ==========================================================================
 class FitzHugh_Nagumo_model:
     def __init__(self):
-        self.I_ext = 0.5
+        self.I_ext = 0
         self.a = 0.7
-        self.b = 1.8  # 0.8
-        self.tau = 12.5  # 1/tau = 0.08
+        self.b = 0.01
+        self.c = 0.02
         self.index = 0
 
-    def dfun(self, x, t):
-        # v, w = sm.symbols('v, w')
+    def dfun(self, x, t=None):
+        # This formulation is slightly different from the one I used for Fig 1.18 in Izhikevich book,
+        # but it is the one used for this figure...
+        # Uses equations 4.11 and 4.12 from the book
         v, w = x
-        eq1 = v - v**3/3 - w + self.I_ext
-        eq2 = (v + self.a - self.b*w)/self.tau
-        return np.array([eq1, eq2])
+        dVdt = v*(self.a-v)*(v-1)-w+self.I_ext
+        dwdt = self.b*v-self.c*w
+        return np.array([dVdt, dwdt])
 
     def parmNames(self):
         return ['u', 'w']
@@ -48,23 +52,37 @@ class FitzHugh_Nagumo_model:
 
 # ==========================================================================
 # ==========================================================================
-# ==========================================================================
-
-# ======================== FitzHugh-Nagumo... ==========================
+# ======================== FitzHugh-Nagumo... ==============================
 print("=====================================================")
 print("=  FitzHugh-Nagumo Equation to compute numerically  =")
+print("=      (from [Izhikevich2010, fig 4.22])            =")
 print("=====================================================")
 # print("Equation:", FitzHugh_Nagumo())
 print("=====================================================")
 model = FitzHugh_Nagumo_model()
-interval = {'left': -2.5, 'right': 2.5, 'bottom': -2.5, 'top': 2.5}
-# numA.plotODEInt(FitzHugh_Nagumo, parms_FitzHugh_Nagumo(), [1, 0.01])
-# numA.plot_PhasePlane_Only(FitzHugh_Nagumo, parms_FitzHugh_Nagumo(), interval, trajectories=[[1, 0.01], [-2.5,-0.75]], background='flow')
-lbda_space = np.linspace(0, 1, 100)
-numA.plotFancyBifurcationDiagram(model,
-                                 interval, lbda_space,
-                                 drawNullclines=False, fullBifurcationEvaluations=20)
+interval = {'left': -0.4, 'right': 1.1, 'bottom': -0.05, 'top': 0.22}
 
+plt.rcParams.update({'font.size': 15})
+fig = plt.figure()
+ax = plt.gca()
+
+model.I_ext = 0.
+model.b = 0.01
+model.a = 0.1
+model.c = 0.1
+numA.plotPhasePlane(ax, model, interval,
+                    # trajectories=[[-0.5, -0.75], [-2.5,-0.75], [0, 0.4]],
+                    background='quiver-B&W',
+                    shadeUnderSeparatrix=True)  # quiver, flow
+
+ratio = 0.8
+# ax.set_aspect(ratio)
+xmin, xmax = ax.get_xlim()
+ymin, ymax = ax.get_ylim()
+ax.set_aspect(abs((xmax-xmin)/(ymax-ymin))*ratio, adjustable='box-forced')
+
+plt.title('[Izhikevich2010, fig 4.22]', fontsize=24)
+plt.show()
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================EOF

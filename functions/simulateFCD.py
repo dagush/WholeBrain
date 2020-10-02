@@ -27,10 +27,11 @@ dt  = 0.1
 
 TR = 2.            # Sampling rate of saved simulated BOLD (seconds)
 Tmax = 220.        # Number of timepoints in each fMRI session
-Tmaxneuronal = int((Tmax+10.)*(TR/dtt))  # Number of simulated time points
+Toffset = 10.
+Tmaxneuronal = int((Tmax+Toffset)*(TR/dtt))  # Number of simulated time points
 def recomputeTmaxneuronal():  # if we need a different Tmax or TR or any other var, just use this function to rebuild Tmaxneuronal
     global Tmaxneuronal
-    Tmaxneuronal = int((Tmax+10.)*(TR/dtt))
+    Tmaxneuronal = int((Tmax+Toffset)*(TR/dtt))
     print("New Tmaxneuronal={}".format(Tmaxneuronal))
 
 
@@ -54,7 +55,9 @@ def computeSubjectSimulation(C, N, warmup):
     return neuro_act
 
 
+# kkcounter = 0
 def computeSubjectBOLD(neuro_act, areasToSimulate=None):
+    # global kkcounter
     if not areasToSimulate:
         N = neuro_act.shape[1]
         areasToSimulate = range(N)
@@ -67,8 +70,21 @@ def computeSubjectBOLD(neuro_act, areasToSimulate=None):
     n_t = BOLDModel.computeRequiredVectorLength(T)
     BOLD_act = np.zeros([n_t,N])
     for nnew,area in enumerate(areasToSimulate):
+        # if nnew == 14 and kkcounter == 21-1:
+        # kkcounter += 1
+        # print(f'here: {kkcounter} ({nnew})')
         B = BOLDModel.BOLDModel(T,neuro_act[:,area])
+        # B2 = BOLDModel.BOLDModel(T,neuro_act[:,area])
+        # B3 = BOLDModel.BOLDModel(T,neuro_act[:,area])
         BOLD_act[:,nnew] = B
+
+        # array_has_nan = np.isnan(np.sum(B))  # code to check whether we have a nan in the arrays...
+        # array2_has_nan = np.isnan(np.sum(B2))  # code to check whether we have a nan in the arrays...
+        # array3_has_nan = np.isnan(np.sum(B3))  # code to check whether we have a nan in the arrays...
+        # if array_has_nan: # or array2_has_nan or array3_has_nan:
+        #     print(f"NAN!!! ({nnew})")
+        #     B2 = BOLDModel.BOLDModel(T,neuro_act[:,area])
+
     step = int(np.round(TR/dtt))
     bds = BOLD_act[step-1::step, :]
     return bds

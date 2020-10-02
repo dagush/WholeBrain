@@ -3,10 +3,14 @@
 #
 # By Gustavo Patow
 # ==================================================
+import numpy as np
 import scipy.io as sio
 from pathlib import Path
 import functools
 import time
+
+
+verbose = False
 
 
 # ==================================================
@@ -28,7 +32,7 @@ def timer(func):
 
 # ==================================================
 # loadOrCompute decorator:
-# useful for not reating lengthy numpy calculations. It "eats" the last parameter of the arguments passed on,
+# useful for not creating lengthy numpy calculations. It "eats" the last parameter of the arguments passed on,
 # which should be a string. Using this decorator forces that the return value of the decorated function is a
 # dictionary of {name: value} pairts, so when the computation was done before and the file exists and is
 # loaded we could directly return the Matlab file contents directly. It uses the .mat file format for all
@@ -37,31 +41,43 @@ def loadOrCompute(func):
     @functools.wraps(func)
     def loading_decorator(*args, **kwargs):
         if not Path(args[-1]).is_file():
-            print(f"Computing (@loadOrCompute): {args[-1]}")
+            if verbose: print(f"Computing (@loadOrCompute): {args[-1]}")
             value = tuple(a for a in list(args)[:-1])
             result = func(*value)
             sio.savemat(args[-1], result)
         else:
-            print(f"Loading file (@loadOrCompute): {args[-1]} !!!")
+            if verbose: print(f"Loading file (@loadOrCompute): {args[-1]} !!!")
             result = sio.loadmat(args[-1])
         return result
     return loading_decorator
 
 
 # ==================================================
+# vectorCache decorator:
+# Stores a vector of values in a given file, updating its contents each time it is called.
+# In general, it works much like the loadOrCompute decorator...
+# There are two possible initializations: one using loadCache, to directly load a single vector file,
+# or using loadMultipleCache, to load all files within a range and merging their contents into a single cache.
+def loadMultipleCache(filePath, valueRange, useDecimals=3, fileNameDecimals=3):
+    for we in valueRange:
+        fileName = filePath.format(np.round(we, decimals=fileNameDecimals)+0.0)  # add 0.0 to prevent stupid negative -0.0 result from round...
+        loadSingleCache(fileName, useDecimals=useDecimals)
+
+
 cache = {}
-
-def loadCache(filePath):
-    global cache
-
+decimals = 3
+def loadSingleCache(filePath, useDecimals=3):
+    global cache, decimals
+    decimals = useDecimals
     if Path(filePath).is_file():
-        print('loading cache:', filePath)
+        print('Cache decorator: loading cache:', filePath)
         loaded = sio.loadmat(filePath)
         for key, value in loaded.items():
             if key not in ['__header__', '__version__', '__globals__']:
-                cache[eval(key)] = value.flatten()
+                realKey = tuple(np.round(np.asarray(eval(key)), decimals).tolist())
+                cache[realKey] = value.flatten()
     else:
-        print("There is no cache to load")
+        print(f"Cache decorator: There is no cache to load: {filePath}")
 
 
 evalCounter = 0
@@ -69,16 +85,16 @@ def vectorCache(cachePath):
     def inner_function(func):
         @functools.wraps(func)
         def vectorCache_wrapper(*args):
-            # if evalCounter % 100 == 0: print(" -> TIME: {} seconds ---".format(time.clock() - start_time), flush=True)
+            if verbose:
+                global evalCounter; evalCounter += 1; print(f"{evalCounter} -> ", end='', flush=True)
             global cache
-            key = tuple(args[0].tolist())
+            key = tuple(np.round(args[0],decimals).tolist())
             if key in cache:
-                # if np.array_equal(x,vect):
-                print('.', end='', flush=True)
+                if verbose: print(f' {cache[key]} (loaded)', flush=True)
                 return cache[key]
-            global evalCounter; evalCounter += 1; print(f"{evalCounter}" if evalCounter % 10 == 0 else "!", end='', flush=True);
             result = func(*args)
             cache[key] = result
+            if verbose: print(f' {result} (Computed)', flush=True)
             sio.savemat(cachePath, cache)
             return result
         return vectorCache_wrapper
