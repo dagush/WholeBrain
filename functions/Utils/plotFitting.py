@@ -75,6 +75,7 @@ def loadAndPlot(filePath,
     ax = fig.add_subplot(grid[0,0])
     localTitle = f"computing graph"
     loadAndPlotAx(ax, filePath, distanceSettings, localTitle, WEs, decimals=decimals, empFilePath=empFilePath)
+    plt.legend(loc='upper right')
     plt.show()
 
 

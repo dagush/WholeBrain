@@ -10,6 +10,9 @@ from scipy import signal, stats
 from functions import BOLDFilters
 from functions.Utils import demean
 
+print("Going to use independent Phase Dynamics (indPhDyn)...")
+
+ERROR_VALUE = 10
 BOLDFilters.flp = 0.008
 BOLDFilters.fhi = 0.08
 
@@ -37,21 +40,26 @@ def angles(BOLDSignal, applyFilters=True):
 
 
 def distance(signal_sim, angles_emp):
-    N = len(signal_sim)
-    r = np.zeros(N)
-    # Filters seem to be always applied...
-    angles_sim = angles(signal_sim)
-    for n in range(N):
-        # Now, let's use the Kolmogorov-Smirnov statistic
-        r[n] = KolmogorovSmirnovStatistic(angles_sim[n], angles_emp[n])
-    return r
-
+    if not np.isnan(signal).any():  # No problems, go ahead!!!
+        N = len(signal_sim)
+        r = np.zeros(N)
+        # Filters seem to be always applied...
+        angles_sim = angles(signal_sim)
+        for n in range(N):
+            # Now, let's use the Kolmogorov-Smirnov statistic
+            r[n] = KolmogorovSmirnovStatistic(angles_sim[n], angles_emp[n])
+        return r
+    else:
+        return ERROR_VALUE
 
 # For a single subject session with N regions where T time points were collected, the corresponding
 # phase-coherence based dynamics are defined as a NxT matrix.
 def from_fMRI(BOLDSignal, applyFilters = True):  # Compute the indPhDyn of an input BOLD signal
-    a = angles(BOLDSignal, applyFilters=applyFilters)
-    return a
+    if not np.isnan(signal).any():  # No problems, go ahead!!!
+        a = angles(BOLDSignal, applyFilters=applyFilters)
+        return a
+    else:
+        return np.nan
 
 
 # ==================================================================

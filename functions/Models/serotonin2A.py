@@ -48,11 +48,13 @@ wgaine = 0.
 # transfer functions:
 # --------------------------------------------------------------------------
 # transfer function: excitatory
-ae = 310.
-be = 125.
+ae = 310.  # [nC^{-1}], g_E in the paper
+be = 125.  # = g_E * I^{(E)_{thr}} in the paper = 310 * .403 [nA] = 124.93
 de = 0.16
 @jit(nopython=True)
 def phie(x):
+    # in the paper this was g_E * (I^{(E)_n} - I^{(E)_{thr}}) * (1 - receptor * gain_E)
+    # Here, we distribute the first part as g_E * I^{(E)_n} - g_E * I^{(E)_{thr}}, thus...
     y = (ae*x-be)*(1+Receptor*wgaine)  # for LSD
     # if (y != 0):
     return y/(1-np.exp(-de*y))
@@ -61,11 +63,13 @@ def phie(x):
 
 
 # transfer function: inhibitory
-ai = 615
-bi = 177
+ai = 615  # [nC^{-1}], g_I in the paper
+bi = 177  # = g_I * I^{(I)_{thr}} in the paper = 615 * .288 [nA] = 177.12
 di = 0.087
 @jit(nopython=True)
 def phii(x):
+    # in the paper this was g_I * (I^{(I)_n} - I^{(I)_{thr}}), without a receptor part because inhibitory connections are not changed.
+    # Apply same distributing as above...
     y = (ai*x-bi)*(1+Receptor*wgaini)  # for LSD
     # if (y != 0):
     return y/(1-np.exp(-di*y))

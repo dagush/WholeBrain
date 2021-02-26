@@ -7,12 +7,12 @@
 #--------------------------------------------------------------------------
 import numpy as np
 # from numba import jit
-
 from functions import BOLDFilters
 
+print("Going to use Functional Connectivity (FC)...")
 
-def characterizeConnectivityMatrix(C):
-    return np.max(C), np.min(C), np.average(C), np.std(C), np.max(np.sum(C, axis=0)), np.average(np.sum(C, axis=0))
+
+ERROR_VALUE = 10
 
 
 # @jit(nopython=True)
@@ -34,18 +34,25 @@ def FC_Similarity(FC1, FC2):  # FC Similarity
 
 # @jit(nopython=True)
 def distance(FC1, FC2):  # FC similarity, convenience function
-    return FC_Similarity(FC1, FC2)
+    if not (np.isnan(FC1).any() or np.isnan(FC2).any()):  # No problems, go ahead!!!
+        return FC_Similarity(FC1, FC2)
+    else:
+        return ERROR_VALUE
 
 
 # @jit(nopython=True)
 def from_fMRI(signal, applyFilters = True):
-    if applyFilters:
-        signal_filt = BOLDFilters.BandPassFilter(signal)
-        sfiltT = signal_filt.T
+    if not np.isnan(signal).any():  # No problems, go ahead!!!
+        if applyFilters:
+            signal_filt = BOLDFilters.BandPassFilter(signal)
+            sfiltT = signal_filt.T
+        else:
+            sfiltT = signal.T
+        cc = np.corrcoef(sfiltT, rowvar=False)  # Pearson correlation coefficients
+        return cc
     else:
-        sfiltT = signal.T
-    cc = np.corrcoef(sfiltT, rowvar=False)  # Pearson correlation coefficients
-    return cc
+        n = signal.shape[0]
+        return np.nan
 
 
 # ==================================================================
@@ -66,6 +73,7 @@ def postprocess(FCs):
 
 def findMinMax(arrayValues):
     return np.max(arrayValues), np.argmax(arrayValues)
+
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================EOF

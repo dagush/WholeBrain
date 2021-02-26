@@ -5,11 +5,15 @@
 #  Translated to Python & refactoring by Gustavo Patow
 #--------------------------------------------------------------------------
 #--------------------------------------------------------------------------
+import warnings
 import numpy as np
 # from numba import jit
 from scipy import stats
-
 from functions import BOLDFilters
+
+print("Going to use Sliding Windows Functional Connectivity Dynamics (swFCD)...")
+
+ERROR_VALUE = 10
 
 
 # def mean2(x):
@@ -47,38 +51,46 @@ def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
 
 # @jit(nopython=True)
 def distance(FCD1, FCD2):  # FCD similarity, convenience function
-    return KolmogorovSmirnovStatistic(FCD1, FCD2)
+    if not (np.isnan(FCD1).any() or np.isnan(FCD2).any()):  # No problems, go ahead!!!
+        return KolmogorovSmirnovStatistic(FCD1, FCD2)
+    else:
+        return ERROR_VALUE
 
 
 windowSize = 30
 windowStep = 3
 def from_fMRI(signal, applyFilters = True):  # Compute the FCD of an input BOLD signal
     (N, Tmax) = signal.shape
-    signal_filt = BOLDFilters.BandPassFilter(signal)  # Filters seem to be always applied...
-    Isubdiag = np.tril_indices(N, k=-1)  # Indices of triangular lower part of matrix
-
-    # For each pair of sliding windows calculate the FC at t and t2 and
-    # compute the correlation between the two.
     lastWindow = Tmax - windowSize  # 190 = 220 - 30
     N_windows = calc_length(0, lastWindow, windowStep)  # N_windows = len(np.arange(0, lastWindow, windowStep))
-    cotsampling = np.zeros((int(N_windows*(N_windows-1)/2)))
-    kk = 0
-    ii2 = 0
-    for t in range(0, lastWindow, windowStep):
-        jj2 = 0
-        sfilt = (signal_filt[:, t:t+windowSize+1]).T  # Extracts a (sliding) window between t and t+windowSize (included)
-        cc = np.corrcoef(sfilt, rowvar=False)  # Pearson correlation coefficients
-        for t2 in range(0, lastWindow, windowStep):
-            sfilt2 = (signal_filt[:, t2:t2+windowSize+1]).T  # Extracts a (sliding) window between t2 and t2+windowSize (included)
-            cc2 = np.corrcoef(sfilt2, rowvar=False)  # Pearson correlation coefficients
-            ca = pearson_r(cc[Isubdiag],cc2[Isubdiag])  # Correlation between both FC
-            if jj2 > ii2:  # Only keep the upper triangular part
-                cotsampling[kk] = ca
-                kk = kk+1
-            jj2 = jj2+1
-        ii2 = ii2+1
 
-    return cotsampling
+    if not np.isnan(signal).any():  # No problems, go ahead!!!
+        signal_filt = BOLDFilters.BandPassFilter(signal)  # Filters seem to be always applied...
+        Isubdiag = np.tril_indices(N, k=-1)  # Indices of triangular lower part of matrix
+
+        # For each pair of sliding windows calculate the FC at t and t2 and
+        # compute the correlation between the two.
+        cotsampling = np.zeros((int(N_windows*(N_windows-1)/2)))
+        kk = 0
+        ii2 = 0
+        for t in range(0, lastWindow, windowStep):
+            jj2 = 0
+            sfilt = (signal_filt[:, t:t+windowSize+1]).T  # Extracts a (sliding) window between t and t+windowSize (included)
+            cc = np.corrcoef(sfilt, rowvar=False)  # Pearson correlation coefficients
+            for t2 in range(0, lastWindow, windowStep):
+                sfilt2 = (signal_filt[:, t2:t2+windowSize+1]).T  # Extracts a (sliding) window between t2 and t2+windowSize (included)
+                cc2 = np.corrcoef(sfilt2, rowvar=False)  # Pearson correlation coefficients
+                ca = pearson_r(cc[Isubdiag],cc2[Isubdiag])  # Correlation between both FC
+                if jj2 > ii2:  # Only keep the upper triangular part
+                    cotsampling[kk] = ca
+                    kk = kk+1
+                jj2 = jj2+1
+            ii2 = ii2+1
+
+        return cotsampling
+    else:
+        warnings.warn('############ Warning!!! swFCD.from_fMRI: NAN found ############')
+        return np.nan
 
 
 # ==================================================================
@@ -88,13 +100,13 @@ def init(S, N):
     return np.array([], dtype=np.float64)
 
 
-def accumulate(FCs, nsub, signal):
-    FCs = np.concatenate((FCs, signal))  # Compute the FCD correlations
-    return FCs
+def accumulate(FCDs, nsub, signal):
+    FCDs = np.concatenate((FCDs, signal))  # Compute the FCD correlations
+    return FCDs
 
 
-def postprocess(FCs):
-    return FCs  # nothing to do here
+def postprocess(FCDs):
+    return FCDs  # nothing to do here
 
 
 def findMinMax(arrayValues):

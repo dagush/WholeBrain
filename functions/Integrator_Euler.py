@@ -63,7 +63,7 @@ def initBookkeeping(N, tmax):
 def recordBookkeeping(t, obsVars, curr_obsVars):
     # global curr_obsVars
     if iC.isInt(t/ds):
-        nn = int(np.round(t/ds))  # is is an int-ish...
+        nn = int(np.round(t/ds))  # it is an int-ish...
         curr_obsVars[nn,:,:] = obsVars[:,:]
     return curr_obsVars
 
@@ -89,6 +89,9 @@ def integrationStep(simVars, dt, stimulus):  #, curr_obsVars, doBookkeeping):
 
 # @jit(nopython=True)
 def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
+    # Variables:
+    # dt = integration time step in milliseconds
+    # Tmaxneuronal = total time to integrate in milliseconds
     for t in np.arange(0, Tmaxneuronal, dt):
         stimulus = allStimuli[int(t / dt)]
         simVars_obsVars = integrationStep(simVars, dt, stimulus)  #, doBookkeeping, curr_obsVars)

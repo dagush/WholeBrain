@@ -10,7 +10,7 @@
 import numpy as np
 from numba import jit
 
-print("Going to use the Dynamic Mean Field (DMF) neuronal model...")
+print("Going to use the AD Dynamic Mean Field (adDMF) neuronal model...")
 
 
 def recompileSignatures():
@@ -19,6 +19,7 @@ def recompileSignatures():
     phie.recompile()
     phii.recompile()
     dfun.recompile()
+
 
 # ==========================================================================
 # ==========================================================================
@@ -37,6 +38,25 @@ w = 1.4
 we = 2.1        # Global coupling scaling (G in the paper)
 SC = None       # Structural connectivity (should be provided externally)
 
+
+# ==========================================================================
+# AD param initialization...
+# --------------------------------------------------------------------------
+M_e = None    # WARNING: In general, ad must be initialized outside!
+M_i = None
+Abeta = None
+Tau = None
+
+def set_AD_Burden(coefs):
+    global M_e, M_i
+    # First, the excitatory contribution
+    M_e = (1 + coefs[0] + coefs[1] * Abeta) * (1 + coefs[2] + coefs[3] * Tau)
+    # Now, the inhibitory contribution
+    M_i = (1 + coefs[4] + coefs[5] * Abeta) * (1 + coefs[6] + coefs[7] * Tau)
+
+    recompileSignatures()
+
+
 # transfer functions:
 # --------------------------------------------------------------------------
 # transfer function: excitatory
@@ -45,11 +65,8 @@ be=125.
 de=0.16
 @jit(nopython=True)
 def phie(x):
-    y = (ae*x-be)
-    # if (y != 0):
+    y = M_e * (ae*x-be)
     return y/(1.-np.exp(-de*y))
-    # else:
-    #     return 0
 
 # transfer function: inhibitory
 ai=615.
@@ -57,11 +74,9 @@ bi=177.
 di=0.087
 @jit(nopython=True)
 def phii(x):
-    y = (ai*x-bi)
-    # if (y != 0):
+    y = M_i * (ai*x-bi)  # This is for Modality A in our study...
     return y/(1.-np.exp(-di*y))
-    # else:
-    #     return 0
+
 
 # transfer functions used by the simulation...
 He = phie
@@ -71,8 +86,6 @@ Hi = phii
 # Simulation variables
 # @jit(nopython=True)
 def initSim(N):
-    # sn = 0.001 * np.ones(N)  # Initialize sn (S^E in the paper)
-    # sg = 0.001 * np.ones(N)  # Initialize sg (S^I in the paper)
     sn_sg = 0.001 * np.ones((2, N))  # Here we initialize with np.ones, but other models use np.zeros...
     return sn_sg
 
@@ -82,11 +95,6 @@ def initJ(N):  # A bit silly, I know...
     global J
     J = np.ones(N)
 
-
-ad = None    # WARNING: In general, ad must be initialized outside!
-def initAD(N):  # A bit silly, I know...
-    global ad
-    ad = np.ones(N)
 
 # --------------------------------------------------------------------------
 # Variables of interest, needed for bookkeeping tasks...
@@ -102,15 +110,14 @@ def numObsVars():  # Returns the number of observation vars used, here xn and rn
 def dfun(simVars, I_external):
     # global xn, rn
     sn = simVars[0]; sg = simVars[1]  # should be [sn, sg] = simVars
-    xn = I0 * Jexte + w * J_NMDA * sn + we * J_NMDA * (SC @ sn) - ad * J * sg + I_external  # Eq for I^E (5). I_external = 0 => resting state condition.
+    # This is the regular DMF behavious (modality A)
+    xn = I0 * Jexte + w * J_NMDA * sn + we * J_NMDA * (SC @ sn) - J * sg + I_external  # Eq for I^E (5). I_external = 0 => resting state condition.
     xg = I0 * Jexti + J_NMDA * sn - sg  # Eq for I^I (6). \lambda = 0 => no long-range feedforward inhibition (FFI)
     rn = He(xn)  # Calls He(xn). r^E = H^E(I^E) in the paper (7)
     rg = Hi(xg)  # Calls Hi(xg). r^I = H^I(I^I) in the paper (8)
     dsn = -sn / taon + (1. - sn) * gamma_e * rn
     dsg = -sg / taog + rg * gamma_i
     return np.stack((dsn, dsg)), np.stack((xn, rn))
-
-
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================EOF

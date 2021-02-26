@@ -31,8 +31,14 @@
 # ==========================================================================
 # ==========================================================================
 import numpy as np
+from numba import jit
 
 print("Going to use the supercritical Hopf bifurcation neuronal model...")
+
+def recompileSignatures():
+    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+    dfun.recompile()
 
 # ==========================================================================
 # supercritical Hopf bifurcation Constants
@@ -54,61 +60,80 @@ def initSim(N):
     ink = SCT.sum(axis=1)
     x = 0.001 * np.zeros(N)  # Initialize x
     y = 0.001 * np.zeros(N)  # Initialize y
-    return [x, y]
+    return np.array([x, y])
+
 
 # Variables of interest, needed for bookkeeping tasks...
-x = y = None
+# x = y = None
+def numObsVars():  # Returns the number of observation vars used, here xn and rn
+    return 2
+
+
+# --------------------------------------------------------------------------
+# Set the parameters for this model
+def setParms(modelParms):
+    global G
+    G = modelParms['we']
+
 
 # ----------------- supercritical Hopf bifurcation model ----------------------
+@jit(nopython=True)
 def dfun(simVars, p):  # p is the stimulus...?
-    global x, y
+    # global x, y
     N = SC.shape[0]
-    [x, y] = simVars
+    x = simVars[0]; y = simVars[1]
     noiseX = np.random.normal(0, beta, N)
     noiseY = np.random.normal(0, beta, N)
     xcoup = np.dot(SCT,x) - ink * x  # sum(Cij*xi) - sum(Cij)*xj
     ycoup = np.dot(SCT,y) - ink * y  #
+    # suma = wC*z - sumC.*z
+    # zz = z(:,end:-1:1)  # <- flipped z, because (x.*x + y.*y)
+    # dz = a.*z + zz.*omega - z.*(z.*z+zz.*zz) + suma  # <- using complex numbers z instead of x and y...
     dx = (a - x**2 - y**2) * x - omega * y + G * xcoup + noiseX
     dy = (a - x**2 - y**2) * y + omega * x + G * ycoup + noiseY
-    return [dx, dy]
+    return np.stack((dx, dy)), np.stack((x, y))
 
+# From a chat with Gus...
+# a=-0.02*ones(N,2)+scale*repmat(ratio,1,2).*ones(N,2);
+# a=a-repmat(nanmean(a),N,1)-0.02*ones(N,2);
+# a=a+bias;
 
-# ==========================================================================
-# ==========================================================================
-# ==========================================================================
-# Bookkeeping variables of interest...
-# --------------------------------------------------------------------------
-curr_x = None
-curr_y = None
-nn = 0
-
-
-def initBookkeeping(N, tmax):
-    global curr_x, curr_y, nn
-    curr_x = np.zeros((int(tmax/ds), N))
-    curr_y = np.zeros((int(tmax/ds), N))
-    nn = 0
-
-
-def resetBookkeeping():
-    global nn
-    nn = 0
-
-
-ds = 1  # downsampling stepsize
-def recordBookkeeping(t):
-    global curr_x, curr_y, nn
-    t2 = int(t * 100000)
-    ds2 = int(ds * 100000)
-    if np.mod(t2, ds2) == 0:
-        # print(t,ds,nn)
-        curr_x[nn] = x
-        curr_y[nn] = y
-        nn = nn + 1
-
-
-def returnBookkeeping():
-    return curr_x, curr_y
+# # ==========================================================================
+# # ==========================================================================
+# # ==========================================================================
+# # Bookkeeping variables of interest...
+# # --------------------------------------------------------------------------
+# curr_x = None
+# curr_y = None
+# nn = 0
+#
+#
+# def initBookkeeping(N, tmax):
+#     global curr_x, curr_y, nn
+#     curr_x = np.zeros((int(tmax/ds), N))
+#     curr_y = np.zeros((int(tmax/ds), N))
+#     nn = 0
+#
+#
+# def resetBookkeeping():
+#     global nn
+#     nn = 0
+#
+#
+# ds = 1  # downsampling stepsize
+# def recordBookkeeping(t):
+#     global curr_x, curr_y, nn
+#     t2 = int(t * 100000)
+#     ds2 = int(ds * 100000)
+#     if np.mod(t2, ds2) == 0:
+#         # print(t,ds,nn)
+#         curr_x[nn] = x
+#         curr_y[nn] = y
+#         nn = nn + 1
+#
+#
+# def returnBookkeeping():
+#     return curr_x, curr_y
 
 
 # ==========================================================================

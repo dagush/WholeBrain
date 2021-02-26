@@ -36,14 +36,14 @@ verbose = True
 integrator = None
 # import functions.BOLDHemModel_Stephan2007 as Stephan2007
 
-import functions.FC as FC
-import functions.swFCD as FCD
+import functions.Measures.FC as FC
+import functions.Measures.swFCD as FCD
 
 import functions.BalanceFIC as BalanceFIC
 # BalanceFIC.integrator = integrator
 # BalanceFIC.baseName = "Data_Produced/SC90/J_Balance_we{}.mat"
 
-import functions.simulateFCD as simulateFCD
+simulateBOLD = None
 
 # set BOLD filter settings
 # import functions.BOLDFilters as filters
@@ -75,6 +75,9 @@ import functions.simulateFCD as simulateFCD
 
 
 def processBOLDSignals(BOLDsignals, distanceSettings):
+    # Process the BOLD signals
+    # BOLDSignals is a dictionary of subjects {subjectName: subjectBOLDSignal}
+    # distanceSettings is a dictionary of {distanceMeasureName: distanceMeasurePythonModule}
     NumSubjects = len(BOLDsignals)
     N = BOLDsignals[next(iter(BOLDsignals))].shape[0]  # get the first key to retrieve the value of N = number of areas
 
@@ -85,7 +88,7 @@ def processBOLDSignals(BOLDsignals, distanceSettings):
 
     # Loop over subjects
     for pos, s in enumerate(BOLDsignals):
-        if verbose: print('   BOLD {}/{} Subject: {} ({}x{})'.format(pos, NumSubjects, s, BOLDsignals[s].shape[0], BOLDsignals[s].shape[1]), end='', flush=True)
+        if verbose: print('   BOLD {}/{} Subject: {} ({}x{})'.format(pos+1, NumSubjects, s, BOLDsignals[s].shape[0], BOLDsignals[s].shape[1]), end='', flush=True)
         signal = BOLDsignals[s]  # LR_version_symm(tc[s])
         start_time = time.clock()
 
@@ -115,11 +118,9 @@ def processEmpiricalSubjects(BOLDsignals, distanceSettings):
 # ==========================================================================
 # ---- convenience method, to parallelize the code (someday)
 @loadOrCompute
-def distanceForOne_G(we, C, N, NumSimSubjects,
-                     distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
-                     J_fileNames):  # a template (i.e., with {}) of the file names where to store temporary data
-    integrator.neuronalModel.we = we
-    integrator.neuronalModel.J = BalanceFIC.Balance_J9(we, C, False, J_fileNames.format(np.round(we, decimals=3)))['J'].flatten()  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
+def distanceForOne_G(we, C, modelParms, N, NumSimSubjects,
+                     distanceSettings):  # This is a dictionary of {name: (distance module, apply filters bool)}
+    integrator.neuronalModel.setParms(modelParms)
     integrator.recompileSignatures()
 
     print("   --- BEGIN TIME @ we={} ---".format(we))
@@ -127,7 +128,7 @@ def distanceForOne_G(we, C, N, NumSimSubjects,
     start_time = time.clock()
     for nsub in range(NumSimSubjects):  # trials. Originally it was 20.
         print("   Simulating we={} -> subject {}/{}!!!".format(we, nsub, NumSimSubjects))
-        bds = simulateFCD.simulateSingleSubject(C, warmup=False).T
+        bds = simulateBOLD.simulateSingleSubject(C, warmup=False).T
         simulatedBOLDs[nsub] = bds
 
     dist = processBOLDSignals(simulatedBOLDs, distanceSettings)
@@ -136,11 +137,13 @@ def distanceForOne_G(we, C, N, NumSimSubjects,
     return dist
 
 
-def distanceForAll_G(C, tc, NumSimSubjects,
+def distanceForAll_G(C, tc, modelParms, NumSimSubjects,
                      distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
                      wStart=0.0, wEnd=6.0, wStep=0.05,
-                     J_fileNames=None,
                      outFilePath=None):
+    if verbose:
+        import functions.Utils.decorators as deco
+        deco.verbose = True
     NumSubjects = len(tc)
     N = tc[next(iter(tc))].shape[0]  # get the first key to retrieve the value of N = number of areas
     print('tc({} subjects): each entry has N={} regions'.format(NumSubjects, N))
@@ -159,8 +162,8 @@ def distanceForAll_G(C, tc, NumSimSubjects,
     print('\n\n ====================== Model Simulations ======================\n\n')
     for pos, we in enumerate(WEs):  # iteration over the values for G (we in this code)
         # ---- Perform the simulation of NumSimSubjects ----
-        simMeasures = distanceForOne_G(we, C, N, NumSimSubjects, distanceSettings,
-                                       J_fileNames, outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3)))
+        simMeasures = distanceForOne_G(we, C, modelParms[we], N, NumSimSubjects, distanceSettings,
+                                       outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3)))
 
         # ---- and now compute the final FC, FCD, ... distances for this G (we)!!! ----
         print(f"{we}/{wEnd}:", end='', flush=True)

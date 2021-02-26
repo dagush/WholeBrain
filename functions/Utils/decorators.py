@@ -31,6 +31,15 @@ def timer(func):
 
 
 # ==================================================
+# Simple methods to delete entries that are not useful, which happens when reading the data from a
+# file instead of computing it...
+def cleanDict(resData):
+    result = resData.pop('__header__', None)
+    result = resData.pop('__version__', None)
+    result = resData.pop('__globals__', None)
+    return resData
+
+# ==================================================
 # loadOrCompute decorator:
 # useful for not creating lengthy numpy calculations. It "eats" the last parameter of the arguments passed on,
 # which should be a string. Using this decorator forces that the return value of the decorated function is a
@@ -41,13 +50,13 @@ def loadOrCompute(func):
     @functools.wraps(func)
     def loading_decorator(*args, **kwargs):
         if not Path(args[-1]).is_file():
-            if verbose: print(f"Computing (@loadOrCompute): {args[-1]}")
+            if verbose: print(f"Computing (@loadOrCompute): {args[-1]}", flush=True)
             value = tuple(a for a in list(args)[:-1])
             result = func(*value)
             sio.savemat(args[-1], result)
         else:
-            if verbose: print(f"Loading file (@loadOrCompute): {args[-1]} !!!")
-            result = sio.loadmat(args[-1])
+            if verbose: print(f"Loading file (@loadOrCompute): {args[-1]} !!!", flush=True)
+            result = cleanDict(sio.loadmat(args[-1]))
         return result
     return loading_decorator
 
@@ -64,10 +73,12 @@ def loadMultipleCache(filePath, valueRange, useDecimals=3, fileNameDecimals=3):
         loadSingleCache(fileName, useDecimals=useDecimals)
 
 
+cachePath = None
 cache = {}
 decimals = 3
 def loadSingleCache(filePath, useDecimals=3):
-    global cache, decimals
+    global cache, decimals, cachePath
+    cachePath = filePath
     decimals = useDecimals
     if Path(filePath).is_file():
         print('Cache decorator: loading cache:', filePath)
@@ -81,7 +92,7 @@ def loadSingleCache(filePath, useDecimals=3):
 
 
 evalCounter = 0
-def vectorCache(cachePath):
+def vectorCache(filePath):
     def inner_function(func):
         @functools.wraps(func)
         def vectorCache_wrapper(*args):
@@ -95,7 +106,10 @@ def vectorCache(cachePath):
             result = func(*args)
             cache[key] = result
             if verbose: print(f' {result} (Computed)', flush=True)
-            sio.savemat(cachePath, cache)
+            if filePath is None:
+                sio.savemat(cachePath, cache)  # Use the original one we started with
+            else:
+                sio.savemat(filePath, cache)  # Use this one...
             return result
         return vectorCache_wrapper
     return inner_function
@@ -104,6 +118,7 @@ def vectorCache(cachePath):
 # ==================================================
 # ==================================================
 if __name__ == '__main__':
+    # ====================== some debug code...
     import numpy as np
 
     @loadOrCompute

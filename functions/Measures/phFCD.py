@@ -12,31 +12,14 @@
 #  Revised by Gustavo Patow
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
+import warnings
 import numpy as np
 from scipy import signal, stats
-# from scipy import stats
-from functions import BOLDFilters
-from functions.Utils import demean
+import functions.Measures.PhaseInteractionMatrix as PhaseInteractionMatrix
 
-BOLDFilters.flp = 0.008
-BOLDFilters.fhi = 0.08
+print("Going to use Phase Functional Connectivity Dynamics (phFCD)...")
 
-
-def adif(a, b):
-    if np.abs(a - b) > np.pi:
-        c = 2 * np.pi - np.abs(a - b)
-    else:
-        c = np.abs(a - b)
-    return c
-
-
-def tril_indices_column(N, k=0):
-    row_i, col_i = np.nonzero(
-        np.tril(np.ones(N), k=k).T)  # Matlab works in column-major order, while Numpy works in row-major.
-    Isubdiag = (col_i,
-                row_i)  # Thus, I have to do this little trick: Transpose, generate the indices, and then "transpose" again...
-    return Isubdiag
-
+ERROR_VALUE = 10
 
 # From [Deco2019]: Comparing empirical and simulated FCD.
 # We measure KS distance between the upper triangular elements of the empirical and simulated FCD matrices
@@ -48,7 +31,10 @@ def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
 
 
 def distance(FCD1, FCD2):  # FCD similarity, convenience function
-    return KolmogorovSmirnovStatistic(FCD1, FCD2)
+    if not (np.isnan(FCD1).any() or np.isnan(FCD2).any()):  # No problems, go ahead!!!
+        return KolmogorovSmirnovStatistic(FCD1, FCD2)
+    else:
+        return ERROR_VALUE
 
 
 # From [Deco2019]: Comparing empirical and simulated FCD.
@@ -58,42 +44,25 @@ def distance(FCD1, FCD2):  # FCD similarity, convenience function
 # For 2 vectors p1 and p2, the cosine similarity is given by (p1.p2)/(||p1||||p2||).
 # Epochs of stable FC(t) configurations are reflected around the FCD diagonal in blocks of elevated
 # inter-FC(t) correlations.
-def from_fMRI(ts_emp, applyFilters = True):  # Compute the FCD of an input BOLD signal
-    (N, Tmax) = ts_emp.shape
-    # Data structures we are going to need...
-    phases_emp = np.zeros([N, Tmax])
-    dFC = np.zeros([N, N - 1])
-    pattern = np.zeros([Tmax - 19, int(N * (N - 1) / 2)])  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
-    syncdata = np.zeros(Tmax - 19)
-
-    # Filters seem to be always applied...
-    ts_emp_filt = BOLDFilters.BandPassFilter(ts_emp)  # zero phase filter the data
-    for n in range(N):
-        Xanalytic = signal.hilbert(demean.demean(ts_emp_filt[n, :]))
-        phases_emp[n, :] = np.angle(Xanalytic)
-
-    Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
-    T = np.arange(10, Tmax - 10 + 1)
-    for t in T:
-        kudata = np.sum(np.cos(phases_emp[:, t - 1]) + 1j * np.sin(phases_emp[:, t - 1])) / N
-        syncdata[t - 10] = abs(kudata)
-        for i in range(N):
-            for j in range(i):
-                dFC[i, j] = np.cos(adif(phases_emp[i, t - 1], phases_emp[j, t - 1]))
-        pattern[t - 10, :] = dFC[Isubdiag]
-
+def from_fMRI(ts, applyFilters = True):  # Compute the FCD of an input BOLD signal
+    (N, Tmax) = ts.shape
     npattmax = Tmax - 19  # calculates the size of phfcd vector
-    size_kk3 = int((npattmax - 3) * (npattmax - 2) / 2)  # The int() is not needed, but... (see above)
-    phfcd = np.zeros((size_kk3))
+    size_kk3 = int((npattmax - 3) * (npattmax - 2) / 2)  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
 
-    kk3 = 0
-    for t in range(npattmax - 2):
-        p1 = np.mean(pattern[t:t + 3, :], axis=0)
-        for t2 in range(t + 1, npattmax - 2):
-            p2 = np.mean(pattern[t2:t2 + 3, :], axis=0)
-            phfcd[kk3] = np.dot(p1, p2) / np.linalg.norm(p1) / np.linalg.norm(p2)  # this (phFCD) what I want to get
-            kk3 = kk3 + 1
+    pattern = PhaseInteractionMatrix.from_fMRI(ts, applyFilters=applyFilters)  # Compute the Phase-Interaction Matrix
 
+    if not np.isnan(pattern).any():  # No problems, go ahead!!!
+        phfcd = np.zeros((size_kk3))
+        kk3 = 0
+        for t in range(npattmax - 2):
+            p1 = np.mean(pattern[t:t + 3, :], axis=0)
+            for t2 in range(t + 1, npattmax - 2):
+                p2 = np.mean(pattern[t2:t2 + 3, :], axis=0)
+                phfcd[kk3] = np.dot(p1, p2) / np.linalg.norm(p1) / np.linalg.norm(p2)  # this (phFCD) what I want to get
+                kk3 = kk3 + 1
+    else:
+        warnings.warn('############ Warning!!! phFCD.from_fMRI: NAN found ############')
+        phfcd = np.array([np.nan])
     return phfcd
 
 
@@ -104,17 +73,18 @@ def init(S, N):
     return np.array([], dtype=np.float64)
 
 
-def accumulate(FCs, nsub, signal):
-    FCs = np.concatenate((FCs, signal))  # Compute the FCD correlations
-    return FCs
+def accumulate(FCDs, nsub, signal):
+    FCDs = np.concatenate((FCDs, signal))  # Compute the FCD correlations
+    return FCDs
 
 
-def postprocess(FCs):
-    return FCs  # nothing to do here
+def postprocess(FCDs):
+    return FCDs  # nothing to do here
 
 
 def findMinMax(arrayValues):
     return np.min(arrayValues), np.argmin(arrayValues)
+
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================EOF
