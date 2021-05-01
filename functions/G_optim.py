@@ -36,8 +36,8 @@ verbose = True
 integrator = None
 # import functions.BOLDHemModel_Stephan2007 as Stephan2007
 
-import functions.Measures.FC as FC
-import functions.Measures.swFCD as FCD
+import functions.Observables.FC as FC
+import functions.Observables.swFCD as FCD
 
 import functions.BalanceFIC as BalanceFIC
 # BalanceFIC.integrator = integrator
@@ -119,11 +119,11 @@ def processEmpiricalSubjects(BOLDsignals, distanceSettings):
 # ---- convenience method, to parallelize the code (someday)
 @loadOrCompute
 def distanceForOne_G(we, C, modelParms, N, NumSimSubjects,
-                     distanceSettings):  # This is a dictionary of {name: (distance module, apply filters bool)}
+                     distanceSettings):  # distanceSettings is a dictionary of {name: (distance module, apply filters bool)}
     integrator.neuronalModel.setParms(modelParms)
     integrator.recompileSignatures()
 
-    print("   --- BEGIN TIME @ we={} ---".format(we))
+    print(f"   --- BEGIN TIME @ we={we} ---")
     simulatedBOLDs = {}
     start_time = time.clock()
     for nsub in range(NumSimSubjects):  # trials. Originally it was 20.
@@ -139,8 +139,9 @@ def distanceForOne_G(we, C, modelParms, N, NumSimSubjects,
 
 def distanceForAll_G(C, tc, modelParms, NumSimSubjects,
                      distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
-                     wStart=0.0, wEnd=6.0, wStep=0.05,
-                     outFilePath=None):
+                     WEs,  # wStart=0.0, wEnd=6.0, wStep=0.05,
+                     outFilePath=None,
+                     fileNameSuffix=''):
     if verbose:
         import functions.Utils.decorators as deco
         deco.verbose = True
@@ -148,9 +149,9 @@ def distanceForAll_G(C, tc, modelParms, NumSimSubjects,
     N = tc[next(iter(tc))].shape[0]  # get the first key to retrieve the value of N = number of areas
     print('tc({} subjects): each entry has N={} regions'.format(NumSubjects, N))
 
-    processed = processEmpiricalSubjects(tc, distanceSettings, outFilePath+'/fNeuro_emp.mat')
+    processed = processEmpiricalSubjects(tc, distanceSettings, outFilePath+'/fNeuro_emp'+fileNameSuffix+'.mat')
 
-    WEs = np.arange(wStart, wEnd+wStep, wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
+    # WEs = np.arange(wStart, wEnd+wStep, wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
     numWEs = len(WEs)
 
     fitting = {}
@@ -163,10 +164,10 @@ def distanceForAll_G(C, tc, modelParms, NumSimSubjects,
     for pos, we in enumerate(WEs):  # iteration over the values for G (we in this code)
         # ---- Perform the simulation of NumSimSubjects ----
         simMeasures = distanceForOne_G(we, C, modelParms[we], N, NumSimSubjects, distanceSettings,
-                                       outFilePath + '/fitting_{}.mat'.format(np.round(we, decimals=3)))
+                                       outFilePath + '/fitting_we{}.mat'.format(np.round(we, decimals=3)))
 
         # ---- and now compute the final FC, FCD, ... distances for this G (we)!!! ----
-        print(f"{we}/{wEnd}:", end='', flush=True)
+        print(f"{we}/{WEs[-1]}:", end='', flush=True)
         for ds in distanceSettings:
             fitting[ds][pos] = distanceSettings[ds][0].distance(simMeasures[ds], processed[ds])
             print(f" {ds}: {fitting[ds][pos]};", end='', flush=True)
