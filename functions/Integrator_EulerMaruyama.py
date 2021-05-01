@@ -36,7 +36,7 @@ def initStimuli(dt, Tmaxneuronal):
     global allStimuli
     tValues = np.arange(0, Tmaxneuronal, dt)
     if stimuli:
-        allStimuli = np.array(map(stimuli.stimulus, tValues))
+        allStimuli = np.array(list(map(stimuli.stimulus, tValues)))
     else:
         allStimuli = np.zeros(len(tValues))
 
@@ -101,7 +101,7 @@ def integrationStep(simVars, dt, stimulus):  #, curr_obsVars, doBookkeeping):
 def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
     for t in np.arange(0, Tmaxneuronal, dt):
         stimulus = allStimuli[int(t / dt)]
-        simVars_obsVars = integrationStep(simVars, dt, stimulus)  #, doBookkeeping, curr_obsVars)
+        simVars_obsVars = integrationStep(simVars, dt, stimulus)
         simVars = simVars_obsVars[0]; obsVars = simVars_obsVars[1]  # cannot use unpacking in numba...
         if doBookkeeping:
             curr_obsVars = recordBookkeeping(t, obsVars, curr_obsVars)

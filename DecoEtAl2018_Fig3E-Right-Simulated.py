@@ -11,7 +11,8 @@
 #  - the optimal coupling (we=2.1) for fitting the placebo condition 
 #  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
 #
-#  Taken from the code (FCD_LSD_simulated.m) from:
+#  Taken from the code (Code_Figure3.m) from:
+#
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
@@ -38,10 +39,12 @@ import functions.Integrator_EulerMaruyama as integrator
 # import functions.Integrator_Euler as integrator
 integrator.neuronalModel = neuronalModel
 integrator.verbose = False
-import functions.simulateFCD as simulateFCD
-simulateFCD.integrator = integrator
 import functions.BOLDHemModel_Stephan2007 as Stephan2007
-simulateFCD.BOLDModel = Stephan2007
+import functions.simulate_SimAndBOLD as FCDSimulator
+FCDSimulator.integrator = integrator
+FCDSimulator.BOLDModel = Stephan2007
+import functions.simulateFCD as simulateFCD
+simulateFCD.simModel = FCDSimulator
 
 from functions import BalanceFIC
 BalanceFIC.integrator = integrator
@@ -51,6 +54,8 @@ import functions.BOLDFilters as filters
 filters.k = 2                             # 2nd order butterworth filter
 filters.flp = .02                         # lowpass frequency of filter
 filters.fhi = 0.1                         # highpass
+
+PLACEBO_cond = 4; LSD_cond = 1   # 1=LSD rest, 4=PLACEBO rest -> The original code used [2, 5] because arrays in Matlab start with 1...
 # --------------------------------------------------------------------------
 #  End setup...
 # --------------------------------------------------------------------------
@@ -99,7 +104,7 @@ serotonin2A.Receptor = (mean5HT2A_aalsymm[:,0]/np.max(mean5HT2A_aalsymm[:,0])).f
 # ============= Compute the J values for Balance conditions ==================
 # ============================================================================
 # Define optimal parameters
-neuronalModel.we = 2.1  # Global Coupling parameter
+neuronalModel.we = 2.1  # Global Coupling parameter, found in the Prepro_DecoEtAl2018* file...
 serotonin2A.wgaini = 0.  # Placebo conditions, to calibrate the J's...
 serotonin2A.wgaine = 0.
 # ==== J is calculated this only once, then saved
@@ -127,11 +132,10 @@ initRandom()
 if True: #not Path("FCD_values_placebo.mat").is_file():
     # SIMULATION OF OPTIMAL PLACEBO
     print("\n\nSIMULATION OF OPTIMAL PLACEBO")
-    wge = 0. # 0 for placebo, 0.2 for LSD
     serotonin2A.wgaini = 0.
-    serotonin2A.wgaine = wge
-
+    serotonin2A.wgaine = 0.  # 0 for placebo, 0.2 for LSD
     recompileSignatures()
+
     start_time = time.clock()
     cotsampling_pla_s = simulateFCD.simulate(NumSubjects, C)
     print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
@@ -148,11 +152,10 @@ else:
 if True: #not Path("Data_Produced/FCD_values_lsd.mat").is_file():
     # SIMULATION OF OPTIMAL LSD fit
     print("\n\nSIMULATION OF OPTIMAL LSD fit ")
-    wge = 0.2 # 0 for placebo, 0.2 for LSD
     serotonin2A.wgaini = 0.
-    serotonin2A.wgaine = wge
-
+    serotonin2A.wgaine = 0.2  # 0 for placebo, 0.2 for LSD
     recompileSignatures()
+
     start_time = time.clock()
     cotsampling_lsd_s = simulateFCD.simulate(NumSubjects, C)
     print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))

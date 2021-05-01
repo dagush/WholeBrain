@@ -9,7 +9,7 @@
 import numpy as np
 # from numba import jit
 from functions import BOLDFilters
-import functions.Measures.FC as FC
+import functions.Observables.FC as FC
 
 print("Going to use Global Brain Connectivity (GBC)...")
 

@@ -85,7 +85,8 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
     # DMF.lambda = 0.  # make sure no long-range feedforward inhibition (FFI) is computed
     maxRateFIC = np.zeros(len(wes))
     if precompute:
-        BalanceFIC.Balance_AllJ9(C, wStart, wEnd, wStep, baseName=fileName)
+        BalanceFIC.Balance_AllJ9(C, wes,  # wStart, wEnd, wStep,
+                                 baseName=fileName)
     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
         print("\nProcessing: {}  ".format(we), end='')
         DMF.we = we

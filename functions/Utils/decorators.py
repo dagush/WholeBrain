@@ -10,7 +10,7 @@ import functools
 import time
 
 
-verbose = False
+verbose = True
 
 
 # ==================================================

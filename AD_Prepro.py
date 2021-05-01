@@ -10,23 +10,21 @@
 # --------------------------------------------------------------------------------------
 import numpy as np
 import scipy.io as sio
-import os, csv
-from pathlib import Path
+import os, csv, sys
+# from pathlib import Path
 import matplotlib.pyplot as plt
-import time
-from functions.Utils.decorators import loadOrCompute
+# import time
+# from functions.Utils.decorators import loadOrCompute
+import AD_Auxiliar
 
 # --------------------------------------------------------------------------
 #  Begin setup...
 # --------------------------------------------------------------------------
 import functions.Utils.plotSC as plotSC
-from functions.Models import Abeta_StefanovskiEtAl2019 as Abeta
+# from functions.Models import Abeta_StefanovskiEtAl2019 as Abeta
 # from functions.Models import JansenRit as JR
 import functions.Models.DynamicMeanField as DMF
 neuronalModel = DMF
-
-base_folder = "./Data_Raw/from_Ritter"
-save_folder = "./Data_Produced/AD"
 
 import functions.Integrator_EulerMaruyama
 integrator = functions.Integrator_EulerMaruyama
@@ -39,20 +37,27 @@ integrator.verbose = False
 # Tmaxneuronal = int((tmax+dt))
 
 import functions.BOLDHemModel_Stephan2007 as Stephan2007
-import functions.simulateFCD as simulateFCD
-simulateFCD.integrator = integrator
-simulateFCD.BOLDModel = Stephan2007
+import functions.simulate_SimAndBOLD as simulateBOLD
+simulateBOLD.integrator = integrator
+simulateBOLD.BOLDModel = Stephan2007
 from functions import BalanceFIC
 BalanceFIC.integrator = integrator
 
-import functions.FC as FC
-import functions.swFCD as swFCD
-import functions.phFCD as phFCD
+import functions.Observables.FC as FC
+import functions.Observables.swFCD as swFCD
+import functions.Observables.phFCD as phFCD
+
 import functions.G_optim as G_optim
+import functions.Utils.plotFitting as plotFitting
+G_optim.simulateBOLD = simulateBOLD
 G_optim.integrator = integrator
 # --------------------------------------------------------------------------
 #  End setup...
 # --------------------------------------------------------------------------
+
+
+base_folder = "./Data_Raw/from_Ritter"
+save_folder = "./Data_Produced/AD"
 
 
 def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
@@ -84,7 +89,7 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
     # plot psp baseline
     plt.subplot(grid[0,1])
     plt.hist2d(x_coord, psp_baseline.flatten(), bins=[len(gc_range),40], cmap=tmap,
-              range=[[np.min(gc_range),np.max(gc_range)],[-1,40]])#, vmax=100)
+               range=[[np.min(gc_range),np.max(gc_range)],[-1,40]])#, vmax=100)
     plt.colorbar(label="Number of regions")
     plt.grid()
     plt.ylabel(' PSP in mV')
@@ -93,7 +98,7 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
     # plot eeg frequency
     plt.subplot(grid[0,2])
     plt.hist2d(x_coord_eeg, eeg_peak_freq.flatten(), bins=[len(gc_range),40], cmap=tmap,
-              range=[[np.min(gc_range),np.max(gc_range)],[-1,14]] )#, vmax=100)
+               range=[[np.min(gc_range),np.max(gc_range)],[-1,14]] )#, vmax=100)
     plt.colorbar(label="Number of regions")
     plt.grid()
     plt.ylabel(' Frequency in Hz')
@@ -107,14 +112,16 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
 # =====================================================================================
 # Methods for visualizing AD parameters
 # =====================================================================================
-def plotAllAbetaHistograms(subjects):
+def plotAllAbetaHistograms(subjects, classification):
     for subject in subjects:
-        print("plotting subject: {}".format(subject))
-        pet_path=base_folder+"/PET_loads/"+subject+"/PET_PVC_MG/" + modality
-        RH_pet = np.loadtxt(pet_path+"/"+"L.Amyloid_load_MSMAll.pscalar.txt")
-        LH_pet = np.loadtxt(pet_path+"/"+"R.Amyloid_load_MSMAll.pscalar.txt")
-        subcort_pet = np.loadtxt(pet_path+"/"+"Amyloid_load.subcortical.txt")[-19:]
-        abeta_burden = np.concatenate((LH_pet,RH_pet,subcort_pet))
+        ADClass = classification[subject]
+        print("plotting subject: {} ({})".format(subject, ADClass))
+        # pet_path=base_folder+"/PET_loads/"+subject+"/PET_PVC_MG/" + modality
+        # RH_pet = np.loadtxt(pet_path+"/"+"L.Amyloid_load_MSMAll.pscalar.txt")
+        # LH_pet = np.loadtxt(pet_path+"/"+"R.Amyloid_load_MSMAll.pscalar.txt")
+        # subcort_pet = np.loadtxt(pet_path+"/"+"Amyloid_load.subcortical.txt")[-19:]
+        # abeta_burden = np.concatenate((LH_pet,RH_pet,subcort_pet))
+        SCnorm, abeta_burden, tau_burden, fullSeries = AD_Auxiliar.loadSubjectData(subject)
 
         # plt.rcParams["figure.figsize"] = (7,5)
         # plt.rcParams["figure.dpi"] = 300
@@ -124,9 +131,33 @@ def plotAllAbetaHistograms(subjects):
         plt.grid(axis='y', alpha=0.75)
         plt.xlabel('Abeta SUVR')
         plt.ylabel('Regions')
-        plt.suptitle("Abeta histogram ({})".format(subject), fontweight="bold", fontsize="18")
+        plt.suptitle("Abeta histogram ({} ({}))".format(subject, ADClass), fontweight="bold", fontsize="18")
         # plt.show()
-        plt.savefig("./Results/Abeta/"+subject+".png", dpi=200)
+        plt.savefig("./Results/AD/Abeta/"+ADClass+'_'+subject+".png", dpi=200)
+        plt.close()
+
+
+def plotAllAbetaTauGraphs(subjects, classification):
+    for subject in subjects:
+        ADClass = classification[subject]
+        print("plotting subject: {} ({})".format(subject, ADClass))
+        # pet_path=base_folder+"/PET_loads/"+subject+"/PET_PVC_MG/" + modality
+        # RH_pet = np.loadtxt(pet_path+"/"+"L.Amyloid_load_MSMAll.pscalar.txt")
+        # LH_pet = np.loadtxt(pet_path+"/"+"R.Amyloid_load_MSMAll.pscalar.txt")
+        # subcort_pet = np.loadtxt(pet_path+"/"+"Amyloid_load.subcortical.txt")[-19:]
+        # abeta_burden = np.concatenate((LH_pet,RH_pet,subcort_pet))
+        SCnorm, ABeta, tau, fullSeries = AD_Auxiliar.loadSubjectData(subject)
+
+        # plt.rcParams["figure.figsize"] = (7,5)
+        # plt.rcParams["figure.dpi"] = 300
+        plt.figure(num=None, figsize=(8, 6), dpi=200, facecolor='w', edgecolor='k')
+        plt.scatter(ABeta, tau, color='b', label='Tau')
+        plt.grid(axis='y', alpha=0.75)
+        plt.xlabel('Abeta SUVR')
+        plt.ylabel('Tau SUVR')
+        plt.suptitle("Abeta vs. Tau ({} ({}))".format(subject, ADClass), fontweight="bold", fontsize="18")
+        # plt.show()
+        plt.savefig("./Results/AD/AbetaTau/"+ADClass+'_'+subject+".png", dpi=200)
         plt.close()
 
 
@@ -161,47 +192,47 @@ def load_all_HC_fMRI(classification, baseFolder):
     return all_fMRI
 
 
-def getClassifications(subjects):
-    # ============================================================================
-    # This code is to check whether we have the information of the type of subject
-    # They can be one of:
-    # Healthy Controls (HC), Mild Cognitive Impairment (MCI), Alzheimer Disease (AD) or Significant Memory Concern (SMC)
-    # ============================================================================
-    input_classification = csv.reader(open(base_folder+"/subjects.csv", 'r'))
-    classification = dict(filter(None,input_classification))
-    mistery = []
-    for subject in subjects:
-        if subject in classification:
-            print('Subject {} classified as {}'.format(subject, classification[subject]))
-        else:
-            print('Subject {} NOT classified'.format(subject))
-            mistery.append(subject)
-    print("Misisng {} subjects:".format(len(mistery)), mistery)
-    print()
-    return classification
+# def getClassifications(subjects):
+#     # ============================================================================
+#     # This code is to check whether we have the information of the type of subject
+#     # They can be one of:
+#     # Healthy Controls (HC), Mild Cognitive Impairment (MCI), Alzheimer Disease (AD) or Significant Memory Concern (SMC)
+#     # ============================================================================
+#     input_classification = csv.reader(open(base_folder+"/subjects.csv", 'r'))
+#     classification = dict(filter(None,input_classification))
+#     mistery = []
+#     for subject in subjects:
+#         if subject in classification:
+#             print('Subject {} classified as {}'.format(subject, classification[subject]))
+#         else:
+#             print('Subject {} NOT classified'.format(subject))
+#             mistery.append(subject)
+#     print("Misisng {} subjects:".format(len(mistery)), mistery)
+#     print()
+#     return classification
 
 
-modality = "Amyloid" # Amyloid or Tau
-def loadSubjectData(subject, correctSCMatrix=True):
-    sc_folder = base_folder+'/connectomes/'+subject+"/DWI_processing"
-    SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
-    if correctSCMatrix:
-        SCnorm = correctSC(SC)
-    else:
-        SCnorm = np.log(SC + 1)
-
-    pet_path = base_folder+"/PET_loads/"+subject+"/PET_PVC_MG/" + modality
-    RH_pet = np.loadtxt(pet_path+"/"+"L."+modality+"_load_MSMAll.pscalar.txt")
-    LH_pet = np.loadtxt(pet_path+"/"+"R."+modality+"_load_MSMAll.pscalar.txt")
-    subcort_pet = np.loadtxt(pet_path+"/"+modality+"_load.subcortical.txt")[-19:]
-    abeta_burden = np.concatenate((LH_pet,RH_pet,subcort_pet))
-
-    fMRI_path = base_folder+"/fMRI/"+subject+"/MNINonLinear/Results/Restingstate"
-    series = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean.ptseries.txt")
-    subcSeries = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean_subcort.ptseries.txt")
-    fullSeries = np.concatenate((series,subcSeries))
-
-    return SCnorm, abeta_burden, fullSeries
+# modality = "Amyloid" # Amyloid or Tau
+# def loadSubjectData(subject, correctSCMatrix=True):
+#     sc_folder = base_folder+'/connectomes/'+subject+"/DWI_processing"
+#     SC = np.loadtxt(sc_folder+"/connectome_weights.csv")
+#     if correctSCMatrix:
+#         SCnorm = AD_Auxiliar.correctSC(SC)
+#     else:
+#         SCnorm = np.log(SC + 1)
+#
+#     pet_path = base_folder+"/PET_loads/"+subject+"/PET_PVC_MG/" + modality
+#     RH_pet = np.loadtxt(pet_path+"/"+"L."+modality+"_load_MSMAll.pscalar.txt")
+#     LH_pet = np.loadtxt(pet_path+"/"+"R."+modality+"_load_MSMAll.pscalar.txt")
+#     subcort_pet = np.loadtxt(pet_path+"/"+modality+"_load.subcortical.txt")[-19:]
+#     abeta_burden = np.concatenate((LH_pet,RH_pet,subcort_pet))
+#
+#     fMRI_path = base_folder+"/fMRI/"+subject+"/MNINonLinear/Results/Restingstate"
+#     series = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean.ptseries.txt")
+#     subcSeries = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean_subcort.ptseries.txt")
+#     fullSeries = np.concatenate((series,subcSeries))
+#
+#     return SCnorm, abeta_burden, fullSeries
 
 
 def loadXData(dataset=1):
@@ -210,7 +241,7 @@ def loadXData(dataset=1):
         xfile = 'sc_fromXenia.mat'
         M = sio.loadmat(x_path + xfile); print('{} File contents:'.format(xfile), [k for k in M.keys()])
         mat0 = M['mat_zero']; print('mat_zero.shape={}'.format(mat0.shape))
-        SCnorm = correctSC(mat0)
+        SCnorm = AD_Auxiliar.correctSC(mat0)
         fc = M['fc']; print('fc.shape={}'.format(fc.shape))
         ts = M['timeseries']; print('timeseries.shape={}'.format(ts.shape))
         return SCnorm, fc, ts
@@ -221,45 +252,53 @@ def loadXData(dataset=1):
         ts = sio.loadmat(x_path + xfile_ts); print('{} File contents:'.format(xfile_ts), [k for k in ts.keys()])
 
         mat0 = M['mat_zero']; print('mat_zero.shape={}'.format(mat0.shape))
-        SCnorm = correctSC(mat0)
+        SCnorm = AD_Auxiliar.correctSC(mat0)
         mat = M['mat']; print('mat.shape={}'.format(mat.shape))
         FC = ts['FC']; print('FC.shape={}'.format(FC.shape))
         timeseries = ts['timeseries']; print('timeseries.shape={}'.format(timeseries.shape))
         return SCnorm, FC, timeseries
-    else:
+    elif dataset == 2:
         xfile = 'timeseries.mat'
         ts = sio.loadmat(x_path + xfile); print('{} File contents:'.format(xfile), [k for k in ts.keys()])
         timeseries = ts['timeseries']; print('timeseries.shape={}'.format(timeseries.shape))
         return None, None, timeseries
+    elif dataset == 3:
+        xfile = '52reg.mat'
+        ts = sio.loadmat(x_path + xfile); print('{} File contents:'.format(xfile), [k for k in ts.keys()])
+        # timeseries = ts['timeseries']; print('timeseries.shape={}'.format(timeseries.shape))
+        # return None, None, timeseries
+    else:
+        print("ERROR, no dataset recognized!!!")
+        exit()
 
 
 # def thresholdSCMatrix(SC):
 #     SC[SC > 0.05] = 0.05
 
 
-normalizationFactor = 0.2
-avgHuman66 = 0.0035127188987848714
-areasHuman66 = 66  # yeah, a bit redundant... ;-)
-maxNodeInput66 = 0.7275543904602363
-def correctSC(SC):
-    N = SC.shape[0]
-    logMatrix = np.log(SC+1)
-    # areasSC = logMatrix.shape[0]
-    # avgSC = np.average(logMatrix)
-    # === Normalization ===
-    # finalMatrix = normalizationFactor * logMatrix / logMatrix.max()  # normalize to the maximum
-    # finalMatrix = logMatrix * avgHuman66/avgSC * (areasHuman66*areasHuman66)/(areasSC * areasSC)  # normalize to the avg AND the number of connections...
-    maxNodeInput = np.max(np.sum(logMatrix, axis=0))  # This is the same as np.max(logMatrix @ np.ones(N))
-    finalMatrix = logMatrix * maxNodeInput66 / maxNodeInput
-    return finalMatrix
+# normalizationFactor = 0.2
+# avgHuman66 = 0.0035127188987848714
+# areasHuman66 = 66  # yeah, a bit redundant... ;-)
+# maxNodeInput66 = 0.7275543904602363
+# def correctSC(SC):
+#     N = SC.shape[0]
+#     logMatrix = np.log(SC+1)
+#     # areasSC = logMatrix.shape[0]
+#     # avgSC = np.average(logMatrix)
+#     # === Normalization ===
+#     # finalMatrix = normalizationFactor * logMatrix / logMatrix.max()  # normalize to the maximum
+#     # finalMatrix = logMatrix * avgHuman66/avgSC * (areasHuman66*areasHuman66)/(areasSC * areasSC)  # normalize to the avg AND the number of connections...
+#     maxNodeInput = np.max(np.sum(logMatrix, axis=0))  # This is the same as np.max(logMatrix @ np.ones(N))
+#     finalMatrix = logMatrix * maxNodeInput66 / maxNodeInput
+#     return finalMatrix
 
 
-def analyzeMatrix(name, C):
-    max, min, avg, std, maxNodeInput, avgNodeInput = FC.characterizeConnectivityMatrix(C)
-    print(name + " => Shape:{}, Max:{}, Min:{}, Avg:{}, Std:{}".format(C.shape, max, min, avg, std), end='')
-    print("  => impact=Avg*#:{}".format(avg*C.shape[0]), end='')
-    print("  => maxNodeInputs:{}".format(maxNodeInput), end='')
-    print("  => avgNodeInputs:{}".format(avgNodeInput))
+# def analyzeMatrix(name, C):
+#     max, min, avg, std, maxNodeInput, avgNodeInput = FC.characterizeConnectivityMatrix(C)
+#     print(name + " => Shape:{}, Max:{}, Min:{}, Avg:{}, Std:{}".format(C.shape, max, min, avg, std), end='')
+#     print("  => impact=Avg*#:{}".format(avg*C.shape[0]), end='')
+#     print("  => maxNodeInputs:{}".format(maxNodeInput), end='')
+#     print("  => avgNodeInputs:{}".format(avgNodeInput))
 
 
 # =====================================================================================
@@ -271,13 +310,13 @@ def checkSubjectSCDiff(ax, subject, SCnorm, finalAvgMatrix):
 
 
 def checkSubjectSC(ax, subject):
-    SCnorm, abeta, fullSeries = loadSubjectData(subject)
+    SCnorm, abeta, tau, fullSeries = AD_Auxiliar.loadSubjectData(subject)
     plotSC(ax, SCnorm, subject)
 
 
 def compareTwoSC_WRT_Ref(subjectA, subjectB, refSC=None):
-    SCnormA, abetaA, fullSeriesA = loadSubjectData(subjectA)
-    SCnormB, abetaB, fullSeriesB = loadSubjectData(subjectB)
+    SCnormA, abetaA, tauA, fullSeriesA = AD_Auxiliar.loadSubjectData(subjectA)
+    SCnormB, abetaB, tauB, fullSeriesB = AD_Auxiliar.loadSubjectData(subjectB)
     plt.rcParams.update({'font.size': 15})
     fig = plt.figure()
     grid = plt.GridSpec(1, 2)
@@ -303,7 +342,7 @@ def compareTwoSC_WRT_Ref(subjectA, subjectB, refSC=None):
 
 # def plotFC_for_G(SCnorm, fMRI):
 #     # First, load the empirical data
-#     # SCnorm, abeta, fMRI = loadSubjectData(subject)
+#     # SCnorm, abeta, tau, fMRI = AD_Auxiliar.loadSubjectData(subject)
 #     empFC = FC.from_fMRI(fMRI)
 #     empFCD = FCD.from_fMRI(fMRI)
 #
@@ -314,7 +353,7 @@ def compareTwoSC_WRT_Ref(subjectA, subjectB, refSC=None):
 #     wes = np.arange(wStart + wStep, wEnd, wStep)  # warning: the range of wes depends on the conectome.
 #
 #     # now set some simulation variables we need to function...
-#     # simulateFCD.Tmax = 20; simulateFCD.recomputeTmaxneuronal()
+#     # simulateBOLD.Tmax = 20; simulateBOLD.recomputeTmaxneuronal()
 #     integrator.neuronalModel.initJ(SCnorm.shape[0])
 #
 #     currentValFC = np.inf; currentWeFC = -1
@@ -324,7 +363,7 @@ def compareTwoSC_WRT_Ref(subjectA, subjectB, refSC=None):
 #     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
 #         print("Processing: {} >> ".format(we), end='')
 #         DMF.we = we
-#         simBDS = simulateFCD.simulateSingleSubject(SCnorm, warmup=True)
+#         simBDS = simulateBOLD.simulateSingleSubject(SCnorm, warmup=True)
 #
 #         simFC = FC.from_fMRI(simBDS.T)
 #         ccFCempFCsim[kk] = FC.FC_Similarity(empFC, simFC)
@@ -361,7 +400,7 @@ def compareTwoSC_WRT_Ref(subjectA, subjectB, refSC=None):
 def plot_cc_empSC_empFC(subjects):
     results = []
     for subject in subjects:
-        empSCnorm, abeta, fMRI = loadSubjectData(subject)
+        empSCnorm, abeta, tau, fMRI = AD_Auxiliar.loadSubjectData(subject)
         empFC = FC.from_fMRI(fMRI)
         corr_SC_FCemp = FC.pearson_r(empFC, empSCnorm)
         print("{} -> Pearson_r(SCnorm, empFC) = {}".format(subject, corr_SC_FCemp))
@@ -383,27 +422,34 @@ def plot_cc_empSC_empFC(subjects):
 # =====================================================================
 def preprocessingPipeline(subject, SCnorm, all_fMRI,  #, abeta,
                           distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
-                          wStart=0.0, wEnd=6.0, wStep=0.05,
-                          precompute=False, plotMaxFrecForAllWe=False):
+                          WEs,  # wStart=0.0, wEnd=6.0, wStep=0.05,
+                          plotMaxFrecForAllWe=False):
     fileName = 'Data_Produced/AD/FICWeights-'+subject+'/BenjiBalancedWeights-{}.mat'
+
+    print("###################################################################\n"*2+"#")
+    print(f"## Pre-processing pipeline on {subject}!!!\n#")
+    print("###################################################################\n"*2+"\n")
+    print(f"# Compute BalanceFIC ({wStart} to {wEnd} with step {wStep})")
+    print("###################################################################")
     # BalanceFIC.useDeterministicIntegrator = useDeterministicIntegrator
-    if precompute:  # What's the point of this?
-        BalanceFIC.verbose = True
-        BalanceFIC.Balance_AllJ9(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep, baseName=fileName)
-        # Let's plot it as a verification measure...
+    BalanceFIC.verbose = True
+    balancedParms = BalanceFIC.Balance_AllJ9(SCnorm, WEs=WEs,  # wStart=wStart, wEnd=wEnd, wStep=wStep,
+                                             baseName=fileName)
+    # Let's plot it as a verification measure...
     if plotMaxFrecForAllWe:
         import Fig_DecoEtAl2014_Fig2 as Fig2
-        Fig2.plotMaxFrecForAllWe(SCnorm, wStart=wStart, wEnd=wEnd, wStep=wStep,
+        Fig2.plotMaxFrecForAllWe(SCnorm, wStart=WEs[0], wEnd=WEs[-1], wStep=WEs[1]-WEs[0],
                                  extraTitle='', precompute=False, fileName=fileName)  # We already precomputed everything, right?
 
     # Now, optimize all we (G) values: determine optimal G to work with
+    print("\n\n###################################################################")
+    print("# Compute G_Optim")
+    print("###################################################################\n")
     outFilePath = 'Data_Produced/AD/'+subject+'-temp'
-    fitting = G_optim.distanceForAll_G(SCnorm, all_fMRI, NumSimSubjects=len(all_fMRI),
+    fitting = G_optim.distanceForAll_G(SCnorm, all_fMRI, balancedParms, NumSimSubjects=len(all_fMRI),
                                        distanceSettings=distanceSettings,
-                                       wStart=wStart, wEnd=wEnd, wStep=wStep,
-                                       J_fileNames=fileName,
+                                       WEs=WEs,  # wStart=wStart, wEnd=wEnd, wStep=wStep,
                                        outFilePath=outFilePath)
-    G_optim.loadAndPlot(outFilePath, distanceSettings)
 
     optimal = {sd: distanceSettings[sd][0].findMinMax(fitting[sd]) for sd in distanceSettings}
     return optimal
@@ -419,12 +465,12 @@ def processRangeValues(argv):
     try:
         opts, args = getopt.getopt(argv,'',["wStart=","wEnd=","wStep="])
     except getopt.GetoptError:
-        print('AD_prepro.py --wStart <wStartValue> --wEnd <wEndValue> --wStep <wStepValue>')
+        print('AD_Prepro.py --wStart <wStartValue> --wEnd <wEndValue> --wStep <wStepValue>')
         sys.exit(2)
     wStart = 0.; wEnd = 6.0; wStep = 0.05
     for opt, arg in opts:
         if opt == '-h':
-            print('AD_prepro.py -wStart <wStartValue> -wEnd <wEndValue> -wStep <wStepValue>')
+            print('AD_Prepro.py -wStart <wStartValue> -wEnd <wEndValue> -wStep <wStepValue>')
             sys.exit()
         elif opt in ("--wStart"):
             wStart = float(arg)
@@ -448,9 +494,9 @@ if __name__ == '__main__':
     # =====================================
     CFile = sio.loadmat('Data_Raw/Human_66.mat')  # load Human_66.mat C
     C = CFile['C']
-    analyzeMatrix("Unnormalized Human 66", C)
+    AD_Auxiliar.analyzeMatrix("Unnormalized Human 66", C)
     C = 0.2 * C / np.max(C)
-    analyzeMatrix("        Norm Human 66", C)
+    AD_Auxiliar.analyzeMatrix("        Norm Human 66", C)
     # plotSC.plotSC_and_Histogram("Human 66", C)
 
     # ################################################################################################
@@ -464,19 +510,25 @@ if __name__ == '__main__':
     # Classify subject information into {HC, MCI, AD}
     # --------------------------------------------------
     subjects = [os.path.basename(f.path) for f in os.scandir(base_folder+"/connectomes/") if f.is_dir()]
-    # plotAllAbetaHistograms(subjects)  # generates a series of histograms of the Abeta burden...
-    classification = getClassifications(subjects)
+    classification = AD_Auxiliar.checkClassifications(subjects)
+    # plotAllAbetaHistograms(subjects, classification)  # generates a series of histograms of the Abeta burden...
+    # plotAllAbetaTauGraphs(subjects, classification)  # generates a series of Abeta vs. Tau plots...
     HCSubjects = [s for s in classification if classification[s] == 'HC']
     ADSubjects = [s for s in classification if classification[s] == 'AD']
+    MCISubjects = [s for s in classification if classification[s] == 'MCI']
+    print("HCSubjects:", HCSubjects)
+    print("ADSubjects", ADSubjects)
+    print("MCISubjects", MCISubjects)
+    # exit()
 
     # --------------------------------------------------
     # Compute the average SC for the HC subjects
     # --------------------------------------------------
     avgSCMatrix = computeAvgSC_HC_Matrix(classification, base_folder + "/connectomes")
-    analyzeMatrix("AvgHC", avgSCMatrix)
-    finalAvgMatrixHC = correctSC(avgSCMatrix)
-    sio.savemat('Data_Produced/AD/AvgHC_SC.mat', {'SC':finalAvgMatrixHC})
-    analyzeMatrix("AvgHC norm", finalAvgMatrixHC)
+    AD_Auxiliar.analyzeMatrix("AvgHC", avgSCMatrix)
+    finalAvgMatrixHC = AD_Auxiliar.correctSC(avgSCMatrix)
+    sio.savemat('Data_Produced/AD/AvHC_SC.mat', {'SC':finalAvgMatrixHC})
+    AD_Auxiliar.analyzeMatrix("AvgHC norm", finalAvgMatrixHC)
     print("# of elements in AVG connectome: {}".format(finalAvgMatrixHC.shape))
     # plotSC.justPlotSC('AVG<HC>', finalMatrix, plotSC.plotSCHistogram)
     # plot_cc_empSC_empFC(HCSubjects)
@@ -493,11 +545,11 @@ if __name__ == '__main__':
     # play a little bit with one HC subject...
     # --------------------------------------------------
     # HCSubject = '002_S_0413'  # this is HCSubjects[0]
-    # SCnorm_HCSubject, abeta_HCSubject, fMRI_HCSubject = loadSubjectData(HCSubject)
-    # analyzeMatrix("SC norm HC (log({}))".format(HCSubject), SCnorm_HCSubject)
+    # SCnorm_HCSubject, abeta_HCSubject, tau_HCSubject, fMRI_HCSubject = AD_Auxiliar.loadSubjectData(HCSubject)
+    # AD_Auxiliar.analyzeMatrix("SC norm HC (log({}))".format(HCSubject), SCnorm_HCSubject)
     # # plotSC.plotSC_and_Histogram("SC norm HC", SCnorm_HCSubject)
     # empFC = FC.from_fMRI(fMRI_HCSubject)
-    # analyzeMatrix("EmpiricalFC", empFC)
+    # AD_Auxiliar.analyzeMatrix("EmpiricalFC", empFC)
     # C norm HC (log(002_S_0413)) => Shape:(379, 379), Max:14.250680446001775, Min:0.0, Avg:3.513063979447963, Std:2.418758388149712
     #                             => impact=Avg*#:1331.451248210778
     #                             => maxNodeInputs:2655.478582698918
@@ -529,13 +581,23 @@ if __name__ == '__main__':
     # quite useful to peep at intermediate results
     # G_optim.loadAndPlot(outFilePath='Data_Produced/AD/'+subjectName+'-temp', distanceSettings=distanceSettings)
 
-    import functions.BalanceFIC as FIC; FIC.use_N_algorithm = False  # To make sure we use A algorithm
+    # import functions.BalanceFIC as FIC;
+    BalanceFIC.use_N_algorithm = False  # To make sure we use Gus' algorithm
+    WEs = np.arange(wStart, wEnd++0.01, wStep)
     optimal = preprocessingPipeline(subjectName, finalAvgMatrixHC, all_HC_fMRI,
                                     distanceSettings,
-                                    wStart=wStart, wEnd=wEnd+0.01, wStep=wStep,
-                                    precompute=False, plotMaxFrecForAllWe=False)
+                                    WEs=WEs,  # wStart=wStart, wEnd=wEnd+0.01, wStep=wStep,
+                                    plotMaxFrecForAllWe=False)
     print (f"Last info: Optimal in the CONSIDERED INTERVAL only: {wStart}, {wEnd}, {wStep} (not in the whole set of results!!!)")
     print("".join(f" - Optimal {k}({optimal[k][1]})={optimal[k][0]}\n" for k in optimal))
+
+    print("\n\n###################################################################")
+    print("# Plot !!!")
+    print("###################################################################\n")
+    outFilePath = 'Data_Produced/AD/'+subjectName+'-temp'
+    plotFitting.loadAndPlot(outFilePath+'/fitting_{}.mat', distanceSettings, WEs=np.arange(0.0, 6.001, 0.001),
+                            empFilePath=outFilePath+'/fNeuro_emp.mat')
+
 
     #####################################################################################################
     # Results (in (0.0, 5.4)):
@@ -558,7 +620,7 @@ if __name__ == '__main__':
     # SCnorm = normalizationFactor * logMatrix / logMatrix.max()  # Normalization
     #
     # import functions.BOLDFilters as BOLDFilters
-    # notUsedSC, abeta_HC, fMRI_HC = loadSubjectData(HCSubject)
+    # notUsedSC, abeta_HC, tau_HC, fMRI_HC = AD_Auxiliar.loadSubjectData(HCSubject)
     # signal_filt = BOLDFilters.BandPassFilter(fMRI_HC)
     # sfiltT = signal_filt.T
     # FC = np.corrcoef(sfiltT, rowvar=False)  # Pearson correlation coefficients
@@ -570,7 +632,7 @@ if __name__ == '__main__':
     # print("corrcoef(SCnorm,FC)={}".format(corr1))
     # print("FC.pearson_r(SCnorm, FC)={}".format(corr2))
 
-    # analyzeMatrix(subject_X, SCnorm_X)
+    # AD_Auxiliar.analyzeMatrix(subject_X, SCnorm_X)
     # empFC = FC.from_fMRI(fMRI_X.T)
     # print("KS(empFC, FC(fMRI))=", FCD.KolmogorovSmirnovStatistic(FC_X, empFC))
     # =================================== do DMF FIC pre-processing

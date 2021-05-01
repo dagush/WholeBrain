@@ -11,7 +11,8 @@
 #  - the optimal coupling (we=2.1) for fitting the placebo condition
 #  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
 #
-#  Taken from the code (FCD_LSD_simulated.m) from:
+#  Taken from the code (Code_Figure3.m) from:
+#
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
@@ -30,15 +31,15 @@ from pathlib import Path
 
 filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
 if not Path(filePath).is_file():
-    import Prepro_DecoEtAl2018_fgain_Neuro as prepro
-    prepro.prepro_Fig3()
+    import DecoEtAl2018_Prepro_fgain_Neuro as prepro
+    prepro.prepro_G_Optim()
 
 print('Loading {}'.format(filePath))
 fNeuro = sio.loadmat(filePath)
 WEs = fNeuro['we'].flatten()
-fitting_LSD = fNeuro['fitting_LSD'].flatten()
+# fitting_LSD = fNeuro['fitting_LSD'].flatten()
 fitting_PLA = fNeuro['fitting_PLA'].flatten()
-FCDfitt_LSD = fNeuro['FCDfitt_LSD'].flatten()
+# FCDfitt_LSD = fNeuro['FCDfitt_LSD'].flatten()
 FCDfitt_PLA = fNeuro['FCDfitt_PLA'].flatten()
 
 # mFCDfitt5   = np.mean(FCDfitt5,2);
@@ -62,7 +63,6 @@ plt.ylabel("Fitting")
 plt.xlabel("Global Coupling (G = we)")
 plt.legend()
 plt.show()
-
 
 # ================================================================================================================
 # ================================================================================================================

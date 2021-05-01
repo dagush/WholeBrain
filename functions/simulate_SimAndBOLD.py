@@ -11,7 +11,7 @@
 import numpy as np
 integrator = None  # import functions.Integrator_EulerMaruyama as integrator
 BOLDModel = None  # import functions.BOLDHemModel_Stephan2007 as Stephan2007 # import functions.BOLDHemModel_Stephan2008 as Stephan2008
-# import functions.Measures.swFCD as FCD
+# import functions.Observables.swFCD as FCD
 
 # Set General Model Parameters
 # ============================================================================

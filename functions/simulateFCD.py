@@ -14,7 +14,7 @@
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 import numpy as np
-import functions.Measures.swFCD as FCD
+import functions.Observables.swFCD as FCD
 simModel = None
 
 Tmax = 220.        # Number of timepoints in each fMRI session
