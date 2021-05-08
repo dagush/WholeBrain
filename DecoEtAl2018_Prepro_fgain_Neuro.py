@@ -19,14 +19,14 @@
 import numpy as np
 import scipy.io as sio
 # from pathlib import Path
-# from numba import jit
-import time
+from numba import jit
 
 # --------------------------------------------------------------------------
 #  Begin setup...
 # --------------------------------------------------------------------------
 import functions.Models.DynamicMeanField as neuronalModel
 # import functions.Models.serotonin2A as serotonin2A
+# ----------------------------------------------
 import functions.Integrator_EulerMaruyama as integrator
 integrator.neuronalModel = neuronalModel
 integrator.verbose = False
@@ -43,11 +43,11 @@ import functions.Observables.swFCD as swFCD
 
 import functions.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
-# BalanceFIC.baseName = "Data_Produced/SC90/J_Balance_we{}.mat"
 
-import functions.G_optim as G_optim
+import functions.Optimizers.Optim1D as G_optim
 G_optim.simulateBOLD = simulateBOLD
 G_optim.integrator = integrator
+G_optim.neuronalModel = neuronalModel
 
 # set BOLD filter settings
 import functions.BOLDFilters as filters
@@ -59,6 +59,11 @@ PLACEBO_cond = 4; LSD_cond = 1   # 1=LSD rest, 4=PLACEBO rest -> The original co
 # --------------------------------------------------------------------------
 #  End setup...
 # --------------------------------------------------------------------------
+
+
+@jit(nopython=True)
+def initRandom():
+    np.random.seed(3)  # originally set to 13
 
 
 def LR_version_symm(TC):
@@ -79,17 +84,20 @@ def transformEmpiricalSubjects(tc_aal, cond, NumSubjects):
     return transformed
 
 
+# def recompileSignatures():
+#     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+#     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+#     print("\n\nRecompiling signatures!!!")
+#     serotonin2A.recompileSignatures()
+#     integrator.recompileSignatures()
+
+
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================
 # IMPORTANT: This function was created to reproduce Deco et al.'s 2018 code for Figure 3A.
-# Then, later on, we developed the module G_optim using this code as basis. Now, we could refactor it
-# using G_optim (and we did, a bit), but here we compute two fittings in parallel (PLACEBO and LCD), so it would
-# mean either duplicating the loops, by making two calls in a row; or generalizing G_optim.distanceForAll_G, to
-# be able to process several fittings simultaneously. By now, the second option is not needed and I see no reason for
-# implementing the first one, with the resulting waste of computations (all the simulations would be
-# repeated). By now, we stick with two different codes. Future improvements on G_optim.distanceForAll_G may
-# render this decision different.
+# Actually, this only performs the fitting which gives the value of we (we in the original
+# code, G in the paper) to use for further computations (e.g., plotting Figure 3A)
 def prepro_G_Optim():
     # Load Structural Connectivity Matrix
     print("Loading Data_Raw/all_SC_FC_TC_76_90_116.mat")
@@ -99,10 +107,8 @@ def prepro_G_Optim():
     # # Load Regional Drug Receptor Map
     # print('Loading Data_Raw/mean5HT2A_bindingaal.mat')
     # mean5HT2A_aalsymm = sio.loadmat('Data_Raw/mean5HT2A_bindingaal.mat')['mean5HT2A_aalsymm']
-    # # serotonin2A.Receptor = (mean5HT2A_aalsymm[:,0]/np.max(mean5HT2A_aalsymm[:,0])).flatten()
-
-    NumSubjects = 15  # Number of Subjects in empirical fMRI dataset
-    print("Simulating {} subjects!".format(NumSubjects))
+    # serotonin2A.Receptor = (mean5HT2A_aalsymm[:,0]/np.max(mean5HT2A_aalsymm[:,0])).flatten()
+    # recompileSignatures()
 
     #load fMRI data
     print("Loading Data_Raw/LSDnew.mat")
@@ -111,9 +117,8 @@ def prepro_G_Optim():
     (N, Tmax) = tc_aal[1,1].shape  # [N, Tmax]=size(tc_aal{1,1}) # N = number of areas; Tmax = total time
     print('tc_aal is {} and each entry has N={} regions and Tmax={}'.format(tc_aal.shape, N, Tmax))
 
-    # TCs = np.zeros((len(Conditions), NumSubjects, N, Tmax))
-    # N_windows = int(np.ceil((Tmax-FCD.windowSize) / 3))  # len(range(0,Tmax-30,3))
-    distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True)}
+    NumSubjects = 15  # Number of Subjects in empirical fMRI dataset, 20 in the original code...
+    print("Simulating {} subjects!".format(NumSubjects))
 
     tc_transf_PLA = transformEmpiricalSubjects(tc_aal, PLACEBO_cond, NumSubjects)  # PLACEBO
     # FCemp_cotsampling_PLA = G_optim.processEmpiricalSubjects(tc_transf_PLA, distanceSettings, "Data_Produced/SC90/fNeuro_emp_PLA.mat")
@@ -123,6 +128,9 @@ def prepro_G_Optim():
     # FCemp_cotsampling_LSD = G_optim.processEmpiricalSubjects(tc_transf_LSD, distanceSettings, "Data_Produced/SC90/fNeuro_emp_LCD.mat")  # LCD
     # FCemp_LSD = FCemp_cotsampling_LSD['FC']; cotsampling_LSD = FCemp_cotsampling_LSD['swFCD'].flatten()
 
+    # ==============================================================
+    # ==============================================================
+
     # %%%%%%%%%%%%%%% Set General Model Parameters
     # dtt   = 1e-3   # Sampling rate of simulated neuronal activity (seconds)
     # dt    = 0.1
@@ -131,15 +139,17 @@ def prepro_G_Optim():
     J_fileNames = "Data_Produced/SC90/J_Balance_we{}.mat"  # "Data_Produced/SC90/J_test_we{}.mat"
     baseName = "Data_Produced/SC90/fitting_we{}.mat"
 
+    distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True)}
+
     wStart = 0.
     step = 0.1  # 0.025
-    wEnd = 2.5 + 0.1
-    WEs = np.arange(0, wEnd, step)  # 100 values values for constant G. Originally was np.arange(0,2.5,0.025)
-    numWEs = len(WEs)
+    wEnd = 2.5 + step
+    WEs = np.arange(wStart, wEnd, step)  # 100 values values for constant G. Originally was np.arange(0,2.5,0.025)
+    # numWEs = len(WEs)
 
-    FCDfitt_PLA = np.zeros((numWEs))
+    # FCDfitt_PLA = np.zeros((numWEs))
     # FCDfitt_LSD = np.zeros((numWEs))
-    fitting_PLA = np.zeros((numWEs))
+    # fitting_PLA = np.zeros((numWEs))
     # fitting_LSD = np.zeros((numWEs))
 
     # Model Simulations
@@ -152,38 +162,14 @@ def prepro_G_Optim():
     print("# Compute G_Optim")
     print("###################################################################\n")
     outFilePath = 'Data_Produced/SC90'
-    fitting = G_optim.distanceForAll_G(C, tc_transf_PLA, balancedParms, NumSimSubjects=NumSubjects,
-                                       distanceSettings=distanceSettings,
-                                       WEs=WEs,
-                                       outFilePath=outFilePath, fileNameSuffix='_PLA')
+    fitting = G_optim.distanceForAll_Parms(C, tc_transf_PLA, balancedParms, NumSimSubjects=NumSubjects,
+                                           distanceSettings=distanceSettings,
+                                           Parms=WEs,
+                                           parmLabel='we',
+                                           outFilePath=outFilePath, fileNameSuffix='_PLA')
 
     optimal = {sd: distanceSettings[sd][0].findMinMax(fitting[sd]) for sd in distanceSettings}
-    # ------------------------------------------
-    # ------------------------------------------
-    # for pos, we in enumerate(WEs):  # iteration over values for G (we in this code)
-    #     neuronalModel.we = we
-    #
-    #     balancedParms = BalanceFIC.Balance_J9(we, C, False, J_fileNames.format(np.round(we, decimals=2)))  # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
-    #         # Now we need to fix a "mysterious" problem: for some reason I do not know, an (X,) array (with X an
-    #     # integer number) is saved and recovered as an (1,X) array. Why? I do not know...
-    #     balancedParms['J'] = balancedParms['J'].flatten()
-    #     balancedParms['we'] = balancedParms['we'].flatten()
-    #
-    #     FCsimul_cotsamplingsim = G_optim.distanceForOne_G(we, C, balancedParms, N, NumSubjects,
-    #                                                       distanceSettings,
-    #                                                       baseName.format(np.round(we, decimals=3)))
-    #     FC_simul = FCsimul_cotsamplingsim['FC']
-    #     cotsampling_sim = FCsimul_cotsamplingsim['swFCD'].flatten()
-    #
-    #     FCDfitt_PLA[pos] = swFCD.distance(cotsampling_PLA, cotsampling_sim)  # PLACEBO
-    #     # FCDfitt_LSD[pos] = swFCD.distance(cotsampling_LSD, cotsampling_sim)  # LSD
-    #
-    #     fitting_PLA[pos] = FC.distance(FCemp_PLA, FC_simul)  # PLACEBO
-    #     # fitting_LSD[pos] = FC.distance(FCemp_LSD, FC_simul)  # LSD
-    #
-    #     print("{}/{}: FCDfitt = {}; FCfitt = {}\n".format(we, wEnd, FCDfitt_PLA[pos], fitting_PLA[pos]))
-    # ------------------------------------------
-    # ------------------------------------------
+    print("Optimal:\n", optimal)
 
     filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
     sio.savemat(filePath, #{'JI': JI})
