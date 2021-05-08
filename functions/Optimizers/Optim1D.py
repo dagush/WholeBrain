@@ -29,7 +29,8 @@ verbose = True
 #  Begin setup...
 # --------------------------------------------------------------------------
 # import functions.Models.DynamicMeanField as neuronalModel
-# import functions.Models.serotonin2A as serotonin2A
+# import functions.Models.serotonin2A as serotonin2A\
+neuronalModel = None
 # import functions.Integrator_EulerMaruyama as integrator
 # integrator.neuronalModel = neuronalModel
 # integrator.verbose = False
@@ -118,30 +119,33 @@ def processEmpiricalSubjects(BOLDsignals, distanceSettings):
 # ==========================================================================
 # ---- convenience method, to parallelize the code (someday)
 @loadOrCompute
-def distanceForOne_G(we, C, modelParms, N, NumSimSubjects,
-                     distanceSettings):  # distanceSettings is a dictionary of {name: (distance module, apply filters bool)}
-    integrator.neuronalModel.setParms(modelParms)
+def distanceForOne_Parm(currValue, C, modelParms, NumSimSubjects,
+                        distanceSettings, label):  # distanceSettings is a dictionary of {name: (distance module, apply filters bool)}
+    neuronalModel.setParms(modelParms)
+    neuronalModel.recompileSignatures()  # just in case the integrator.neuronalModel != neuronalModel here... ;-)
     integrator.recompileSignatures()
 
-    print(f"   --- BEGIN TIME @ we={we} ---")
+    print(f"   --- BEGIN TIME @ {label}={currValue} ---")
     simulatedBOLDs = {}
     start_time = time.clock()
     for nsub in range(NumSimSubjects):  # trials. Originally it was 20.
-        print("   Simulating we={} -> subject {}/{}!!!".format(we, nsub, NumSimSubjects))
+        print(f"   Simulating {label}={currValue} -> subject {nsub}/{NumSimSubjects}!!!")
         bds = simulateBOLD.simulateSingleSubject(C, warmup=False).T
         simulatedBOLDs[nsub] = bds
 
     dist = processBOLDSignals(simulatedBOLDs, distanceSettings)
-    dist["We"] = we
+    dist[label] = currValue
     print("   --- TOTAL TIME: {} seconds ---".format(time.clock() - start_time))
     return dist
 
 
-def distanceForAll_G(C, tc, modelParms, NumSimSubjects,
-                     distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
-                     WEs,  # wStart=0.0, wEnd=6.0, wStep=0.05,
-                     outFilePath=None,
-                     fileNameSuffix=''):
+def distanceForAll_Parms(C, tc, modelParms, NumSimSubjects,
+                         distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
+                         Parms,  # wStart=0.0, wEnd=6.0, wStep=0.05,
+                         parmLabel='',
+                         outFilePath=None,
+                         fileNameSuffix=''):
+    print("\n\n*************** Starting: optim1D.distanceForAll_Parms *****************\n\n")
     if verbose:
         import functions.Utils.decorators as deco
         deco.verbose = True
@@ -149,35 +153,36 @@ def distanceForAll_G(C, tc, modelParms, NumSimSubjects,
     N = tc[next(iter(tc))].shape[0]  # get the first key to retrieve the value of N = number of areas
     print('tc({} subjects): each entry has N={} regions'.format(NumSubjects, N))
 
-    processed = processEmpiricalSubjects(tc, distanceSettings, outFilePath+'/fNeuro_emp'+fileNameSuffix+'.mat')
-
-    # WEs = np.arange(wStart, wEnd+wStep, wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
-    numWEs = len(WEs)
+    outEmpFileName = outFilePath+'/fNeuro_emp'+fileNameSuffix+'.mat'
+    processed = processEmpiricalSubjects(tc, distanceSettings, outEmpFileName)
+    numParms = len(Parms)
 
     fitting = {}
     for ds in distanceSettings:
-        fitting[ds] = np.zeros((numWEs))
+        fitting[ds] = np.zeros((numParms))
 
     # Model Simulations
     # -----------------
     print('\n\n ====================== Model Simulations ======================\n\n')
-    for pos, we in enumerate(WEs):  # iteration over the values for G (we in this code)
+    for pos, parm in enumerate(Parms):  # iteration over the values for G (we in this code)
         # ---- Perform the simulation of NumSimSubjects ----
-        simMeasures = distanceForOne_G(we, C, modelParms[we], N, NumSimSubjects, distanceSettings,
-                                       outFilePath + '/fitting_we{}.mat'.format(np.round(we, decimals=3)))
+        outFileNamePattern = outFilePath + '/fitting_'+parmLabel+'{}'+fileNameSuffix+'.mat'
+        simMeasures = distanceForOne_Parm(parm, C, modelParms[parm], NumSimSubjects,
+                                          distanceSettings, parmLabel,
+                                          outFileNamePattern.format(np.round(parm, decimals=3)))
 
         # ---- and now compute the final FC, FCD, ... distances for this G (we)!!! ----
-        print(f"{we}/{WEs[-1]}:", end='', flush=True)
+        print(f"{parm}/{Parms[-1]}:", end='', flush=True)
         for ds in distanceSettings:
             fitting[ds][pos] = distanceSettings[ds][0].distance(simMeasures[ds], processed[ds])
             print(f" {ds}: {fitting[ds][pos]};", end='', flush=True)
         print("\n")
 
     print("\n\n#####################################################################################################")
-    print(f"# Results (in ({WEs[0]}, {WEs[-1]})):")
+    print(f"# Results (in ({Parms[0]}, {Parms[-1]})):")
     for ds in distanceSettings:
         optimValDist = distanceSettings[ds][0].findMinMax(fitting[ds])
-        print(f"# Optimal {ds} = {optimValDist[0]} @ {np.round(WEs[optimValDist[1]], decimals=3)}")
+        print(f"# Optimal {ds} = {optimValDist[0]} @ {np.round(Parms[optimValDist[1]], decimals=3)}")
     print("#####################################################################################################\n\n")
 
     print("DONE!!!")
