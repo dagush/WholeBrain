@@ -130,37 +130,31 @@ def updateJ(N, tmax, delta, curr, J):  # This is the original method by Gus, fro
 # Computes the optimum of the J_i for a given structural connectivity matrix C and
 # a coupling coefficient G, which should be set externally directly at the neuronal model.
 use_N_algorithm = True
-def JOptim(C, warmUp = False):
-    N = C.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
-
+def JOptim(N, warmUp = False):
     # simulation fixed parameters:
     # ----------------------------
     dt = 0.1
     tmax = 10000
 
-    # integrator.neuronalModel.we = we
-    integrator.neuronalModel.initJ(N)
-
     # initialization:
     # -------------------------
-    integrator.neuronalModel.SC = C
-    # integrator.initBookkeeping(N, tmax)
     delta = 0.02 * np.ones(N)
     # A couple of initializations, needed only for updateJ_2
     global min_largest_distance, slow_factor; min_largest_distance = np.inf; slow_factor = 1.0
 
     if verbose:
-        print("we={} (use {} optim)".format(integrator.neuronalModel.we, "N" if use_N_algorithm else "A"))
         print("  Trials:", end=" ", flush=True)
 
     ### Balance (greedy algorithm)
     # note that we used stochastic equations to estimate the JIs
     # Doing that gives more stable solutions as the JIs for each node will be
     # a function of the variance.
+    currJ = np.ones(N)
     bestJ = np.ones(N); bestJCount = -1; bestTrial = -1
     for k in range(5000):  # 5000 trials
         # integrator.resetBookkeeping()
         Tmaxneuronal = int((tmax+dt))  # (tmax+dt)/dt, but with steps of 1 unit...
+        integrator.neuronalModel.setParms({'J': currJ})
         recompileSignatures()
         if warmUp:
             curr_xn = integrator.warmUpAndSimulate(dt, Tmaxneuronal)[:,0,:]  # take the xn component of the observation variables...
@@ -168,16 +162,16 @@ def JOptim(C, warmUp = False):
             curr_xn = integrator.simulate(dt, Tmaxneuronal)[:,0,:]  # take the xn component of the observation variables...
         if verbose: print(k, end='', flush=True)
 
-        currm = curr_xn - integrator.neuronalModel.be/integrator.neuronalModel.ae  # be/ae==125./310. Records currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
+        currm = curr_xn - integrator.neuronalModel.getParm('be')/integrator.neuronalModel.getParm('ae')  # be/ae==125./310. Records currm_i = xn-be/ae (i.e., I_i^E-b_E/a_E in the paper) for each i (1 to N)
         if use_N_algorithm:
-            flagJ = updateJ_N(N, tmax, delta, currm, integrator.neuronalModel.J)  # Nacho's method... ;-)
+            flagJ = updateJ_N(N, tmax, delta, currm, currJ)  # Nacho's method... ;-)
         else:
-            flagJ = updateJ(N, tmax, delta, currm, integrator.neuronalModel.J)  # Gus' method, the one from [DecoEtAl2014]
+            flagJ = updateJ(N, tmax, delta, currm, currJ)  # Gus' method, the one from [DecoEtAl2014]
 
         if verbose: print("({})".format(flagJ), end='', flush=True)
         if flagJ > bestJCount:
             bestJCount = flagJ
-            bestJ = integrator.neuronalModel.J
+            bestJ = currJ
             bestTrial = k
             if verbose: print(' New min!!!', end='', flush=True)
         if flagJ == N:
@@ -186,44 +180,21 @@ def JOptim(C, warmUp = False):
         else:
             if verbose: print(', ', end='', flush=True)
 
-    if verbose: print("Final (we={}): {} trials, with {}/{} nodes solved at trial {}".format(integrator.neuronalModel.we, k, bestJCount, N, bestTrial))
+    if verbose: print("Final (we={}): {} trials, with {}/{} nodes solved at trial {}".format(integrator.neuronalModel.getParm('we'), k, bestJCount, N, bestTrial))
     if verbose: print('DONE!') if flagJ == N else print('FAILED!!!')
     return bestJ, bestJCount
 
-# =====================================
-# =====================================
-# Rogue functions to switch to a deterministic Euler integrator...
-# oldIntegrator = None
-# neuronalModel = None
-# def replaceIntegrator():
-#     if verbose: print("Going to replace the default integrator for the deterministic Euler Integrator...")
-#     global oldIntegrator, neuronalModel, integrator
-#     oldIntegrator = integrator
-#     neuronalModel = oldIntegrator.neuronalModel
-#     import functions.Integrator_Euler as Euler
-#     integrator = Euler
-#     integrator.neuronalModel = neuronalModel
-#     integrator.verbose = False
-#
-# def restoreIntegrator():
-#     if verbose: print("Going to replace back the old integrator...")
-#     global integrator
-#     integrator = oldIntegrator
 
 # =====================================
 # =====================================
 # Auxiliary functions to simplify work: if it was computed, load it. If not, compute (and save) it!
-# useDeterministicIntegrator = False
 @loadOrCompute
-def Balance_J9(we, C, warmUp=False): # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
-    integrator.neuronalModel.we = we
-    # if useDeterministicIntegrator:  # To use the deterministic Euler integrator...
-    #     replaceIntegrator()
-    bestJ, nodeCount = JOptim(C, warmUp=warmUp)  # This is the Feedback Inhibitory Control
-    # if useDeterministicIntegrator:
-    #     restoreIntegrator()
-    integrator.neuronalModel.J = bestJ.flatten()
-    return {'we': we, 'J': integrator.neuronalModel.J}
+def Balance_J9(we, N, warmUp=False): # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
+    print("we={} (use {} optim)".format(we, "N" if use_N_algorithm else "A"))
+    integrator.neuronalModel.setParms({'we': we})
+    bestJ, nodeCount = JOptim(N, warmUp=warmUp)  # This is the Feedback Inhibitory Control
+    integrator.neuronalModel.setParms({'J': bestJ.flatten()})
+    return {'we': we, 'J': bestJ.flatten()}
 
 
 def Balance_AllJ9(C, WEs,  # wStart=0, wEnd=6+0.001, wStep=0.05,
@@ -234,26 +205,28 @@ def Balance_AllJ9(C, WEs,  # wStart=0, wEnd=6+0.001, wStep=0.05,
     #                 wEnd,
     #                 wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
     # numW = wes.size  # length(wes);
+    integrator.neuronalModel.setParms({'SC': C})
+    N = C.shape[0]
     result = {}
-    if not parallel:
-        for we in WEs:  # iterate over the weight range (G in the paper, we here)
-            balance = Balance_J9(we, C, baseName.format(np.round(we, decimals=2)))['J'].flatten()
-            result[we] = {'we': we, 'J': balance}
-    else:
-        # # G, Ji, t, d = optimize_fic(model, 5.6, white_matter, white_matter_coupling)
-        # cpu_count = mp.cpu_count()
-        # pool = mp.Pool(cpu_count)
-        # print('Using {} processes'.format(cpu_count))
-        #
-        # # Step 2: `pool.apply` the `howmany_within_range()`
-        # # Fix this: now Balance_J9 is wrapped !!!!!!  <- build a new unwrapped version
-        # # results_fic = pool.starmap(Balance_J9, [(we, C, baseName) for we in wes])
-        #
-        # # Step 3: Don't forget to close
-        # pool.close()
-        # # x_fic = [r[0] for r in results_fic]
-        # # y_fic = [np.max(r[3][-100:-1, 0, :, 0]) for r in results_fic]
-        pass
+    # if not parallel:
+    for we in WEs:  # iterate over the weight range (G in the paper, we here)
+        balance = Balance_J9(we, N, baseName.format(np.round(we, decimals=2)))['J'].flatten()
+        result[we] = {'we': we, 'J': balance}
+    # else:
+    #     # # G, Ji, t, d = optimize_fic(model, 5.6, white_matter, white_matter_coupling)
+    #     # cpu_count = mp.cpu_count()
+    #     # pool = mp.Pool(cpu_count)
+    #     # print('Using {} processes'.format(cpu_count))
+    #     #
+    #     # # Step 2: `pool.apply` the `howmany_within_range()`
+    #     # # Fix this: now Balance_J9 is wrapped !!!!!!  <- build a new unwrapped version
+    #     # # results_fic = pool.starmap(Balance_J9, [(we, C, baseName) for we in wes])
+    #     #
+    #     # # Step 3: Don't forget to close
+    #     # pool.close()
+    #     # # x_fic = [r[0] for r in results_fic]
+    #     # # y_fic = [np.max(r[3][-100:-1, 0, :, 0]) for r in results_fic]
+    #     pass
     return result
 
 # ==========================================================================

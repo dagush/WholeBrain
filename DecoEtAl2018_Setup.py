@@ -2,9 +2,9 @@
 # ==========================================================================
 #  Setup for the code from the paper
 #
-#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
+#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L.
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
-#       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
+#       (2018) Current Biology
 #       https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
 #
 #  Translated to Python & refactoring by Gustavo Patow
@@ -21,32 +21,28 @@ from numba import jit
 #  Begin modules setup...
 # --------------------------------------------------------------------------
 # Setup for Serotonin 2A-based DMF simulation!!!
-import functions.Models.DynamicMeanField as neuronalModel
+# import functions.Models.DynamicMeanField as neuronalModel
 import functions.Models.serotonin2A as serotonin2A
-neuronalModel.He = serotonin2A.phie
-neuronalModel.Hi = serotonin2A.phii
+# neuronalModel.He = serotonin2A.phie
+# neuronalModel.Hi = serotonin2A.phii
 # ----------------------------------------------
 import functions.Integrator_EulerMaruyama as integrator
-integrator.neuronalModel = neuronalModel
+integrator.neuronalModel = serotonin2A
 integrator.verbose = False
 import functions.BOLDHemModel_Stephan2007 as Stephan2007
 import functions.simulate_SimAndBOLD as simulateBOLD
 simulateBOLD.integrator = integrator
 simulateBOLD.BOLDModel = Stephan2007
-import functions.simulateFCD as simulateFCD
-simulateFCD.integrator = integrator
-simulateFCD.BOLDModel = Stephan2007
+
+import functions.Optimizers.ParmSeep as optim1D
+optim1D.simulateBOLD = simulateBOLD
+optim1D.integrator = integrator
 
 import functions.Observables.FC as FC
 import functions.Observables.swFCD as swFCD
 
 import functions.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
-
-import functions.Optimizers.Optim1D as optim1D
-optim1D.simulateBOLD = simulateBOLD
-optim1D.integrator = integrator
-# optim1D.neuronalModel = ... # Leave this for the specific implementations...
 
 # set BOLD filter settings
 import functions.BOLDFilters as filters
@@ -104,6 +100,7 @@ initRandom()
 print("Loading Data_Raw/all_SC_FC_TC_76_90_116.mat")
 sc90 = sio.loadmat('Data_Raw/all_SC_FC_TC_76_90_116.mat')['sc90']
 C = sc90/np.max(sc90[:])*0.2  # Normalization...
+serotonin2A.setParms({'SC': C})
 
 # Load Regional Drug Receptor Map
 print('Loading Data_Raw/mean5HT2A_bindingaal.mat')
@@ -122,8 +119,9 @@ NumSubjects = 15  # Number of Subjects in empirical fMRI dataset, originally 20.
 print(f"Simulating {NumSubjects} subjects!")
 
 # ====================== By default, we set up the parameters for the DEFAULT mode:
-serotonin2A.wgaine = 0.
-serotonin2A.wgaini = 0.
+# serotonin2A.wgaine = 0.
+# serotonin2A.wgaini = 0.
+serotonin2A.setParms({'S_E':0., 'S_I':0.})
 recompileSignatures()
 
 tc_transf_PLA = transformEmpiricalSubjects(tc_aal, PLACEBO_cond, NumSubjects)  # PLACEBO

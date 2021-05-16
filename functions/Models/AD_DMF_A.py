@@ -42,7 +42,7 @@ SC = None       # Structural connectivity (should be provided externally)
 # ==========================================================================
 # AD param initialization...
 # --------------------------------------------------------------------------
-M_e = None    # WARNING: In general, ad must be initialized outside!
+M_e = None    # WARNING: In general, this must be initialized outside!
 M_i = None
 Abeta = None
 Tau = None

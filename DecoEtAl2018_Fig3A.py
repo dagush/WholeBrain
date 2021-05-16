@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 
-filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
+filePath = 'Data_Produced/SC90/DecoEtAl2018_fneuro.mat'
 if not Path(filePath).is_file():
     import DecoEtAl2018_Prepro_fgain_Neuro as prepro
     prepro.prepro_G_Optim()

@@ -8,9 +8,9 @@
 #
 #  Taken from the code (fgain_Placebo.m and fgain_LCD.m) from:
 #
-#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
+#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L.
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
-#       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
+#       (2018) Current Biology
 #       https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
 #
 #  Translated to Python & refactoring by Gustavo Patow
@@ -21,7 +21,7 @@
 #  Begin local setup...
 # --------------------------------------------------------------------------
 from DecoEtAl2018_Setup import *
-optim1D.neuronalModel = serotonin2A  # Finish setup definition
+# ParmSeep.neuronalModel = serotonin2A  # Finish setup definition
 # --------------------------------------------------------------------------
 #  End local setup...
 # --------------------------------------------------------------------------
@@ -35,15 +35,16 @@ optim1D.neuronalModel = serotonin2A  # Finish setup definition
 # code) to use for further computations (e.g., plotting Figure 3B)
 def fitting_ModelParms(C, tc_transf, suffix):
     # %%%%%%%%%%%%%%% Set General Model Parameters
-    neuronalModel.we = 2.1  # Global Coupling parameter, found in the DecoEtAl2018_Prepro_* file...
+    # neuronalModel.setParm({'we':2.1})  # Global Coupling parameter, found in the DecoEtAl2018_Prepro_* file...
     J_fileName = "Data_Produced/SC90/J_Balance_we2.1.mat"  # "Data_Produced/SC90/J_test_we{}.mat"
-    balancedG = BalanceFIC.Balance_J9(neuronalModel.we, C, False, J_fileName)
+    balancedG = BalanceFIC.Balance_J9(2.1, C, False, J_fileName)
     balancedG['J'] = balancedG['J'].flatten()
     balancedG['we'] = balancedG['we'].flatten()
-    neuronalModel.setParms(balancedG)
+    serotonin2A.setParms(balancedG)
 
-    serotonin2A.wgaine = 0.
-    serotonin2A.wgaini = 0.
+    # serotonin2A.wgaine = 0.
+    # serotonin2A.wgaini = 0.
+    serotonin2A.setParms({'S_E':0., 'S_I':0.})
 
     distanceSettings = {'swFCD': (swFCD, True)}  #'phFCD': (phFCD, True)}, 'FC': (FC, False)
 
@@ -52,7 +53,7 @@ def fitting_ModelParms(C, tc_transf, suffix):
     S_EEnd = 0.4 + S_EStep
     S_Es = np.arange(S_EStart, S_EEnd, S_EStep)
 
-    serotoninParms = {S_E: {'S_I': 0., 'S_E':S_E} for S_E in S_Es}  # here we leave the inhibitory component as 0.
+    serotoninParms = [{'S_I': 0., 'S_E': S_E} for S_E in S_Es]  # here we leave the inhibitory component as 0.
 
     basePath = "Data_Produced/SC90"  # "/fitting_S_E{}.mat"
 

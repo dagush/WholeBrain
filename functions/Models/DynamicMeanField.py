@@ -81,10 +81,10 @@ def initSim(N):
     return sn_sg
 
 
-J = None    # WARNING: In general, J must be initialized outside!
-def initJ(N):  # A bit silly, I know...
-    global J
-    J = np.ones(N)
+# J = None    # WARNING: In general, J must be initialized outside!
+# def initJ(N):  # A bit silly, I know...
+#     global J
+#     J = np.ones(N)
 
 
 # --------------------------------------------------------------------------
@@ -99,9 +99,25 @@ def numObsVars():  # Returns the number of observation vars used, here xn and rn
 # --------------------------------------------------------------------------
 # Set the parameters for this model
 def setParms(modelParms):
-    global we, J
-    we = modelParms['we']
-    J = modelParms['J']
+    global we, J, SC
+    if 'we' in modelParms:
+        we = modelParms['we']
+    if 'J' in modelParms:
+        J = modelParms['J']
+    if 'SC' in modelParms:
+        SC = modelParms['SC']
+
+
+def getParm(parmList):
+    if 'we' in parmList:
+        return we
+    if 'J' in parmList:
+        return J
+    if 'be' in parmList:
+        return be
+    if 'ae' in parmList:
+        return ae
+    return None
 
 
 # ----------------- Dynamic Mean Field (a.k.a., reducedWongWang) ----------------------

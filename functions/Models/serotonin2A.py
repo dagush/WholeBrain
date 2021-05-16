@@ -26,6 +26,7 @@
 # --------------------------------------------------------------------------
 import numpy as np
 from numba import jit
+import functions.Models.DynamicMeanField as DMF
 
 print("Going to use the serotonin 2A receptor (5-HT_{2A}R) transfer functions!")
 
@@ -78,11 +79,48 @@ def phii(x):
 
 
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Standard setup functions
+# --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Simulation variables
+# @jit(nopython=True)
+def initSim(N):
+    return DMF.initSim(N)
+
+# --------------------------------------------------------------------------
+# Variables of interest, needed for bookkeeping tasks...
+# @jit(nopython=True)
+def numObsVars():  # Returns the number of observation vars used, here xn and rn
+    return DMF.numObsVars()
+
+# --------------------------------------------------------------------------
 # Set the parameters for this model
 def setParms(modelParms):
     global wgaine, wgaini
-    wgaine = modelParms['S_E']
-    wgaini = modelParms['S_I']
+    if 'S_E' in modelParms:
+        wgaine = modelParms['S_E']
+    if 'S_I' in modelParms:
+        wgaini = modelParms['S_I']
+    DMF.setParms(modelParms)
+
+
+def getParm(parmList):
+    if 'S_E' in parmList:
+        return wgaine
+    if 'S_I' in parmList:
+        return wgaini
+    return DMF.getParms(parmList)
+
+
+# ----------------- Call the Dynamic Mean Field (a.k.a., reducedWongWang) ----------------------
+@jit(nopython=True)
+def dfun(simVars, I_external):
+    return DMF.dfun(simVars, I_external)
+
+
+DMF.He = phie
+DMF.Hi = phii
 
 
 # ==========================================================================

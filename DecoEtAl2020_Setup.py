@@ -21,8 +21,8 @@ from numba import jit
 #  Begin modules setup...
 # --------------------------------------------------------------------------
 # Setup for ...-based DMF simulation!!!
-import functions.Models.DynamicMeanField as neuronalModel
-# import functions.Models.serotonin2A as serotonin2A
+# import functions.Models.DynamicMeanField as neuronalModel
+import functions.Models.Transcriptional as neuronalModel
 # ----------------------------------------------
 import functions.Integrator_EulerMaruyama as integrator
 integrator.neuronalModel = neuronalModel
@@ -41,11 +41,6 @@ import functions.Observables.swFCD as swFCD
 
 import functions.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
-
-import functions.Optimizers.Optim1D as optim1D
-optim1D.simulateBOLD = simulateBOLD
-optim1D.integrator = integrator
-# optim1D.neuronalModel = ... # Leave this for the specific implementations...
 
 # set BOLD filter settings
 import functions.BOLDFilters as filters
@@ -99,20 +94,32 @@ simulateBOLD.dtt = 1e-3
 simulateBOLD.Toffset = 14.
 simulateBOLD.recomputeTmaxneuronal()
 
+# =============================================================
 # load genetic info
+# =============================================================
 print("Loading DKcortex_selectedGenes.mat")
 DKGenes = sio.loadmat(baseInPath+'/DKcortex_selectedGenes.mat')
 expMeasures = DKGenes['expMeasures']
 print(f'raw expMeasures from DKGenes shape is {expMeasures.shape}')
 
-coefei = np.sum(expMeasures[:,17:25],1) / np.sum(expMeasures[:,1:6],1)  # ampa+nmda/gaba
-ratioEI = np.zeros(N)
-ratioEI[:coefei.size] = coefei/(max(coefei)-min(coefei))
-ratioEI = ratioEI-max(ratioEI)+1
-ratioEI[34:68] = ratioEI[0:34]
-print(f'ratioEI shape is {ratioEI.shape}')
+coefe = np.sum(expMeasures[:,17:25],1) # / np.sum(expMeasures[:,1:6],1)  # ampa+nmda/gaba
+ratioE = np.zeros(N)
+ratioI = np.zeros(N)
+ratioE[0:34] = coefe/(np.max(coefe))
+ratioE[34:68] = ratioE[0:34]
 
-# Read data..SC FC and time series of BOLD
+coefrange = np.union1d(np.arange(1,9), np.arange(11,14))
+coefi = np.sum(expMeasures[:,coefrange], 1)  # 18:21 ampa+ 22:25 nmda/gaba
+ratioI[0:34] = coefi/(np.max(coefi))
+ratioI[34:68] = ratioI[0:34]
+ratio = ratioE/ratioI
+ratio = ratio/(np.max(ratio)-np.min(ratio))
+ratio = ratio - np.max(ratio) + 1
+
+neuronalModel.ratio = ratio
+
+# =============================================================
+# Read data..SC FC and time-series of BOLD
 # =============================================================
 print('loading SC_GenCog_PROB_30.mat')
 GrCV = sio.loadmat(baseInPath+'/SC_GenCog_PROB_30.mat')['GrCV']
@@ -121,22 +128,15 @@ tcrange = np.union1d(np.arange(0,34), np.arange(41,75))  # [1:34 42:75]
 C = GrCV[:, tcrange][tcrange, ]
 C = C/np.max(C)*0.2
 print(f'C shape is {C.shape}')
-# print(np.sum(C))
-# indexsub=1:NSUB;
+neuronalModel.setParms({'SC': C})
 
 print('loading DKatlas_noGSR_timeseries.mat')
 ts = sio.loadmat(baseInPath+'/DKatlas_noGSR_timeseries.mat')['ts']
 print(f'ts shape is {ts.shape}')
 
 # ====================== By default, we set up the parameters for the DEFAULT mode:
-# serotonin2A.wgaine = 0.
-# serotonin2A.wgaini = 0.
-# recompileSignatures()
-#
 tc_transf = transformEmpiricalSubjects(ts, tcrange, NSUB)
 print(f'tc_transf shape is {tc_transf[0].shape} for {NSUB} subjects')
-# FCemp_cotsampling = G_optim.processEmpiricalSubjects(tc_transf, distanceSettings, baseOutPath+"fNeuro_emp.mat")
-# FCemp = FCemp_cotsampling['FC']; cotsampling = FCemp_cotsampling['swFCD'].flatten(); GBCemp = FCemp_cotsampling['GBC'];
 
 # ==========================================================================
 # ==========================================================================

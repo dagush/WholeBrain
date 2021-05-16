@@ -8,9 +8,9 @@
 #
 #  Taken from the code (fgain_Neuro.m) from:
 #
-#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
+#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L.
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
-#       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
+#       (2018) Current Biology
 #       https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
 #
 #  Translated to Python & refactoring by Gustavo Patow
@@ -22,7 +22,6 @@
 #  Begin setup...
 # --------------------------------------------------------------------------
 from DecoEtAl2018_Setup import *
-optim1D.neuronalModel = neuronalModel  # Finish setup definition
 # --------------------------------------------------------------------------
 #  End setup...
 # --------------------------------------------------------------------------
@@ -36,7 +35,8 @@ optim1D.neuronalModel = neuronalModel  # Finish setup definition
 # code, G in the paper) to use for further computations (e.g., plotting Figure 3A)
 def prepro_G_Optim():
     # %%%%%%%%%%%%%%% Set General Model Parameters
-    J_fileNames = "Data_Produced/SC90/J_Balance_we{}.mat"
+    outFilePath = 'Data_Produced/SC90'
+    J_fileNames = outFilePath + "/J_Balance_we{}.mat"
 
     distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True)}
 
@@ -49,13 +49,13 @@ def prepro_G_Optim():
     # ------------------------------------------
     BalanceFIC.verbose = True
     balancedParms = BalanceFIC.Balance_AllJ9(C, WEs, baseName=J_fileNames)
+    modelParms = [balancedParms[i] for i in balancedParms]
 
     # Now, optimize all we (G) values: determine optimal G to work with
     print("\n\n###################################################################")
     print("# Compute G_Optim")
     print("###################################################################\n")
-    outFilePath = 'Data_Produced/SC90'
-    fitting = optim1D.distanceForAll_Parms(C, tc_transf_PLA, balancedParms, NumSimSubjects=NumSubjects,
+    fitting = optim1D.distanceForAll_Parms(C, tc_transf_PLA, modelParms, NumSimSubjects=NumSubjects,
                                            distanceSettings=distanceSettings,
                                            Parms=WEs,
                                            parmLabel='we',
@@ -64,7 +64,7 @@ def prepro_G_Optim():
     optimal = {sd: distanceSettings[sd][0].findMinMax(fitting[sd]) for sd in distanceSettings}
     print("Optimal:\n", optimal)
 
-    filePath = 'Data_Produced/DecoEtAl2018_fneuro.mat'
+    filePath = outFilePath + '/DecoEtAl2018_fneuro.mat'
     sio.savemat(filePath, #{'JI': JI})
                 {'we': WEs,
                  'fitting_PLA': fitting['FC'],  # fitting_PLA,

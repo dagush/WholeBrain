@@ -24,54 +24,20 @@
 #  Translated to Python by Gustavo Patow
 # ==========================================================================
 # ==========================================================================
-import numpy as np
-import scipy.io as sio
 from pathlib import Path
-from numba import jit
 import time
 
 # --------------------------------------------------------------------------
 #  Begin setup...
 # --------------------------------------------------------------------------
-import functions.Models.DynamicMeanField as neuronalModel
-import functions.Models.serotonin2A as serotonin2A
-import functions.Integrator_EulerMaruyama as integrator
-# import functions.Integrator_Euler as integrator
-integrator.neuronalModel = neuronalModel
-integrator.verbose = False
-import functions.BOLDHemModel_Stephan2007 as Stephan2007
-import functions.simulate_SimAndBOLD as FCDSimulator
-FCDSimulator.integrator = integrator
-FCDSimulator.BOLDModel = Stephan2007
+from DecoEtAl2018_Setup import *
+
 import functions.simulateFCD as simulateFCD
-simulateFCD.simModel = FCDSimulator
-
-from functions import BalanceFIC
-BalanceFIC.integrator = integrator
-
-# set BOLD filter settings
-import functions.BOLDFilters as filters
-filters.k = 2                             # 2nd order butterworth filter
-filters.flp = .02                         # lowpass frequency of filter
-filters.fhi = 0.1                         # highpass
-
-PLACEBO_cond = 4; LSD_cond = 1   # 1=LSD rest, 4=PLACEBO rest -> The original code used [2, 5] because arrays in Matlab start with 1...
+simulateFCD.integrator = integrator
+simulateFCD.simModel = simulateBOLD
 # --------------------------------------------------------------------------
 #  End setup...
 # --------------------------------------------------------------------------
-
-
-def recompileSignatures():
-    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
-    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    print("\n\nRecompiling signatures!!!")
-    serotonin2A.recompileSignatures()
-    integrator.recompileSignatures()
-
-
-@jit(nopython=True)
-def initRandom():
-    np.random.seed(3)  # originally set to 13
 
 
 def my_hist(x, bin_centers):
@@ -80,48 +46,20 @@ def my_hist(x, bin_centers):
     return [counts, bin_centers]
 
 
-# Load Structural Connectivity Matrix
-print("Loading Data_Raw/all_SC_FC_TC_76_90_116.mat")
-sc90 = sio.loadmat('Data_Raw/all_SC_FC_TC_76_90_116.mat')['sc90']
-C=sc90/np.max(sc90[:])*0.2  # Normalization...
-
-NumSubjects = 15  # Number of Subjects in empirical fMRI dataset
-print("Simulating {} subjects!".format(NumSubjects))
-
-
-# Setup for Serotonin 2A-based DMF simulation!!!
-# ----------------------------------------------
-neuronalModel.He = serotonin2A.phie
-neuronalModel.Hi = serotonin2A.phii
-
-# Load Regional Drug Receptor Map
-print('Loading Data_Raw/mean5HT2A_bindingaal.mat')
-mean5HT2A_aalsymm = sio.loadmat('Data_Raw/mean5HT2A_bindingaal.mat')['mean5HT2A_aalsymm']
-serotonin2A.Receptor = (mean5HT2A_aalsymm[:,0]/np.max(mean5HT2A_aalsymm[:,0])).flatten()
-
-
 # ============================================================================
 # ============= Compute the J values for Balance conditions ==================
 # ============================================================================
 # Define optimal parameters
-neuronalModel.we = 2.1  # Global Coupling parameter, found in the Prepro_DecoEtAl2018* file...
-serotonin2A.wgaini = 0.  # Placebo conditions, to calibrate the J's...
-serotonin2A.wgaine = 0.
 # ==== J is calculated this only once, then saved
-baseName = "Data_Produced/SC90/J_Balance_we{}.mat".format(np.round(neuronalModel.we, decimals=2))
-neuronalModel.J = BalanceFIC.Balance_J9(neuronalModel.we, C, baseName)['J'].flatten()
-integrator.recompileSignatures()
-# if not Path(fileName).is_file():
-#     print("Computing {} !!!".format(fileName))
-#     # recompileSignatures()
-#     J, nodeCount = BalanceFIC.JOptim(C)
-#     neuronalModel.J = J.flatten()  # This is the Feedback Inhibitory Control
-#     sio.savemat(fileName, {'J': neuronalModel.J})  # save J_Balance J
-# else:
-#     print("Loading {} !!!".format(fileName))
-#     # ==== J can be calculated only once and then load J_Balance J
-#     neuronalModel.J = sio.loadmat(fileName)['J'].flatten()
-
+baseName = "Data_Produced/SC90/J_Balance_we2.1.mat"
+balancedG = BalanceFIC.Balance_J9(2.1, C, False, baseName)
+balancedG['J'] = balancedG['J'].flatten()
+balancedG['we'] = balancedG['we'].flatten()
+serotonin2A.setParms(balancedG)
+# serotonin2A.wgaini = 0.  # Placebo conditions, to calibrate the J's...
+# serotonin2A.wgaine = 0.
+serotonin2A.setParms({'S_E':0., 'S_I':0.})
+recompileSignatures()
 
 initRandom()
 
@@ -129,41 +67,45 @@ initRandom()
 # ============================================================================
 # ============= Simulate Placebo =============================================
 # ============================================================================
-if True: #not Path("FCD_values_placebo.mat").is_file():
+pla_path = 'Data_Produced/SC90/FCD_values_placebo.mat'
+if not Path(pla_path).is_file():
     # SIMULATION OF OPTIMAL PLACEBO
     print("\n\nSIMULATION OF OPTIMAL PLACEBO")
-    serotonin2A.wgaini = 0.
-    serotonin2A.wgaine = 0.  # 0 for placebo, 0.2 for LSD
+    # serotonin2A.wgaini = 0.
+    # serotonin2A.wgaine = 0.  # 0 for placebo, 0.2 for LSD
+    serotonin2A.setParms({'S_E':0., 'S_I':0.})
     recompileSignatures()
 
     start_time = time.clock()
     cotsampling_pla_s = simulateFCD.simulate(NumSubjects, C)
     print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
 
-    sio.savemat('Data_Produced/FCD_values_placebo.mat', {'cotsampling_pla_s': cotsampling_pla_s})  # save FCD_values_placebo cotsampling_pla_s
+    sio.savemat(pla_path, {'cotsampling_pla_s': cotsampling_pla_s})  # save FCD_values_placebo cotsampling_pla_s
 else:
     print("LOADING OPTIMAL PLACEBO")
-    cotsampling_pla_s = sio.loadmat('Data_Produced/FCD_values_placebo.mat')['cotsampling_pla_s']
+    cotsampling_pla_s = sio.loadmat(pla_path)['cotsampling_pla_s']
 
 
 # ============================================================================
 # ============= Simulate LSD =================================================
 # ============================================================================
-if True: #not Path("Data_Produced/FCD_values_lsd.mat").is_file():
+lsd_path = 'Data_Produced/SC90/FCD_values_lsd.mat'
+if True: #not Path(lsd_path).is_file():
     # SIMULATION OF OPTIMAL LSD fit
     print("\n\nSIMULATION OF OPTIMAL LSD fit ")
-    serotonin2A.wgaini = 0.
-    serotonin2A.wgaine = 0.2  # 0 for placebo, 0.2 for LSD
+    # serotonin2A.wgaini = 0.
+    # serotonin2A.wgaine = 0.2  # 0 for placebo, 0.2 for LSD
+    serotonin2A.setParms({'S_E':0.2, 'S_I':0.})
     recompileSignatures()
 
     start_time = time.clock()
     cotsampling_lsd_s = simulateFCD.simulate(NumSubjects, C)
     print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
 
-    sio.savemat('Data_Produced/FCD_values_lsd.mat', {'cotsampling_lsd_s': cotsampling_lsd_s})  # save FCD_values_lsd cotsampling_lsd_s
+    sio.savemat(lsd_path, {'cotsampling_lsd_s': cotsampling_lsd_s})  # save FCD_values_lsd cotsampling_lsd_s
 else:
     print("LOADING OPTIMAL LSD fit")
-    cotsampling_lsd_s = sio.loadmat('Data_Produced/FCD_values_lsd.mat')['cotsampling_lsd_s']
+    cotsampling_lsd_s = sio.loadmat(lsd_path)['cotsampling_lsd_s']
 
 # ============================================================================
 # Plot
@@ -181,7 +123,6 @@ plt.ylabel('Count')
 plt.legend(handles=[plaBar, lsdBar], loc='upper right')
 plt.title('Simulated data')
 plt.show()
-
 
 # ================================================================================================================
 # ================================================================================================================

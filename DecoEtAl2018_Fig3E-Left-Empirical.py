@@ -21,7 +21,7 @@
 # ==========================================================================
 import numpy as np
 import scipy.io as sio
-import functions.swFCD as FCD
+import functions.Observables.swFCD as FCD
 
 
 # set BOLD filter settings
