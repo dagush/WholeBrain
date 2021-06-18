@@ -6,16 +6,18 @@
 
 import numpy as np
 import scipy.io as sio
+import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from functions.Utils.decorators import loadOrCompute
 
 # 	Fitting routines for ignition
-sigfunc = lambda A,x : A(0) / (1 + np.exp(-A(1)*(x-A(2)))) + A(3)  # sigfunc = @(A, x)(A(1) ./ (1 + exp(-A(2)*(x-A(3)))) + A(4))
+sigfunc = lambda x,A0,A1,A2,A3 : A0 / (1 + np.exp(-A1*(x-A2))) + A3  # sigfunc = @(A, x)(A(1) ./ (1 + exp(-A(2)*(x-A(3)))) + A(4))
+plotting = False
 
 
 # We measure the evoked responses at the level of population firing rates rather than simulated
 # BOLD signal changes to have direct access to the millisecond timescale. To quantify the
-# effect of occipital stimulation on activity in each of the other 67 brain regions, we plot, for
+# effect of occipital stimulation on activity in each of the other 66 brain regions, we plot, for
 # each non-stimulated region, how its population firing rate changes as a function of occipital
 # stimulation intensity. Two quantities are relevant here: (1) the maximum firing rate achieved
 # at the highest stimulation intensity, r_{max}; and (2) the speed with which the firing rate
@@ -32,7 +34,6 @@ def ignition(PERTURB, neuro_act_all, SEED):
     # ============================================================================
     # Parameters that were used in the simulation.
     nPerturbs, T, N = neuro_act_all.shape  # N = 68
-    # tseed=1:N;
     # SEED=10;
 
     peakrate2 = np.zeros((PERTURB.size, N))
@@ -56,76 +57,114 @@ def ignition(PERTURB, neuro_act_all, SEED):
     # 	options=optimset('MaxFunEvals',10000,'MaxIter',1000,'Display','off');
 
     peakrate1 = np.mean(peakrate2[-10, :])
+
+    ignition1 = np.zeros(N)
+    ignition1a = np.zeros(N)
+    ignition1b = np.zeros(N)
     # nntarget = 1
+    if plotting:
+        plt.rcParams.update({'font.size': 8})
+        fig = plt.figure()
+        fig.subplots_adjust(hspace=1.0, wspace=0.8)
+        fig.suptitle(f"Ignition (region {SEED})")
     # figure('color','white');
     for ntarget in range(N):
-        A0 = np.array([np.mean(peakrate2[-10:,ntarget])-np.mean(peakrate2[0:9,ntarget]), 10,  0.1, np.mean(peakrate2[0:9,ntarget])])
+        a00 = np.abs(np.mean(peakrate2[-10:,ntarget])-np.mean(peakrate2[0:9,ntarget]))
+        A0 = np.array([a00,
+                       10,
+                       0.1,
+                       np.mean(peakrate2[0:9,ntarget])])
         # starts at x0 and finds coefficients x to best fit the nonlinear function sigfun(x,PERTURB)
         # to the data peakrate2 (in the least-squares sense). peakrate2 must be the same size as the
         # vector (or matrix) F returned by sigfun.
-        Afit = curve_fit(sigfunc,PERTURB,peakrate2[:, ntarget].T, p0=A0,
-                         bounds = ([0, 0, -1, 0],[100, 100, 1, 10*np.mean(peakrate2[0:9,ntarget])]),  # Lower & Upper bounds
-                         method='trf',)  # lsqcurvefit
+        Afit = curve_fit(sigfunc,  # f: callable
+                         PERTURB, peakrate2[:, ntarget].T,  # xdata (The independent variable), ydata (The dependent data)
+                         p0=A0,  # Initial guess for the parameters (length N).
+                         bounds=([0, 0, -1, 0],
+                                 [100, 100, 1, 10*np.mean(peakrate2[0:9,ntarget])]),  # Lower & Upper bounds
+                         method='trf', maxfev=50000)  # lsqcurvefit
         # Just a little part here to sample the fitted regime to a different level (the normalization level is always for above)
-        yfit = Afit(0) / (1 + np.exp(-Afit(1)*(PERTURB_sample-Afit(2))))+Afit(3)
-        yfit2 = sigfunc(Afit, PERTURB_sample)
-        # if(ntarget<35)
-        #     subplot(6,6,ntarget)
-        #     plot(PERTURB,(peakrate2(:,ntarget))','.');hold on;plot(PERTURB_sample,yfit)
-        #     title(['Region: ',num2str(ntarget)])
-        #     xlabel('$\rho$','Interpreter','LaTeX');ylabel('$r^E_{max}/ r^E_{rest}$','Interpreter','LaTeX');
-        #     legend({'Data','fit'})
+        AValues = Afit[0]
+        yfit = sigfunc(PERTURB_sample, *AValues)  # AValues[0] / (1 + np.exp(-AValues[1]*(PERTURB_sample-AValues[2])))+AValues[3]
+
+        if plotting:
+            if ntarget+1 < 35:
+                ax = fig.add_subplot(6,6,ntarget+1)
+                points = ax.plot(PERTURB, peakrate2[:,ntarget], '.')[0]
+                lines = ax.plot(PERTURB_sample, yfit)[0]
+                ax.set_title(f'Region: {ntarget+1}')
+                ax.set_xlabel(r'$\rho$')
+                ax.set_ylabel(r'$r^E_{max}/ r^E_{rest}$')
+                # ax.legend()
 
         # Calculating ignition and remembering to divide by the sampling rate (it should really just
         # be "grad" to make it easier...)
-        ignition1[ntarget] = np.max(np.diff(np.diff(yfit/0.001)/0.001))*yfit[-1]/1000
-        ignition1a[nntarget] = yfit[-1]/1000
-        ignition1b[nntarget] = np.max(np.diff(np.diff(yfit/0.001)/0.001))
+        ignition1[ntarget] = np.max(np.diff(np.diff(yfit/0.001)/0.001)) * yfit[-1]/1000
+        ignition1a[ntarget] = yfit[-1]/1000
+        ignition1b[ntarget] = np.max(np.diff(np.diff(yfit/0.001)/0.001))
         # nntarget=nntarget+1;
     # end for ntarget in range(N)
 
+    if plotting:
+        # ax = fig.add_subplot(6,6,36)
+        fig.legend([points, lines],
+                  labels=['data', 'fit'],
+                  loc="lower right")
+        plt.show()
+
+    # Here we are looking at the SEED 10, and its contralateral component and zeroing it out
+    ignition1[SEED] = 0
+    ignition1[SEED+int(N/2)] = 0
+
+    Ignition2 = np.mean(ignition1[ignition1 > np.mean(ignition1)+np.std(ignition1)])
+    Excitability2 = np.mean(peakrate1)
+
     print("Done!!!")
 
-    #
-    #     % Here we are looking at the SEED 10, and its contralateral component and zeroing it out
-    #     ignition1(SEED)=0;
-    #     ignition1(SEED+N/2)=0;
-    #
-    #     Ignition2=mean(ignition1(find(ignition1>mean(ignition1)+std(ignition1))));
-    #     Excitability2=mean(peakrate1);
-    #
-    #
-    #     % Now here we want to calculate the decay using a nonlinear fit
-    #     kk=size(neuro_act_all,3);
-    #     % Using the last point (the point of greatest stimulation)
-    #     sr = 20*1e-3;
-    # 	time_vector=120:350;
-    # 	time = 0:sr:(length(time_vector)-1)*sr;
-    # 	whole_time=0:sr:(350-1)*sr;
-    #
-    # 	% Using a nonlinear decay function instead
-    # 	s = fitoptions('Method','NonlinearLeastSquares','StartPoint',[1 0.5 3]);
-    # 	f = fittype('A*(exp(-x*D)+B)','options',s);
-    # 	new_time=linspace(whole_time(1),whole_time(end),1000);
-    # 	stim_vector = perturb*0.5*(sign(new_time-3) - sign(new_time-4));
-    #
-    #
-    # 	neuro_actf=neuro_act_all(:,:,kk);
+    # Now here we want to calculate the decay using a nonlinear fit
+    kk = neuro_act_all.shape[2]
+    # Using the last point (the point of greatest stimulation)
+    sr = 20*1e-3
+    time_vector = np.arange(120, 350)
+    time = np.arange(0, (time_vector.size-1)*sr, sr)
+    whole_time = np.arange(0, (350-1)*sr, sr)
+
+    # Using a nonlinear decay function instead
+    expfunc = lambda x, A, B, D: A*(np.exp(-x*D)+B)
+    # s = fitoptions('Method','NonlinearLeastSquares','StartPoint',[1 0.5 3])
+    # f = fittype('A*(exp(-x*D)+B)','options',s)
+    new_time = np.linspace(whole_time[0], whole_time[-1], 1000)
+    perturb = 0.2
+    stim_vector = perturb * 0.5 * (np.sign(new_time-3) - np.sign(new_time-4))
+
+    recalcuated_decay = np.zeros((N,3))
+    neuro_actf = neuro_act_all[:,:,kk]
+    tseed = np.arange(1,N)
     # 	ssnum=1;
-    #     for ss=tseed
-    #         decayneuro=squeeze(neuro_actf(201:end,ss));
-    #     	tscale=0:sr:(length(decayneuro)-1)*sr;
-    #     	[c, gof] = fit(tscale(1:length(decayneuro))',decayneuro,f);
-    #     	recalcuated_decay(ss)=c.D;
-    #     	ssnum=ssnum+1;
-    #     	% figure;
-    # 	    % plot(tscale(1:length(decayneuro)),(decayneuro'))
-    # 	    % hold on;
-    # 	    % plot(tscale(1:length(decayneuro)),f(c.A,c.B,c.D,tscale(1:length(decayneuro))))
-    # 	    % plot(tscale(1:length(decayneuro)),exp(polyval(bdecay,tscale(1:length(decayneuro)))));
-    # 	    % legend({'\phi(t)','fitNew','fitOLD'});
+    for ssnum, ss in enumerate(tseed):
+        decayneuro = np.squeeze(neuro_actf[201:, ss])
+        tscale = np.arange(0, (decayneuro.size-1)*sr, sr)
+
+        cfit = curve_fit(expfunc,  # f: callable
+                         tscale[0:decayneuro.size].T, decayneuro,  # xdata (The independent variable), ydata (The dependent data)
+                         p0=np.array([1, 0.5, 3]),  # Initial guess for the parameters (length N).
+                         # bounds=([0, 0, -1, 0],
+                         #         [100, 100, 1, 10*np.mean(peakrate2[0:9,ntarget])]),  # Lower & Upper bounds
+                         method='lm', maxfev=50000)  # [c, gof] = fit(,decayneuro,f)
+        # Just a little part here to sample the fitted regime to a different level (the normalization level is always for above)
+        AValues = cfit[0]
+
+        recalcuated_decay[ss] = AValues  #c.D
+        # ssnum=ssnum+1;
+        # % figure;
+        # % plot(tscale(1:length(decayneuro)),(decayneuro'))
+        # % hold on;
+        # % plot(tscale(1:length(decayneuro)),f(c.A,c.B,c.D,tscale(1:length(decayneuro))))
+        # % plot(tscale(1:length(decayneuro)),exp(polyval(bdecay,tscale(1:length(decayneuro)))));
+        # % legend({'\phi(t)','fitNew','fitOLD'});
     #     end
     # end
+    return Ignition2, Excitability2, ignition1, ignition1a, recalcuated_decay
 
 
 def setupStimulation(seed, perturb):
@@ -142,7 +181,7 @@ def setupStimulation(seed, perturb):
 def simulateTrials(numTrials, N, PERTURB, seed):
     neuro_act = np.zeros((numTrials, Tmaxneuronal+1, N))
     neuro_actf = np.zeros((int(Tmaxneuronal/20), N))
-    neuro_act_all = np.zeros((PERTURB.size, int(Tmaxneuronal/20), N))
+    neuro_act_all = np.zeros((PERTURB.size, int(Tmaxneuronal/20.), N))
 
     for ppos, pval in enumerate(PERTURB):
         print(f"simulating PERTURB: {pval}/{PERTURB[-1]}")
@@ -152,9 +191,9 @@ def simulateTrials(numTrials, N, PERTURB, seed):
             currObsVars = integrator.simulate(dt, Tmaxneuronal)
             neuro_act[i] = currObsVars[:, 1, :]  # curr_rn
 
-        neuro_act1 = np.squeeze(np.mean(neuro_act[1:numTrials, :, :], 0))
+        neuro_act1 = np.squeeze(np.mean(neuro_act, axis=0))
         for ntwi, twi in enumerate(np.arange(0, Tmaxneuronal-20, 20)):
-            neuro_actf[ntwi, :] = np.mean(neuro_act1[twi:twi+20, :])
+            neuro_actf[ntwi, :] = np.mean(neuro_act1[twi:twi+20, :], axis=0)
 
         neuro_act_all[ppos] = neuro_actf
 
@@ -162,8 +201,8 @@ def simulateTrials(numTrials, N, PERTURB, seed):
 
 
 if __name__ == '__main__':
-    inDataPath = "../../Data_Raw/DecoEtAl2021/"
-    outDataPath = "../../Data_Produced/DecoEtAl2021/"
+    inDataPath = "../../Data_Raw/DecoEtAl2020/"
+    outDataPath = "../../Data_Produced/DecoEtAl2020/"
 
     # --------------------------------------------------------------------------
     #  Begin setup...
@@ -236,12 +275,13 @@ if __name__ == '__main__':
     import functions.Stimuli.singleAreaStimulation as stim
     # SEED = np.array([4, 10, 12, 20])
     SEED = np.array([10])  # only 1 for debug
-    # PERTURB = np.arange(0., 0.2, 0.001)
-    PERTURB = np.array([0.1])  # only 1 for debug
+    PERTURB = np.arange(0., 0.2, 0.001)
+    # PERTURB = np.arange(0., 0.2, 0.05)  # just a few, for debug
 
-    numTrials = 500
+    numTrials = 20  # 500
     for s in SEED:
         outFileName = outDataPath + f'neuro_act_all-we{we}-seed{s}-trials{numTrials}.mat'
+        print(f"computing {outFileName} at seed {s}")
         neuro_act = simulateTrials(numTrials, N, PERTURB, s, outFileName)["neuro_act"]
         ignition(PERTURB, neuro_act, s)
 
