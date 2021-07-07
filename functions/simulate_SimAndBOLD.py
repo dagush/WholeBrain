@@ -36,8 +36,8 @@ def recomputeTmaxneuronal():  # if we need a different Tmax or TR or any other v
 # simulates the neuronal activity + BOLD for one subject
 # ============================================================================
 warmUpFactor = 10.
-def computeSubjectSimulation(C, N, warmup):
-    integrator.neuronalModel.SC = C
+def computeSubjectSimulation(warmup):
+    # integrator.neuronalModel.SC = C
     # integrator.initBookkeeping(N, Tmaxneuronal)
     if warmup:
         currObsVars = integrator.warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp=Tmaxneuronal/warmUpFactor)
@@ -69,9 +69,9 @@ def computeSubjectBOLD(neuro_act, areasToSimulate=None):
     return bds
 
 
-def simulateSingleSubject(C, warmup=False):
-    N=C.shape[0]
-    neuro_act = computeSubjectSimulation(C, N, warmup)
+def simulateSingleSubject(warmup=False):
+    # N=C.shape[0]
+    neuro_act = computeSubjectSimulation(warmup)
     bds = computeSubjectBOLD(neuro_act)
     return bds
 

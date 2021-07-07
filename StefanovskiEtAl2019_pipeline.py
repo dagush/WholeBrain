@@ -3,7 +3,8 @@
 # [StefanovskiEtAl2019] Stefanovski, L., P. Triebkorn, A. Spiegler, M.-A. Diaz-Cortes, A. Solodkin, V. Jirsa,
 #           R. McIntosh and P. Ritter; for the Alzheimer's disease Neuromigang Initiative (2019).
 #           "Linking molecular pathways and large-scale computational modeling to assess candidate
-#           disease mechanisms and pharmacodynamics in Alzheimer's disease." bioRxiv: 600205.
+#           disease mechanisms and pharmacodynamics in Alzheimer's disease."
+#           Front. Comput. Neurosci., 13 August 2019 | https://doi.org/10.3389/fncom.2019.00054
 # Taken from the code at:
 #           https://github.com/BrainModes/TVB_EducaseAD_molecular_pathways_TVB/blob/master/Educase_AD_study-LS-Surrogate.ipynb
 #

@@ -100,7 +100,7 @@ initRandom()
 print("Loading Data_Raw/all_SC_FC_TC_76_90_116.mat")
 sc90 = sio.loadmat('Data_Raw/all_SC_FC_TC_76_90_116.mat')['sc90']
 C = sc90/np.max(sc90[:])*0.2  # Normalization...
-serotonin2A.setParms({'SC': C})
+serotonin2A.setParms({'SC': C})  # Set the model with the SC
 
 # Load Regional Drug Receptor Map
 print('Loading Data_Raw/mean5HT2A_bindingaal.mat')

@@ -96,7 +96,7 @@ def getParm(parmList):
         return alpha
     if 'beta' in parmList:
         return beta
-    return DMF.getParms(parmList)
+    return DMF.getParm(parmList)
 
 
 # ----------------- Call the Dynamic Mean Field (a.k.a., reducedWongWang) ----------------------

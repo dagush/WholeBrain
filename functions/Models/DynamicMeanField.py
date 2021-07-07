@@ -117,6 +117,8 @@ def getParm(parmList):
         return be
     if 'ae' in parmList:
         return ae
+    if 'SC' in parmList:
+        return SC
     return None
 
 

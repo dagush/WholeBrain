@@ -37,8 +37,8 @@ def recomputeTmaxneuronal():  # if we need a different Tmax or TR or any other v
 # Calls the integrator to integrate with dt up to Tmaxneuronal sample points.
 # =======================================================================================
 warmUpFactor = 10.
-def computeSubjectSimulation(C, N, warmup):
-    integrator.neuronalModel.SC = C
+def computeSubjectSimulation(warmup):
+    # integrator.neuronalModel.SC = C
     # integrator.initBookkeeping(N, Tmaxneuronal)
     if warmup:
         currObsVars = integrator.warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp=Tmaxneuronal/warmUpFactor)
@@ -53,9 +53,9 @@ def computeSubjectSimulation(C, N, warmup):
 # Calls the function to simulate the neuronal activity directly for one subject,
 # then SUBSAMPLE it (at rate TR/dtt) for BOLD computations
 # =======================================================================================
-def simulateSingleSubject(C, warmup=False):
-    N=C.shape[0]
-    BOLD_act = computeSubjectSimulation(C, N, warmup)
+def simulateSingleSubject(warmup=False):
+    # N=C.shape[0]
+    BOLD_act = computeSubjectSimulation(warmup)
     # now, (sub)sample the BOLD signal to obtain the final fMRI signal
     n_min = int(np.round(t_min / dtt))
     step = int(np.round(TR/dtt))

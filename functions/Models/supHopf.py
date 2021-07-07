@@ -39,6 +39,7 @@ def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     dfun.recompile()
+    # pass
 
 # ==========================================================================
 # supercritical Hopf bifurcation Constants
@@ -72,8 +73,19 @@ def numObsVars():  # Returns the number of observation vars used, here xn and rn
 # --------------------------------------------------------------------------
 # Set the parameters for this model
 def setParms(modelParms):
-    global G
-    G = modelParms['we']
+    global G, SC, a
+    if 'we' in modelParms:
+        G = modelParms['we']
+    if 'SC' in modelParms:
+        SC = modelParms['SC']
+    if 'a' in modelParms:
+        a = modelParms['a']
+
+
+def getParm(parmList):
+    if 'we' in parmList:
+        return G
+    return None
 
 
 # ----------------- supercritical Hopf bifurcation model ----------------------
@@ -92,48 +104,6 @@ def dfun(simVars, p):  # p is the stimulus...?
     dx = (a - x**2 - y**2) * x - omega * y + G * xcoup + noiseX
     dy = (a - x**2 - y**2) * y + omega * x + G * ycoup + noiseY
     return np.stack((dx, dy)), np.stack((x, y))
-
-# From a chat with Gus...
-# a=-0.02*ones(N,2)+scale*repmat(ratio,1,2).*ones(N,2);
-# a=a-repmat(nanmean(a),N,1)-0.02*ones(N,2);
-# a=a+bias;
-
-# # ==========================================================================
-# # ==========================================================================
-# # ==========================================================================
-# # Bookkeeping variables of interest...
-# # --------------------------------------------------------------------------
-# curr_x = None
-# curr_y = None
-# nn = 0
-#
-#
-# def initBookkeeping(N, tmax):
-#     global curr_x, curr_y, nn
-#     curr_x = np.zeros((int(tmax/ds), N))
-#     curr_y = np.zeros((int(tmax/ds), N))
-#     nn = 0
-#
-#
-# def resetBookkeeping():
-#     global nn
-#     nn = 0
-#
-#
-# ds = 1  # downsampling stepsize
-# def recordBookkeeping(t):
-#     global curr_x, curr_y, nn
-#     t2 = int(t * 100000)
-#     ds2 = int(ds * 100000)
-#     if np.mod(t2, ds2) == 0:
-#         # print(t,ds,nn)
-#         curr_x[nn] = x
-#         curr_y[nn] = y
-#         nn = nn + 1
-#
-#
-# def returnBookkeeping():
-#     return curr_x, curr_y
 
 
 # ==========================================================================

@@ -33,7 +33,7 @@ from DecoEtAl2018_Setup import *
 # IMPORTANT: This function was created to reproduce Deco et al.'s 2018 code for Figure 3B.
 # Actually, this only performs the fitting which gives the value of S_E (wge in the original
 # code) to use for further computations (e.g., plotting Figure 3B)
-def fitting_ModelParms(C, tc_transf, suffix):
+def fitting_ModelParms(tc_transf, suffix):
     # %%%%%%%%%%%%%%% Set General Model Parameters
     # neuronalModel.setParm({'we':2.1})  # Global Coupling parameter, found in the DecoEtAl2018_Prepro_* file...
     J_fileName = "Data_Produced/SC90/J_Balance_we2.1.mat"  # "Data_Produced/SC90/J_test_we{}.mat"
@@ -57,9 +57,8 @@ def fitting_ModelParms(C, tc_transf, suffix):
 
     basePath = "Data_Produced/SC90"  # "/fitting_S_E{}.mat"
 
-    fitting = optim1D.distanceForAll_Parms(C, tc_transf, serotoninParms, NumSimSubjects=NumSubjects,
+    fitting = optim1D.distanceForAll_Parms(tc_transf, S_Es, serotoninParms, NumSimSubjects=NumSubjects,
                                            distanceSettings=distanceSettings,
-                                           Parms=S_Es,
                                            parmLabel='S_E',
                                            outFilePath=basePath,
                                            fileNameSuffix=suffix)
@@ -75,10 +74,10 @@ def fitting_ModelParms(C, tc_transf, suffix):
 
 if __name__ == '__main__':
     # ======================== first, Placebo condition
-    fitting_ModelParms(C, tc_transf_PLA, '_PLA')
+    fitting_ModelParms(tc_transf_PLA, '_PLA')
 
     # ======================== Second, LSD condition
-    fitting_ModelParms(C, tc_transf_LSD, '_LSD')
+    fitting_ModelParms(tc_transf_LSD, '_LSD')
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================EOF

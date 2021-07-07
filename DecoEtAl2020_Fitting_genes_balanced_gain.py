@@ -62,9 +62,8 @@ def Fitting():
     print("\n\n###################################################################")
     print("# Fitting (B,Z)")
     print("###################################################################\n")
-    fitting = optim1D.distanceForAll_Parms(C, tc_transf, gridParms, NumSimSubjects=NumTrials,
+    fitting = optim1D.distanceForAll_Parms(tc_transf, grid, gridParms, NumSimSubjects=NumTrials,
                                            distanceSettings=distanceSettings,
-                                           Parms=grid,
                                            parmLabel='BZ',
                                            outFilePath=baseOutPath)
 

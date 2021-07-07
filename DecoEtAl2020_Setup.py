@@ -128,7 +128,7 @@ tcrange = np.union1d(np.arange(0,34), np.arange(41,75))  # [1:34 42:75]
 C = GrCV[:, tcrange][tcrange, ]
 C = C/np.max(C)*0.2
 print(f'C shape is {C.shape}')
-neuronalModel.setParms({'SC': C})
+neuronalModel.setParms({'SC': C})  # Set the neuronal model with the SC
 
 print('loading DKatlas_noGSR_timeseries.mat')
 ts = sio.loadmat(baseInPath+'/DKatlas_noGSR_timeseries.mat')['ts']

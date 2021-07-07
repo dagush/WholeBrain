@@ -43,7 +43,7 @@ def cleanDict(resData):
 # loadOrCompute decorator:
 # useful for not creating lengthy numpy calculations. It "eats" the last parameter of the arguments passed on,
 # which should be a string. Using this decorator forces that the return value of the decorated function is a
-# dictionary of {name: value} pairts, so when the computation was done before and the file exists and is
+# dictionary of {name: value} pairs, so when the computation was done before and the file exists and is
 # loaded we could directly return the Matlab file contents directly. It uses the .mat file format for all
 # operations.
 def loadOrCompute(func):
@@ -56,7 +56,7 @@ def loadOrCompute(func):
             sio.savemat(args[-1], result)
         else:
             if verbose: print(f"Loading file (@loadOrCompute): {args[-1]} !!!", flush=True)
-            result = cleanDict(sio.loadmat(args[-1]))
+            result = cleanDict(sio.loadmat(args[-1], squeeze_me=True))
         return result
     return loading_decorator
 
@@ -82,7 +82,7 @@ def loadSingleCache(filePath, useDecimals=3):
     decimals = useDecimals
     if Path(filePath).is_file():
         print('Cache decorator: loading cache:', filePath)
-        loaded = sio.loadmat(filePath)
+        loaded = sio.loadmat(filePath, squeeze_me=True)
         for key, value in loaded.items():
             if key not in ['__header__', '__version__', '__globals__']:
                 realKey = tuple(np.round(np.asarray(eval(key)), decimals).tolist())

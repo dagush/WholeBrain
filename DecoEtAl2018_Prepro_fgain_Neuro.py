@@ -55,9 +55,8 @@ def prepro_G_Optim():
     print("\n\n###################################################################")
     print("# Compute G_Optim")
     print("###################################################################\n")
-    fitting = optim1D.distanceForAll_Parms(C, tc_transf_PLA, modelParms, NumSimSubjects=NumSubjects,
+    fitting = optim1D.distanceForAll_Parms(tc_transf_PLA, WEs, modelParms, NumSimSubjects=NumSubjects,
                                            distanceSettings=distanceSettings,
-                                           Parms=WEs,
                                            parmLabel='we',
                                            outFilePath=outFilePath, fileNameSuffix='')
 

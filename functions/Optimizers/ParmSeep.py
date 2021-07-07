@@ -23,6 +23,7 @@ import scipy.io as sio
 from functions.Utils.decorators import loadOrCompute
 import time
 
+from functions.Optimizers.preprocessSignal import processBOLDSignals, processEmpiricalSubjects
 verbose = True
 
 # --------------------------------------------------------------------------
@@ -30,49 +31,9 @@ verbose = True
 # --------------------------------------------------------------------------
 integrator = None
 simulateBOLD = None
-
 # --------------------------------------------------------------------------
 #  End setup...
 # --------------------------------------------------------------------------
-
-
-def processBOLDSignals(BOLDsignals, distanceSettings):
-    # Process the BOLD signals
-    # BOLDSignals is a dictionary of subjects {subjectName: subjectBOLDSignal}
-    # distanceSettings is a dictionary of {distanceMeasureName: distanceMeasurePythonModule}
-    NumSubjects = len(BOLDsignals)
-    N = BOLDsignals[next(iter(BOLDsignals))].shape[0]  # get the first key to retrieve the value of N = number of areas
-
-    # First, let's create a data structure for the distance measurement operations...
-    measureValues = {}
-    for ds in distanceSettings:  # Initialize data structs for each distance measure
-        measureValues[ds] = distanceSettings[ds][0].init(NumSubjects, N)
-
-    # Loop over subjects
-    for pos, s in enumerate(BOLDsignals):
-        if verbose: print('   BOLD {}/{} Subject: {} ({}x{})'.format(pos+1, NumSubjects, s, BOLDsignals[s].shape[0], BOLDsignals[s].shape[1]), end='', flush=True)
-        signal = BOLDsignals[s]  # LR_version_symm(tc[s])
-        start_time = time.clock()
-
-        for ds in distanceSettings:  # Now, let's compute each measure and store the results
-            measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
-            applyFilters = distanceSettings[ds][1]  # whether we apply filters or not...
-            procSignal = measure.from_fMRI(signal, applyFilters=applyFilters)
-            measureValues[ds] = measure.accumulate(measureValues[ds], pos, procSignal)
-
-        if verbose: print(" -> computed in {} seconds".format(time.clock() - start_time))
-
-    for ds in distanceSettings:  # finish computing each distance measure
-        measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
-        measureValues[ds] = measure.postprocess(measureValues[ds])
-
-    return measureValues
-
-
-# ============== a practical way to save recomputing necessary (but lengthy) results ==========
-@loadOrCompute
-def processEmpiricalSubjects(BOLDsignals, distanceSettings):
-    return processBOLDSignals(BOLDsignals, distanceSettings)
 
 
 # ==========================================================================
@@ -80,7 +41,7 @@ def processEmpiricalSubjects(BOLDsignals, distanceSettings):
 # ==========================================================================
 # ---- convenience method, to parallelize the code (someday)
 @loadOrCompute
-def distanceForOne_Parm(currValue, C, modelParms, NumSimSubjects,
+def distanceForOne_Parm(currValue, modelParms, NumSimSubjects,
                         distanceSettings, label):  # distanceSettings is a dictionary of {name: (distance module, apply filters bool)}
     integrator.neuronalModel.setParms(modelParms)
     integrator.neuronalModel.recompileSignatures()  # just in case the integrator.neuronalModel != neuronalModel here... ;-)
@@ -88,26 +49,26 @@ def distanceForOne_Parm(currValue, C, modelParms, NumSimSubjects,
 
     print(f"   --- BEGIN TIME @ {label}={currValue} ---")
     simulatedBOLDs = {}
-    start_time = time.clock()
+    start_time = time.perf_counter()
     for nsub in range(NumSimSubjects):  # trials. Originally it was 20.
         print(f"   Simulating {label}={currValue} -> subject {nsub}/{NumSimSubjects}!!!")
-        bds = simulateBOLD.simulateSingleSubject(C, warmup=False).T
+        bds = simulateBOLD.simulateSingleSubject(warmup=False).T
         simulatedBOLDs[nsub] = bds
 
     dist = processBOLDSignals(simulatedBOLDs, distanceSettings)
     dist[label] = currValue
-    print("   --- TOTAL TIME: {} seconds ---".format(time.clock() - start_time))
+    print("   --- TOTAL TIME: {} seconds ---".format(time.perf_counter() - start_time))
     return dist
 
 
-def distanceForAll_Parms(C, tc, modelParms, NumSimSubjects,
-                         distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
+def distanceForAll_Parms(tc,
                          Parms,  # wStart=0.0, wEnd=6.0, wStep=0.05,
+                         modelParms, NumSimSubjects,
+                         distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
                          parmLabel='',
                          outFilePath=None,
                          fileNameSuffix=''):
     print("\n\n*************** Starting: optim1D.distanceForAll_Parms *****************\n\n")
-    integrator.neuronalModel.setParms({'SC':C})
     if verbose:
         import functions.Utils.decorators as deco
         deco.verbose = True
@@ -129,7 +90,7 @@ def distanceForAll_Parms(C, tc, modelParms, NumSimSubjects,
     for pos, parm in enumerate(np.nditer(Parms)):  # iteration over the values for G (we in this code)
         # ---- Perform the simulation of NumSimSubjects ----
         outFileNamePattern = outFilePath + '/fitting_'+parmLabel+'{}'+fileNameSuffix+'.mat'
-        simMeasures = distanceForOne_Parm(parm, C, modelParms[pos], NumSimSubjects,
+        simMeasures = distanceForOne_Parm(parm, modelParms[pos], NumSimSubjects,
                                           distanceSettings, parmLabel,
                                           outFileNamePattern.format(np.round(parm, decimals=3)))
 

@@ -201,32 +201,13 @@ def Balance_AllJ9(C, WEs,  # wStart=0, wEnd=6+0.001, wStep=0.05,
                   baseName=None,
                   parallel=False):
     # all tested global couplings (G in the paper):
-    # wes = np.arange(wStart + wStep,
-    #                 wEnd,
-    #                 wStep)  # .05:0.05:2; #.05:0.05:4.5; # warning: the range of wes depends on the conectome.
-    # numW = wes.size  # length(wes);
-    integrator.neuronalModel.setParms({'SC': C})
+    # integrator.neuronalModel.setParms({'SC': C})
     N = C.shape[0]
     result = {}
     # if not parallel:
     for we in WEs:  # iterate over the weight range (G in the paper, we here)
         balance = Balance_J9(we, N, baseName.format(np.round(we, decimals=2)))['J'].flatten()
         result[we] = {'we': we, 'J': balance}
-    # else:
-    #     # # G, Ji, t, d = optimize_fic(model, 5.6, white_matter, white_matter_coupling)
-    #     # cpu_count = mp.cpu_count()
-    #     # pool = mp.Pool(cpu_count)
-    #     # print('Using {} processes'.format(cpu_count))
-    #     #
-    #     # # Step 2: `pool.apply` the `howmany_within_range()`
-    #     # # Fix this: now Balance_J9 is wrapped !!!!!!  <- build a new unwrapped version
-    #     # # results_fic = pool.starmap(Balance_J9, [(we, C, baseName) for we in wes])
-    #     #
-    #     # # Step 3: Don't forget to close
-    #     # pool.close()
-    #     # # x_fic = [r[0] for r in results_fic]
-    #     # # y_fic = [np.max(r[3][-100:-1, 0, :, 0]) for r in results_fic]
-    #     pass
     return result
 
 # ==========================================================================

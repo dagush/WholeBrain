@@ -20,9 +20,9 @@
 # --------------------------------------------------------------------------
 from DecoEtAl2020_Setup import *
 
-import functions.Optimizers.ParmSeep as optim1D
-optim1D.simulateBOLD = simulateBOLD
-optim1D.integrator = integrator
+import functions.Optimizers.ParmSeep as parmSweep
+parmSweep.simulateBOLD = simulateBOLD
+parmSweep.integrator = integrator
 # --------------------------------------------------------------------------
 #  End local setup...
 # --------------------------------------------------------------------------
@@ -56,11 +56,10 @@ def prepro():
     print("\n\n###################################################################")
     print("# Compute G_Optim")
     print("###################################################################\n")
-    fitting = optim1D.distanceForAll_Parms(C, tc_transf, modelParms, NumSimSubjects=NumTrials,
-                                           distanceSettings=distanceSettings,
-                                           Parms=WEs,
-                                           parmLabel='we',
-                                           outFilePath=baseOutPath)
+    fitting = parmSweep.distanceForAll_Parms(tc_transf, WEs, modelParms, NumSimSubjects=NumTrials,
+                                             distanceSettings=distanceSettings,
+                                             parmLabel='we',
+                                             outFilePath=baseOutPath)
 
     optimal = {sd: distanceSettings[sd][0].findMinMax(fitting[sd]) for sd in distanceSettings}
     # ------------------------------------------

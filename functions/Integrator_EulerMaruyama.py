@@ -122,7 +122,7 @@ def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
 def simulate(dt, Tmaxneuronal):
     if verbose:
         print("Simulating...", flush=True)
-    N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
+    N = neuronalModel.getParm('SC').shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     simVars = neuronalModel.initSim(N)
     initStimuli(dt, Tmaxneuronal)
     simVars, obsVars = integrate(dt, Tmaxneuronal, simVars)
@@ -130,7 +130,7 @@ def simulate(dt, Tmaxneuronal):
 
 
 def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp = 10000):
-    N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
+    N = neuronalModel.getParm('SC').shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     initStimuli(dt, Tmaxneuronal)
     simVars = neuronalModel.initSim(N)
     if verbose:
