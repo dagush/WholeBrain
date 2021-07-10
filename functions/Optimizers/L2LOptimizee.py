@@ -36,8 +36,11 @@ logger = logging.getLogger("l2l-WholeBrain")
 
 
 def parm2filename(parm):
-    return ''.join([key+str(np.round(value, 3)) for key, value in parm.items()])
+    return '_'.join([key+str(np.round(value, 3)) for key, value in parm.items()])
 
+
+def translateParms(parm):
+    return {k.replace('individual.',''): v for k, v in parm.items()}
 
 class WholeBrainOptimizee(Optimizee):
 
@@ -93,7 +96,7 @@ class WholeBrainOptimizee(Optimizee):
 
     def simulate(self, trajectory):
         self.id = trajectory.individual.ind_idx
-        self.x = trajectory.individual.params
+        self.x = translateParms(trajectory.individual.params)
         # Start simulation
         filename = self.filenamePattern.format(parm2filename(self.x))
         fitness = self.simulate_(filename)['result']  # For the @loadOrCompute wrapper to work, all functions should return dicts
