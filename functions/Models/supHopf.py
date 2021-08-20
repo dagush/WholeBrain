@@ -7,7 +7,7 @@
 # (also known as Landau-Stuart Oscillators), which is the canonical model
 # for studying the transition from noisy to oscillatory dynamics.
 #
-#     .. [Kuznetsov_2013] Kuznetsov, Y.A. *Elements of applied bifurcation theory.* Springer Sci & Business
+#     .. [Kuznetsov_2013] Kuznetsov, Y.A. "Elements of applied bifurcation theory", Springer Sci & Business
 #     Media, 2013, vol. 112.
 #
 #     .. [Deco_2017]  Deco, G., Kringelbach, M.L., Jirsa, V.K. et al.
@@ -46,21 +46,21 @@ def recompileSignatures():
 # --------------------------------------------------------------------------
 # Values taken from [Deco_2017]
 a = -0.5        # Local bifurcation parameter
-omega = 0.3    # Angular frequency [Hz]
+omega = 0.3     # Angular frequency [Hz]
 G = 1.          # Coupling constant
-beta = 0.02     # Gaussian noise standard deviation
-SC = None       # Structural connectivity (should be provided externally)
-SCT = None      # Transposed Structural connectivity (should be provided externally)
-ink = None      # Convenience parameters: SCT.sum(axis=1)
+SC = None       # Structural Connectivity (should be provided externally)
+SCT = None      # Transposed Structural Connectivity (we initialize it at initSim(N))
+ink = None      # Convenience parameters: sum_i(Cij) = SCT.sum(axis=1) (we initialize it at initSim(N))
 
 # --------------------------------------------------------------------------
 # Simulation variables
+initialValue = 0.001
 def initSim(N):
     global SCT, ink
     SCT = SC.T
-    ink = SCT.sum(axis=1)
-    x = 0.001 * np.zeros(N)  # Initialize x
-    y = 0.001 * np.zeros(N)  # Initialize y
+    ink = SCT.sum(axis=1)   # Careful: component 2 in Matlab is component 1 in Python
+    x = initialValue * np.ones(N)  # Initialize x
+    y = initialValue * np.ones(N)  # Initialize y
     return np.array([x, y])
 
 
@@ -85,24 +85,37 @@ def setParms(modelParms):
 def getParm(parmList):
     if 'we' in parmList:
         return G
+    if 'SC' in parmList:
+        return SC
     return None
 
 
 # ----------------- supercritical Hopf bifurcation model ----------------------
 @jit(nopython=True)
 def dfun(simVars, p):  # p is the stimulus...?
-    # global x, y
-    N = SC.shape[0]
     x = simVars[0]; y = simVars[1]
-    noiseX = np.random.normal(0, beta, N)
-    noiseY = np.random.normal(0, beta, N)
+    # --------------------- From Gus' code:
+    # First, we need to compute the term (in pseudo-LaTeX notation):
+    #               G sum_i SC_ij (x_i - x_j) =
+    #               G (Sum_i sC_ij x_i + Sum_i SC_ij xj) =
+    #               G ((Sum_i SC_ij x_i) + (Sum_i SC_ij) xj)   <- adding some unnecessary parenthesis.
+    # This is implemented as:
+    # suma = wC*z - sumC.*z                 # this is sum(Cij*xi) - sum(Cij)*xj, all multiplied by G
+    #      = G * SC * z - sum(G*SC,2) * z   # Careful, component 2 in Matlab is component 1 in Python...
+    #      = G * (SC*z - sum(SC,2)*z)
+    # And now the rest of it...
+    # Remember that, in Gus' code, omega = repmat(2*pi*f_diff',1,2); omega(:,1) = -omega(:,1); so here I will
+    # call omega(1)=-omega, and the other component as + omega
+    # zz = z(:,end:-1:1)  # <- flipped z, because (x.*x + y.*y)     # Thus, this zz vector is (y,x)
+    # dz = a.*z + zz.*omega - z.*(z.*z+zz.*zz) + suma               # original formula in the code, using complex numbers z instead of x and y...
+    #    = zz * omega   +  z  * (a -  z.* z  - zz.* zz) + suma =    # I will be using vector notation here to simplify ASCII formulae... ;-)
+    #    = (y)*(-omega) + (x) * (a - (x)*(x) - (y)*(y)) + suma      # here, (x)*(x) should actually be (x) * (x,y)
+    #    =  x *(+omega)    y          y * y     x * x               #        y   y                     (y)
+    # ---------------------
     xcoup = np.dot(SCT,x) - ink * x  # sum(Cij*xi) - sum(Cij)*xj
     ycoup = np.dot(SCT,y) - ink * y  #
-    # suma = wC*z - sumC.*z
-    # zz = z(:,end:-1:1)  # <- flipped z, because (x.*x + y.*y)
-    # dz = a.*z + zz.*omega - z.*(z.*z+zz.*zz) + suma  # <- using complex numbers z instead of x and y...
-    dx = (a - x**2 - y**2) * x - omega * y + G * xcoup + noiseX
-    dy = (a - x**2 - y**2) * y + omega * x + G * ycoup + noiseY
+    dx = (a - x**2 - y**2) * x - omega * y + G * xcoup
+    dy = (a - x**2 - y**2) * y + omega * x + G * ycoup
     return np.stack((dx, dy)), np.stack((x, y))
 
 
