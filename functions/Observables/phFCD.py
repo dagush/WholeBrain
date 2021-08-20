@@ -19,6 +19,8 @@ import functions.Observables.PhaseInteractionMatrix as PhaseInteractionMatrix
 
 print("Going to use Phase Functional Connectivity Dynamics (phFCD)...")
 
+name = 'phFCD'
+
 ERROR_VALUE = 10
 
 # From [Deco2019]: Comparing empirical and simulated FCD.

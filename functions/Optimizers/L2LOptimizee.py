@@ -34,6 +34,9 @@ trials = None  # Number of trials to try
 
 logger = logging.getLogger("l2l-WholeBrain")
 
+def defaultSetupFunc(parms):
+    neuronalModel.setParms(parms)
+
 
 def parm2filename(parm):
     return '_'.join([key+str(np.round(value, 3)) for key, value in parm.items()])
@@ -42,9 +45,10 @@ def parm2filename(parm):
 def translateParms(parm):
     return {k.replace('individual.',''): v for k, v in parm.items()}
 
+
 class WholeBrainOptimizee(Optimizee):
 
-    def __init__(self, trajectory, varsAndBounds, setupFunc=None, outFilenamePattern=''):
+    def __init__(self, trajectory, varsAndBounds, setupFunc=defaultSetupFunc, outFilenamePattern=''):
         super(WholeBrainOptimizee, self).__init__(trajectory)
         self.varsAndBounds = varsAndBounds
         self.setupFunc = setupFunc
@@ -73,13 +77,11 @@ class WholeBrainOptimizee(Optimizee):
     @loadOrCompute
     def simulate_(self):
         print("   Going to eval:", self.x, flush=True)
-        neuronalModel.setParms(self.x)
-        if self.setupFunc is not None:
-            self.setupFunc(self.x)
+        self.setupFunc(self.x)  # Use either the defaultSetupFunc or the one provided by the user...
         integrator.recompileSignatures()
         measureValues = measure.init(trials, N)
         for i in range(trials):
-            bds = simulateBOLD.simulateSingleSubject(warmup=False).T
+            bds = simulateBOLD.simulateSingleSubject().T
             procSignal = measure.from_fMRI(bds, applyFilters=applyFilters)
             measureValues = measure.accumulate(measureValues, i, procSignal)
 
@@ -92,14 +94,16 @@ class WholeBrainOptimizee(Optimizee):
         # r = measure.distance(processedBOLDemp, procSignal)  # this is a float with the KS distance between the two phFCD vectors...
         measureValues = measure.postprocess(measureValues)
         r = measure.distance(measureValues, processedEmp)
-        return {'result': r}  # For the @loadOrCompute wrapper to work, all functions should return dicts
+        result = self.x.copy()
+        result[measure.name] = r
+        return result  # For the @loadOrCompute wrapper to work, all functions should return dicts
 
     def simulate(self, trajectory):
         self.id = trajectory.individual.ind_idx
         self.x = translateParms(trajectory.individual.params)
         # Start simulation
         filename = self.filenamePattern.format(parm2filename(self.x))
-        fitness = self.simulate_(filename)['result']  # For the @loadOrCompute wrapper to work, all functions should return dicts
+        fitness = self.simulate_(filename)[measure.name]  # For the @loadOrCompute wrapper to work, all functions should return dicts
         print("  Value:", fitness, "@", self.x, flush=True)
         # Return the last correlation coefficient as fitness of the model
         return fitness

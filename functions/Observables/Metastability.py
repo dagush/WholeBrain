@@ -30,6 +30,8 @@ from functions.Utils import demean
 
 print("Going to use Metastability (Kuramoto order parm)...")
 
+name = 'Metastability'
+
 ERROR_VALUE = 10
 BOLDFilters.flp = 0.008
 BOLDFilters.fhi = 0.08

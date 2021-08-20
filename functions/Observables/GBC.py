@@ -13,6 +13,8 @@ import functions.Observables.FC as FC
 
 print("Going to use Global Brain Connectivity (GBC)...")
 
+name = 'GBC'
+
 
 def characterizeConnectivityMatrix(C):
     return FC.characterizeConnectivityMatrix(C)

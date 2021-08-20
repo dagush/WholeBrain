@@ -28,6 +28,9 @@ from functions.Utils import demean
 
 print("Going to use Phase-Interaction Matrix...")
 
+name = 'PhaseInteractionMatrix'
+
+
 discardOffset = 10  # This was necessary in the old days when, after pre-processing, data had many errors/outliers at
 # the beginning and at the end. Thus, the first (and last) 10 samples used to be discarded. Nowadays this filtering is
 # done at the pre-processing stage itself, so this value is set to 0. Thus, depends on your data...

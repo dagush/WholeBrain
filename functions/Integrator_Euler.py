@@ -22,10 +22,11 @@ verbose = True
 def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    neuronalModel.recompileSignatures()
-    # initBookkeeping.recompile()
-    recordBookkeeping.recompile()
-    integrationStep.recompile()
+    # # initBookkeeping.recompile()
+    # neuronalModel.recompileSignatures()
+    # recordBookkeeping.recompile()
+    # integrationStep.recompile()
+    pass
 
 
 # Functions to convert the stimulus from a function to an array
@@ -48,7 +49,7 @@ def initStimuli(dt, Tmaxneuronal):
 # Bookkeeping variables of interest...
 # --------------------------------------------------------------------------
 ds = 1  # downsampling stepsize
-# @jit(nopython=True)
+# # @jit(nopython=True)
 def initBookkeeping(N, tmax):
     # global curr_xn, curr_rn, nn
     # global curr_obsVars
@@ -59,7 +60,7 @@ def initBookkeeping(N, tmax):
     return np.zeros((timeElements, obsVars, N))
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def recordBookkeeping(t, obsVars, curr_obsVars):
     # global curr_obsVars
     if iC.isInt(t/ds):
@@ -75,7 +76,7 @@ def recordBookkeeping(t, obsVars, curr_obsVars):
 # --------------------------------------------------------------------------
 # sigma = 0.01
 clamping = True
-@jit(nopython=True)
+# @jit(nopython=True)
 def integrationStep(simVars, dt, stimulus):  #, curr_obsVars, doBookkeeping):
     # numSimVars = simVars.shape[0]; N = simVars.shape[1]
     dvars_obsVars = neuronalModel.dfun(simVars, stimulus)
@@ -87,7 +88,7 @@ def integrationStep(simVars, dt, stimulus):  #, curr_obsVars, doBookkeeping):
     return simVars, obsVars
 
 
-# @jit(nopython=True)
+# # @jit(nopython=True)
 def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
     # Variables:
     # dt = integration time step in milliseconds
@@ -101,7 +102,7 @@ def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
     return simVars, curr_obsVars
 
 
-# @jit(nopython=True)
+# # @jit(nopython=True)
 def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
     # numSimVars = simVars.shape[0]
     N = simVars.shape[1]  # N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
@@ -125,13 +126,15 @@ def simulate(dt, Tmaxneuronal):
 
 def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp = 10000):
     N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
-    initStimuli(dt, Tmaxneuronal)
     simVars = neuronalModel.initSim(N)
     if verbose:
         print("Warming Up...", end=" ", flush=True)
+    TWarmUp=2
+    initStimuli(dt, TWarmUp)
     simVars, obsVars = integrate(dt, TWarmUp, simVars, doBookkeeping=False)
     if verbose:
         print("and simulating!!!", flush=True)
+    initStimuli(dt, Tmaxneuronal)
     simVars, obsVars = integrate(dt, Tmaxneuronal, simVars, doBookkeeping=True)
     return obsVars
 

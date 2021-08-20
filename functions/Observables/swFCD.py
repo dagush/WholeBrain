@@ -13,6 +13,8 @@ from functions import BOLDFilters
 
 print("Going to use Sliding Windows Functional Connectivity Dynamics (swFCD)...")
 
+name = 'swFCD'
+
 ERROR_VALUE = 10
 
 

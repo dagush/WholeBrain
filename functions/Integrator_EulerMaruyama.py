@@ -26,7 +26,7 @@ def recompileSignatures():
     neuronalModel.recompileSignatures()
     recordBookkeeping.recompile()
     integrationStep.recompile()
-
+    # pass
 
 # Functions to convert the stimulus from a function to an array
 # --------------------------------------------------------------------------
@@ -90,14 +90,14 @@ def integrationStep(simVars, dt, stimulus):  #, curr_obsVars, doBookkeeping):
     numSimVars = simVars.shape[0]; N = simVars.shape[1]
     dvars_obsVars = neuronalModel.dfun(simVars, stimulus)
     dvars = dvars_obsVars[0]; obsVars = dvars_obsVars[1]  # cannot use unpacking in numba...
-    simVars = simVars + dt * dvars + np.sqrt(dt) * sigma * randn(numSimVars,N)  # Euler-Maruyama integration for S^E (9).
+    simVars = simVars + dt * dvars + np.sqrt(dt) * sigma * randn(numSimVars,N)  # Euler-Maruyama integration.
     if clamping:
         simVars = np.where(simVars > 1., 1., simVars)  # clamp values to 0..1
         simVars = np.where(simVars < 0., 0., simVars)
     return simVars, obsVars
 
 
-# @jit(nopython=True)
+# # @jit(nopython=True)
 def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
     for t in np.arange(0, Tmaxneuronal, dt):
         stimulus = allStimuli[int(t / dt)]
@@ -108,7 +108,7 @@ def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
     return simVars, curr_obsVars
 
 
-# @jit(nopython=True)
+# # @jit(nopython=True)
 def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
     # numSimVars = simVars.shape[0]
     N = simVars.shape[1]  # N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
@@ -129,15 +129,16 @@ def simulate(dt, Tmaxneuronal):
     return obsVars
 
 
-def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp = 10000):
+def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp=10000):
     N = neuronalModel.getParm('SC').shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
-    initStimuli(dt, Tmaxneuronal)
     simVars = neuronalModel.initSim(N)
     if verbose:
         print("Warming Up...", end=" ", flush=True)
+    initStimuli(dt, TWarmUp)
     simVars, obsVars = integrate(dt, TWarmUp, simVars, doBookkeeping=False)
     if verbose:
         print("and simulating!!!", flush=True)
+    initStimuli(dt, Tmaxneuronal)
     simVars, obsVars = integrate(dt, Tmaxneuronal, simVars, doBookkeeping=True)
     return obsVars
 

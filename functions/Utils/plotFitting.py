@@ -27,46 +27,70 @@ def plotFitting(ax, WEs, fitting, distanceSettings, title):
     print("#####################################################################################################\n\n")
 
 
+def listAllFiles(filePath):
+    import glob
+    expr = filePath.format("*")
+    allFiles = glob.glob(expr)
+    return allFiles
+
+
 def loadAndPlotAx(ax, filePath,
                   distanceSettings, title,
-                  WEs,
+                  WEs=None,
+                  weName=None,
                   decimals=3,
                   empFilePath=None):
+    def processFile(fileName, ds):
+        simValues = sio.loadmat(fileName)
+        we = simValues[weName]
+        # ---- and now compute the final FC and FCD distances for this G (we)!!! ----
+        print(f"Loaded {fileName}:", end='', flush=True)
+        if empFilePath is not None:
+            measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
+            dist = measure.distance(empValues[ds], simValues[ds])
+        else:
+            dist = simValues[ds]
+
+        print(f" {ds}={dist}", end='', flush=True)
+        return we, dist
+
+    # ==============================================
     if empFilePath is not None:
         processed = sio.loadmat(empFilePath)
         empValues = {}
         for ds in distanceSettings:
             empValues[ds] = processed[ds]
 
-    realWEs = np.array([], dtype=np.float64)
-    fitting = {}
-    for ds in distanceSettings:
-        fitting[ds] = np.array([], dtype=np.float64)
+    allFiles = listAllFiles(filePath)  # collect all files, both when WEs are provided and when they are not.
+    fitting = np.zeros((1+len(distanceSettings), len(allFiles)), dtype=np.float64)
+    # fitting = {}
+    # for pos, ds in enumerate(distanceSettings):
+    #     fitting[pos+1] = np.array([], dtype=np.float64)
 
-    for we in WEs:
-        fileName = filePath.format(np.round(we, decimals=decimals))
-        if Path(fileName).is_file():
-            simValues = sio.loadmat(fileName)
-            realWEs = np.append(realWEs, we)
+    if WEs is None:
+        for wePos, fileName in enumerate(allFiles):
+            for dspos,ds in enumerate(distanceSettings):
+                we, value = processFile(fileName, ds)
+                fitting[0, wePos] = we
+                fitting[dspos+1, wePos] = value
+        fitting = fitting[::, fitting[0,].argsort()[::]]
 
-            # ---- and now compute the final FC and FCD distances for this G (we)!!! ----
-            print(f"Loaded {fileName}:", end='', flush=True)
-            for ds in distanceSettings:
-                if empFilePath is not None:
-                    measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
-                    dist = measure.distance(empValues[ds], simValues[ds])
-                else:
-                    dist = simValues[ds]
-                fitting[ds] = np.append(fitting[ds], dist)
-                print(f" {ds}={dist}", end='', flush=True)
-            print()
+    else:
+        for wePos, we in enumerate(WEs):
+            fitting[0, wePos] = we
+            for dspos, ds in enumerate(distanceSettings):
+                fileName = filePath.format(np.round(we, decimals=decimals))
+                we, value = processFile(fileName, ds)
+                fitting[dspos+1, wePos] = value
 
-    plotFitting(ax, realWEs, fitting, distanceSettings, title)
+    data = {ds: fitting[1+pos,] for pos,ds in enumerate(distanceSettings)}
+    plotFitting(ax, fitting[0], data, distanceSettings, title)
 
 
 def loadAndPlot(filePath,
                 distanceSettings,
-                WEs,
+                WEs=None,
+                weName=None,
                 decimals=3,
                 empFilePath=None):
     plt.rcParams.update({'font.size': 15})
@@ -74,7 +98,8 @@ def loadAndPlot(filePath,
     grid = plt.GridSpec(1, 1)
     ax = fig.add_subplot(grid[0,0])
     localTitle = f"computing graph"
-    loadAndPlotAx(ax, filePath, distanceSettings, localTitle, WEs, decimals=decimals, empFilePath=empFilePath)
+    loadAndPlotAx(ax, filePath, distanceSettings, localTitle,
+                  WEs=WEs, weName=weName, decimals=decimals, empFilePath=empFilePath)
     plt.legend(loc='upper right')
     plt.show()
 

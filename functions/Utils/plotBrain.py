@@ -305,3 +305,25 @@ def multiview4(cortex, data, leftCmap=plt.cm.coolwarm, rightCmap=plt.cm.coolwarm
     plotColorView(ax, cortex, data, 'Rh-lateral', cmap=rightCmap, **kwds)
 
     plt.show()
+
+
+# plots a left/Right-view plot:
+#                       l/r-superior,
+def leftRightView(cortex, data, cmap=plt.cm.coolwarm, suptitle='', figsize=(15, 10), **kwds):
+    plt.figure(figsize=figsize)
+    ax = plt.subplot(1, 2, 1)
+    plotColorView(ax, cortex, data, 'Lh-medial', cmap=cmap, **kwds)
+    ax = plt.subplot(1, 2, 2)
+    plotColorView(ax, cortex, data, 'Lh-lateral', cmap=cmap, **kwds)
+    plt.show()
+
+
+# plots a top-view plot:
+#                       l/r-superior,
+def topView(cortex, data, cmap=plt.cm.coolwarm, suptitle='', figsize=(15, 10), **kwds):
+    plt.figure(figsize=figsize)
+    ax = plt.subplot(1, 1, 1)
+    plotColorView(ax, cortex, data, 'L-superior', suptitle=suptitle, cmap=cmap, **kwds)
+    plotColorView(ax, cortex, data, 'R-superior', suptitle=suptitle, cmap=cmap, **kwds)
+    plt.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0, hspace=0)
+    plt.show()

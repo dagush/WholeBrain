@@ -1,10 +1,10 @@
 # ==========================================================================
 # ==========================================================================
-#  Computes, as a pre-process, the optimization for G
+#  Computes, as a pre-process, the optimization for the bias (B) and scalling (Z)
 #
 #  From the original code:
 # --------------------------------------------------------------------------
-#  OPTIMIZATION GAIN (slurm.sbatch_genes_balanced_G_optimization.m)
+#  OPTIMIZATION GAIN (slurm.sbatch_genes_balanced_gain.m)
 #
 #  Taken from the code (slurm.sbatch_genes_balanced_G_optimization.m) from:
 #  [DecoEtAl_2021] Gustavo Deco, Kevin Aquino, Aurina Arnatkeviciute, Stuart Oldham, Kristina Sabaroedin,
@@ -14,8 +14,6 @@
 #  Translated to Python & refactoring by Gustavo Patow
 # ==========================================================================
 # ==========================================================================
-# import logging
-# from sdict import sdict
 from collections import namedtuple
 from l2l.utils.experiment import Experiment
 from l2l.optimizers.gridsearch import GridSearchOptimizer, GridSearchParameters
@@ -28,60 +26,55 @@ import matplotlib.pyplot as plt
 # --------------------------------------------------------------------------
 from DecoEtAl2020_Setup import *
 
-import functions.Optimizers.ParmSeep as parmSweep
-parmSweep.simulateBOLD = simulateBOLD
-parmSweep.integrator = integrator
+import functions.Optimizers.ParmSeep as optim1D
+optim1D.simulateBOLD = simulateBOLD
+optim1D.integrator = integrator
 
 from functions.Optimizers.preprocessSignal import processEmpiricalSubjects  # processBOLDSignals
 # --------------------------------------------------------------------------
 #  End local setup...
 # --------------------------------------------------------------------------
-
 baseOutPath = 'Data_Produced/DecoEtAl2020'
 J_fileNames = baseOutPath+"/J_Balance_we{}.mat"
 
-def plotTrajectory1D(x, values):
-    plt.rcParams.update({'font.size': 15})
-    plotFCD, = plt.plot(x, values)
-    plotFCD.set_label("swFCD")
-    plt.title("Whole-brain fitting")
-    plt.ylabel("Functional Fitting")
-    plt.xlabel("Global Coupling (G = we)")
-    plt.legend()
-    plt.show()
 
 def setupFunc(x):
     we = x['we']
-    J_file = J_fileNames.format(np.round(we, decimals=3))
-    balanced = BalanceFIC.Balance_J9(we, N, J_file)['J'].flatten()
-    neuronalModel.setParms({'J': balanced})
 
 
-def prepro():
-    # Make the neuronal model to work as the DMF model
-    # neuronalModel.alpha = 0.
-    # neuronalModel.beta = 0.
+def Fitting():
+    baseOutPath = 'Data_Produced/DecoEtAl2020'
+
+    # %%%%%%%%%%%%%%% Set General Model Parameters
+    we = 2.1  # Global Coupling parameter, found in the DecoEtAl2018_Prepro_* file...
+    J_fileName = baseOutPath+"/J_Balance_we2.1.mat"  # "Data_Produced/SC90/J_test_we{}.mat"
+    balancedG = BalanceFIC.Balance_J9(we, C, False, J_fileName)
+    balancedG['J'] = balancedG['J'].flatten()
+    balancedG['we'] = balancedG['we']
+    neuronalModel.setParms(balancedG)
 
     # distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True), 'GBC': (GBC, False)}  #   'phFCD': (phFCD, True)
     distanceSettings = {'swFCD': (swFCD, True)}
     swFCD.windowSize = 80
     swFCD.windowStep = 18
 
-    # baseGOptimNames = baseOutPath+"/fitting_we{}.mat"
+    # J_fileNames = baseOutPath+"/J_Balance_we{}.mat"
 
-    # step = 0.001
-    # WEs = np.arange(0, 3.+step, step)  # Range used in the original code
-    # WEs = np.arange(0, 3.+step, 0.05)  # reduced range for DEBUG only!!!
+    # step = 0.05
+    # Alphas = np.arange(-0.6, 0+step, step)  # Range used in the original code for B
+    # Betas = np.arange(0, 2+step, step)    # Range used in the original code for Z
+    Alphas = np.arange(-0.6, 0+0.1, 0.1)  # reduced range for DEBUG only!!!
+    Betas = np.arange(0, 2+0.2, 0.2)  # reduced range for DEBUG only!!!
+
+    # grid = np.meshgrid(Alphas, Betas)
+    # grid = np.round(grid[0],3), np.round(grid[1],3)
+    # gridParms = [{'alpha': a, 'beta': b} for a,b in np.nditer(grid)]
 
     # Model Simulations
     # ------------------------------------------
-    BalanceFIC.verbose = True
-    # balancedParms = BalanceFIC.Balance_AllJ9(C, WEs, baseName=J_fileNames)
-    # modelParms = [balancedParms[i] for i in balancedParms]
-
-    # Now, optimize all we (G) values: determine optimal G to work with
+    # Now, optimize all alpha (B), beta (Z) values: determine optimal (B,Z) to work with
     print("\n\n###################################################################")
-    print("# Compute optimization with L2L")
+    print("# Fitting (B,Z)")
     print("###################################################################\n")
     experiment = Experiment(root_dir_path='Data_Produced/L2L')
     name = 'L2L-DecoEtAl2020-Prepro'
@@ -91,6 +84,7 @@ def prepro():
     WBOptimizee.neuronalModel = neuronalModel
     WBOptimizee.integrator = integrator
     WBOptimizee.simulateBOLD = simulateBOLD
+    distanceSettings = {'swFCD': (swFCD, True)}  # We need to overwrite this, as L2L only works with ONE observable at a time.
     WBOptimizee.measure = distanceSettings['swFCD'][0]  # Measure to use to compute the error
     WBOptimizee.applyFilters = distanceSettings['swFCD'][1]  # Whether to apply filters to the resulting signal or not
     outEmpFileName = baseOutPath + '/fNeuro_emp_L2L.mat'
@@ -102,7 +96,7 @@ def prepro():
     optimizee_parameters = namedtuple('OptimizeeParameters', [])
 
     filePattern = baseOutPath + '/fitting_{}_L2L.mat'
-    optimizee = WBOptimizee.WholeBrainOptimizee(traj, {'we': (0., 3.)}, setupFunc=setupFunc, outFilenamePattern=filePattern)
+    optimizee = WBOptimizee.WholeBrainOptimizee(traj, {'alpha': (-0.6, 0), 'beta': (0., 2.)}, outFilenamePattern=filePattern)  #setupFunc=setupFunc,
 
     # =================== Test for debug only
     # traj.individual = sdict(optimizee.create_individual())
@@ -111,9 +105,9 @@ def prepro():
     # =================== end Test
 
     # Setup the GridSearchOptimizer
-    n_grid_divs_per_axis = 60  # 0.05
     optimizer_parameters = GridSearchParameters(param_grid={
-        'we': (0., 3., n_grid_divs_per_axis)
+        'alpha': (-0.6, 0., 6),
+        'beta': (0., 2., 10)
     })
     optimizer = GridSearchOptimizer(traj,
                                     optimizee_create_individual=optimizee.create_individual,
@@ -125,30 +119,30 @@ def prepro():
                               optimizer=optimizer,
                               optimizer_parameters=optimizer_parameters)
     experiment.end_experiment(optimizer)
-    print(f"best: {experiment.optimizer.best_individual['we']}")
-    # fitting = parmSweep.distanceForAll_Parms(tc_transf, WEs, modelParms, NumSimSubjects=NumTrials,
-    #                                          distanceSettings=distanceSettings,
-    #                                          parmLabel='we',
-    #                                          outFilePath=baseOutPath)
+    print(f"best: alpha={experiment.optimizer.best_individual['alpha']} & beta={experiment.optimizer.best_individual['beta']}")
 
+    # fitting = optim1D.distanceForAll_Parms(tc_transf, grid, gridParms, NumSimSubjects=NumTrials,
+    #                                        distanceSettings=distanceSettings,
+    #                                        parmLabel='BZ',
+    #                                        outFilePath=baseOutPath)
+    #
     # optimal = {sd: distanceSettings[sd][0].findMinMax(fitting[sd]) for sd in distanceSettings}
     # ------------------------------------------
     # ------------------------------------------
 
-    filePath = baseOutPath+'/DecoEtAl2020_fneuro-L2L.mat'
+    filePath = baseOutPath+'/DecoEtAl2020_fittingBZ.mat'
     # sio.savemat(filePath, #{'JI': JI})
-    #             {'we': WEs,
+    #             {'Alphas': Alphas,
+    #              'Betas': Betas,
     #              'swFCDfitt': fitting['swFCD'],  # swFCDfitt,
     #              'FCfitt': fitting['FC'],  # FCfitt,
     #              'GBCfitt': fitting['GBC'],  # GBCfitt
     #             })
-    # print(f"DONE!!! (file: {filePath})")
-    plotTrajectory1D(optimizer.param_list['we'], [v for (i,v) in traj.current_results])
-    print("DONE!!!")
+    print(f"DONE!!! (file: {filePath})")
 
 
 if __name__ == '__main__':
-    prepro()
+    Fitting()
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================EOF

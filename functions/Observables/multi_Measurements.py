@@ -9,6 +9,9 @@ from functions.Utils import demean
 
 print("Going to use multi-measurement metrics...")
 
+name = 'multi'
+
+
 distanceSettings = None
 # preferredDistance = None
 

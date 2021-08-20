@@ -11,6 +11,8 @@ from functions import BOLDFilters
 
 print("Going to use Functional Connectivity (FC)...")
 
+name = 'FC'
+
 
 ERROR_VALUE = 10
 

@@ -72,10 +72,10 @@ def filtPowSpetra(signal, TR):
 
     # =================== NARROW LOW BANDPASS
     # print(f'BOLD Filters: low={BOLDFilters.flp}, hi={BOLDFilters.fhi}')
-    ts_filt_narrow = zscore(BOLDFilters.BandPassFilter(signal, removeStrongArtefacts=False), axis=0)
-    # Here we used the zscore to "normalize" the values... not really needed, but makes things easier to follow! ;-)
-    pw_filt_narrow = np.abs(np.fft.fft(ts_filt_narrow, axis=0))
-    PowSpect_filt_narrow = pw_filt_narrow[:, 0:int(np.floor(Tmax/2))]**2 / (Tmax/TR)
+    # ts_filt_narrow = zscore(BOLDFilters.BandPassFilter(signal, removeStrongArtefacts=False), axis=0)  # Here we used the zscore to "normalize" the values... not really needed, but makes things easier to follow! ;-)
+    ts_filt_narrow = BOLDFilters.BandPassFilter(signal, removeStrongArtefacts=False)
+    pw_filt_narrow = np.abs(np.fft.fft(ts_filt_narrow, axis=1))
+    PowSpect_filt_narrow = pw_filt_narrow[:, 0:int(np.floor(Tmax/2))].T**2 / (Tmax/TR)
 
     # Power_Areas_filt_narrow_unsmoothed = PowSpect_filt_narrow  # By now, do nothing...
     return PowSpect_filt_narrow
@@ -89,19 +89,19 @@ def filtPowSpetraMultipleSubjects(signal, TR):
     else:
         # In case we receive more than one subject, we do a mean...
         nSubjects, nNodes, Tmax = signal.shape
-        PowSpect_filt_narrow = np.zeros((signal.shape[0], signal.shape[1], int(np.floor(Tmax/2))))
+        PowSpect_filt_narrow = np.zeros((nSubjects, nNodes, int(np.floor(Tmax/2))))
         for s in range(nSubjects):
             print(f'filtPowSpetraMultipleSubjects: subject {s} (of {nSubjects})')
-            PowSpect_filt_narrow[s] = filtPowSpetra(signal[s,:,:], TR)
-        Power_Areas_filt_narrow_unsmoothed = np.mean(PowSpect_filt_narrow, axis=0)
+            PowSpect_filt_narrow[s] = filtPowSpetra(signal[s,:,:], TR).T
+        Power_Areas_filt_narrow_unsmoothed = np.mean(PowSpect_filt_narrow, axis=0).T
         # Power_Areas_filt_wide_unsmoothed = mean(PowSpect_filt_wide,3);
-    # Power_Areas_filt_narrow_smoothed = zeros(nFreqs, nNodes);
+    Power_Areas_filt_narrow_smoothed = np.zeros_like(Power_Areas_filt_narrow_unsmoothed)
     # Power_Areas_filt_wide_smoothed = zeros(nFreqs, nNodes);
     # vsig = zeros(1, nNodes);
     Ts = Tmax * TR
-    freqs = (np.arange(1,Tmax)/2-1)/Ts
+    freqs = np.arange(0,Tmax/2-1)/Ts
     for seed in np.arange(nNodes):
-        Power_Areas_filt_narrow_smoothed = gaussfilt(freqs, Power_Areas_filt_narrow_unsmoothed[seed].T, 0.01)
+        Power_Areas_filt_narrow_smoothed[:,seed] = gaussfilt(freqs, Power_Areas_filt_narrow_unsmoothed[:,seed], 0.01)
         # Power_Areas_filt_wide_smoothed(:,seed)=gaussfilt(freq,Power_Areas_filt_wide_unsmoothed(:,seed)',0.01);
 
         # relative power in frequencies of interest (.04 - .07 Hz) with respect
@@ -109,9 +109,8 @@ def filtPowSpetraMultipleSubjects(signal, TR):
         #  vsig(seed) =...
         #         sum(Power_Areas_filt_wide_smoothed(idxMinFreq:idxMaxFreq,seed))/sum(Power_Areas_filt_wide_smoothed(:,seed));
 
-
     # a-minimization seems to only work if we use the indices for frequency of
     # maximal power from the narrowband-smoothed data
-    idxFreqOfMaxPwr = np.argmax(Power_Areas_filt_narrow_smoothed)
+    idxFreqOfMaxPwr = np.argmax(Power_Areas_filt_narrow_smoothed, axis=0)
     f_diff = freqs[idxFreqOfMaxPwr]
     return f_diff

@@ -36,7 +36,7 @@ def Fitting():
     J_fileName = baseOutPath+"/J_Balance_we2.1.mat"  # "Data_Produced/SC90/J_test_we{}.mat"
     balancedG = BalanceFIC.Balance_J9(we, C, False, J_fileName)
     balancedG['J'] = balancedG['J'].flatten()
-    balancedG['we'] = balancedG['we'].flatten()
+    balancedG['we'] = balancedG['we']
     neuronalModel.setParms(balancedG)
 
     distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True), 'GBC': (GBC, False)}  #   'phFCD': (phFCD, True)

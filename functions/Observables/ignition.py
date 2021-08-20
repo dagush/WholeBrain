@@ -10,6 +10,10 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from functions.Utils.decorators import loadOrCompute
 
+print("Going to use ignition (ignition)...")
+
+name = 'ignition'
+
 # 	Fitting routines for ignition
 sigfunc = lambda x,A0,A1,A2,A3 : A0 / (1 + np.exp(-A1*(x-A2))) + A3  # sigfunc = @(A, x)(A(1) ./ (1 + exp(-A(2)*(x-A(3)))) + A(4))
 plotting = False
