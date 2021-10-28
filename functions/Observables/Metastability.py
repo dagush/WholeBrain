@@ -84,7 +84,7 @@ def from_fMRI(ts_emp, applyFilters = True):  # Compute the Metastability of an i
             phases_emp[n, :] = np.angle(Xanalytic)
 
         T = np.arange(10, Tmax - 10 + 1)
-        sync = np.zeros(1, T.size)
+        sync = np.zeros(T.size)
         for t in T:
             ku = np.sum(np.cos(phases_emp[:, t - 1]) + 1j * np.sin(phases_emp[:, t - 1])) / N
             sync[t - 10] = abs(ku)
@@ -92,7 +92,7 @@ def from_fMRI(ts_emp, applyFilters = True):  # Compute the Metastability of an i
         # empirical metastability
         meta_emp_all = np.std(sync)
     else:
-        warnings.warn((f'############ Warning!!! Metastability.from_fMRI: NAN found ############')
+        warnings.warn(f'############ Warning!!! Metastability.from_fMRI: NAN found ############')
         meta_emp_all = np.nan
     return meta_emp_all
 
