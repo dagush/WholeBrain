@@ -47,23 +47,24 @@ def adif(a, b):
     return c
 
 
-def tril_indices_column(N, k=0):
-    row_i, col_i = np.nonzero(
-        np.tril(np.ones(N), k=k).T)  # Matlab works in column-major order, while Numpy works in row-major.
-    Isubdiag = (col_i,
-                row_i)  # Thus, I have to do this little trick: Transpose, generate the indices, and then "transpose" again...
-    return Isubdiag
+# def tril_indices_column(N, k=0):
+#     row_i, col_i = np.nonzero(
+#         np.tril(np.ones(N), k=k).T)  # Matlab works in column-major order, while Numpy works in row-major.
+#     Isubdiag = (col_i,
+#                 row_i)  # Thus, I have to do this little trick: Transpose, generate the indices, and then "transpose" again...
+#     return Isubdiag
 
 
 def from_fMRI(ts, applyFilters = True):  # Compute the Phase-Interaction Matrix of an input BOLD signal
     (N, Tmax) = ts.shape
-    npattmax = Tmax - 19  # calculates the size of phfcd vector
+    npattmax = Tmax - (2*discardOffset-1)  # calculates the size of phfcd matrix
 
     if not np.isnan(ts).any():  # No problems, go ahead!!!
         # Data structures we are going to need...
-        phases = np.zeros([N, Tmax])
-        dFC = np.zeros([N, N - 1])
-        PhIntMatr = np.zeros([npattmax, int(N * (N - 1) / 2)])  # The int() is not needed, but... (see above)
+        phases = np.zeros((N, Tmax))
+        dFC = np.zeros((N, N))
+        # PhIntMatr = np.zeros((npattmax, int(N * (N - 1) / 2)))  # The int() is not needed, but... (see above)
+        PhIntMatr = np.zeros((npattmax, N, N))
         # syncdata = np.zeros(npattmax)
 
         # Filters seem to be always applied...
@@ -72,15 +73,16 @@ def from_fMRI(ts, applyFilters = True):  # Compute the Phase-Interaction Matrix 
             Xanalytic = signal.hilbert(demean.demean(ts_filt[n, :]))
             phases[n, :] = np.angle(Xanalytic)
 
-        Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
+        # Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
         T = np.arange(discardOffset, Tmax - discardOffset + 1)
         for t in T:
             # kudata = np.sum(np.cos(phases[:, t - 1]) + 1j * np.sin(phases[:, t - 1])) / N
             # syncdata[t - 10] = abs(kudata)
             for i in range(N):
-                for j in range(i):
+                for j in range(N):
+                    # print(f'processing {t}: ({i}, {j})')
                     dFC[i, j] = np.cos(adif(phases[i, t - 1], phases[j, t - 1]))
-            PhIntMatr[t - discardOffset, :] = dFC[Isubdiag]
+            PhIntMatr[t - discardOffset] = dFC
     else:
         warnings.warn('############ Warning!!! PhaseInteractionMatrix.from_fMRI: NAN found ############')
         PhIntMatr = np.array([np.nan])

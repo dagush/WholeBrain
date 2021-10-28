@@ -23,6 +23,19 @@ name = 'phFCD'
 
 ERROR_VALUE = 10
 
+discardOffset = 10  # This was necessary in the old days when, after pre-processing, data had many errors/outliers at
+# the beginning and at the end. Thus, the first (and last) 10 samples used to be discarded. Nowadays this filtering is
+# done at the pre-processing stage itself, so this value is set to 0. Thus, depends on your data...
+
+
+def tril_indices_column(N, k=0):
+    row_i, col_i = np.nonzero(
+        np.tril(np.ones(N), k=k).T)  # Matlab works in column-major order, while Numpy works in row-major.
+    Isubdiag = (col_i,
+                row_i)  # Thus, I have to do this little trick: Transpose, generate the indices, and then "transpose" again...
+    return Isubdiag
+
+
 # From [Deco2019]: Comparing empirical and simulated FCD.
 # We measure KS distance between the upper triangular elements of the empirical and simulated FCD matrices
 # (accumulated over all participants). The KS distance quantifies the maximal difference between the cumulative
@@ -48,18 +61,22 @@ def distance(FCD1, FCD2):  # FCD similarity, convenience function
 # inter-FC(t) correlations.
 def from_fMRI(ts, applyFilters = True):  # Compute the FCD of an input BOLD signal
     (N, Tmax) = ts.shape
-    npattmax = Tmax - 19  # calculates the size of phfcd vector
+    npattmax = Tmax - (2*discardOffset-1)  # calculates the size of phfcd vector
     size_kk3 = int((npattmax - 3) * (npattmax - 2) / 2)  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
 
-    pattern = PhaseInteractionMatrix.from_fMRI(ts, applyFilters=applyFilters)  # Compute the Phase-Interaction Matrix
+    Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
+    phIntMatr = PhaseInteractionMatrix.from_fMRI(ts, applyFilters=applyFilters)  # Compute the Phase-Interaction Matrix
+    phIntMatr_upTri = np.zeros((npattmax, int(N * (N - 1) / 2)))  # The int() is not needed, but... (see above)
+    for t in range(npattmax):
+        phIntMatr_upTri[t,:] = phIntMatr[t][Isubdiag]
 
-    if not np.isnan(pattern).any():  # No problems, go ahead!!!
+    if not np.isnan(phIntMatr_upTri).any():  # No problems, go ahead!!!
         phfcd = np.zeros((size_kk3))
         kk3 = 0
         for t in range(npattmax - 2):
-            p1 = np.mean(pattern[t:t + 3, :], axis=0)
+            p1 = np.mean(phIntMatr_upTri[t:t + 3, :], axis=0)
             for t2 in range(t + 1, npattmax - 2):
-                p2 = np.mean(pattern[t2:t2 + 3, :], axis=0)
+                p2 = np.mean(phIntMatr_upTri[t2:t2 + 3, :], axis=0)
                 phfcd[kk3] = np.dot(p1, p2) / np.linalg.norm(p1) / np.linalg.norm(p2)  # this (phFCD) what I want to get
                 kk3 = kk3 + 1
     else:
