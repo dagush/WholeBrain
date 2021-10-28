@@ -44,7 +44,7 @@ def loadAndPlotAx(ax, filePath,
         simValues = sio.loadmat(fileName)
         we = simValues[weName]
         # ---- and now compute the final FC and FCD distances for this G (we)!!! ----
-        print(f"Loaded {fileName}:", end='', flush=True)
+        print(f"Loaded {fileName}:", flush=True)
         if empFilePath is not None:
             measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
             dist = measure.distance(empValues[ds], simValues[ds])
@@ -92,12 +92,13 @@ def loadAndPlot(filePath,
                 WEs=None,
                 weName=None,
                 decimals=3,
-                empFilePath=None):
+                empFilePath=None,
+                title=''):
     plt.rcParams.update({'font.size': 15})
     fig = plt.figure()
     grid = plt.GridSpec(1, 1)
     ax = fig.add_subplot(grid[0,0])
-    localTitle = f"computing graph"
+    localTitle = f"computing graph " + title
     loadAndPlotAx(ax, filePath, distanceSettings, localTitle,
                   WEs=WEs, weName=weName, decimals=decimals, empFilePath=empFilePath)
     plt.legend(loc='upper right')

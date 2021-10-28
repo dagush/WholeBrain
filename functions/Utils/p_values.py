@@ -37,9 +37,12 @@ def plotWilcoxonTest(ax, tests, pos, plotOrder = None, col='grey'):
             text = f'p={test:.3f}'
         return text
 
-    def plotBar(x1, x2, y, h, text):
+    def plotBar(x1, x2, h, text):  # (x1, x2, y, h, text):
+        ylim = ax.get_ylim()
+        y = ylim[1] + h
         ax.plot([x1, x1, x2, x2], [y, y+h, y+h, y], lw=1.5, c=col)
         ax.text((x1+x2)*.5, y+h, text, ha='center', va='bottom', color=col)
+        ax.set_ylim([ylim[0], y + 5 * h])
 
     if plotOrder is None: plotOrder = tests
     # * statistical tests. From https://towardsdatascience.com/beautiful-boxplots-with-statistical-significance-annotation-e1b314927fc5
@@ -49,10 +52,10 @@ def plotWilcoxonTest(ax, tests, pos, plotOrder = None, col='grey'):
     # axes[idx].text((x1+x2)*.5, y+h, “statistically significant”, ha=’center’, va=’bottom’, color=col)
     ylim = ax.get_ylim()
     h = (ylim[1] - ylim[0]) / 50
-    delta = 3 * h
     for order, pair in enumerate(plotOrder):
         labels = pair.split('_')
-        plotBar(pos[labels[0]], pos[labels[1]], ylim[1] + delta * order, h, classify(tests[pair]))
+        plotBar(pos[labels[0]], pos[labels[1]], h, classify(tests[pair]))  # ylim[1] + delta * order
+    print()
 
 
 def computeWilcoxonTests(data):
@@ -63,3 +66,52 @@ def computeWilcoxonTests(data):
             tests[testName] = stats.mannwhitneyu(data[pair[0]], data[pair[1]]).pvalue
             print(f'test[{testName}] = {tests[testName]}')
     return tests
+
+# ----------------------------------------------------------------------------
+# Some convenience functions
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# Plotting func.
+# ----------------------------------------------------------------------------
+import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 22})
+
+posA = 1; posB = 2; posC = 3; posD = 4
+
+# Generates a boxPlot and the p-values for 3 different labels
+def plotComparisonAcrossLabels(dataA, dataB, dataC, labels, titleLabel='test'):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    points = {labels[0]: dataA, labels[1]: dataB, labels[2]: dataC}
+    positions = {labels[0]: posA, labels[1]: posB, labels[2]: posC}
+    plotMeanVars(ax, points, positions, title=f'Parm Comparison ({titleLabel})')  # ({AD_functions.parmLabels})')
+    test = computeWilcoxonTests(points)
+    plotWilcoxonTest(ax, test, positions, plotOrder=[labels[0]+'_'+labels[1],
+                                                     labels[1]+'_'+labels[2],
+                                                     labels[0]+'_'+labels[2],
+                                                    ])
+    ax.set_ylabel("phFCD")
+    plt.show()
+
+
+# Same as previous one, but with 4 labels. Too lazy to refactor this... ;-)
+def plotValuesComparisonAcross4Labels(dataA, dataB, dataC, dataD, labels, titleLabel='test'):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    points = {labels[0]: dataA, labels[1]: dataB, labels[2]: dataC, labels[3]: dataD}
+    positions = {labels[0]: posA, labels[1]: posB, labels[2]: posC, labels[3]: posD}
+    plotMeanVars(ax, points, positions, title=f'Parm Comparison ({titleLabel})')  # ({AD_functions.parmLabels})')
+    test = computeWilcoxonTests(points)
+    plotWilcoxonTest(ax, test, positions, plotOrder=[labels[0]+'_'+labels[1],
+                                                     labels[1]+'_'+labels[2],
+                                                     labels[0]+'_'+labels[2],
+                                                     labels[2]+'_'+labels[3],
+                                                     labels[1]+'_'+labels[3],
+                                                     labels[0]+'_'+labels[3],
+                                                    ])
+    ax.set_ylabel("phFCD")
+    plt.show()
+
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------EOF
