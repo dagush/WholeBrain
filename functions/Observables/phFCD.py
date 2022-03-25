@@ -21,6 +21,23 @@ print("Going to use Phase Functional Connectivity Dynamics (phFCD)...")
 
 name = 'phFCD'
 
+
+# ================================= convert the triangular and save if needed
+saveMatrix = False
+save_file = "./Data_Produced/" + name + '.mat'
+
+
+def buildMatrixToSave(linear_phfcd, size):
+    import scipy.io as sio
+    tri = np.zeros((size, size))
+    i_lower = tril_indices_column(size, k=-1)
+    # i_lower = np.tril_indices(size, -1)
+    tri[i_lower] = linear_phfcd
+    tri.T[i_lower] = tri[i_lower]  # make the matrix symmetric
+    sio.savemat(save_file , {name: tri})
+    return tri
+
+
 ERROR_VALUE = 10
 
 discardOffset = 10  # This was necessary in the old days when, after pre-processing, data had many errors/outliers at
@@ -31,6 +48,14 @@ discardOffset = 10  # This was necessary in the old days when, after pre-process
 def tril_indices_column(N, k=0):
     row_i, col_i = np.nonzero(
         np.tril(np.ones(N), k=k).T)  # Matlab works in column-major order, while Numpy works in row-major.
+    Isubdiag = (col_i,
+                row_i)  # Thus, I have to do this little trick: Transpose, generate the indices, and then "transpose" again...
+    return Isubdiag
+
+
+def triu_indices_column(N, k=0):
+    row_i, col_i = np.nonzero(
+        np.triu(np.ones(N), k=k).T)  # Matlab works in column-major order, while Numpy works in row-major.
     Isubdiag = (col_i,
                 row_i)  # Thus, I have to do this little trick: Transpose, generate the indices, and then "transpose" again...
     return Isubdiag
@@ -66,11 +91,11 @@ def from_fMRI(ts, applyFilters = True):  # Compute the FCD of an input BOLD sign
 
     Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
     phIntMatr = PhaseInteractionMatrix.from_fMRI(ts, applyFilters=applyFilters)  # Compute the Phase-Interaction Matrix
-    phIntMatr_upTri = np.zeros((npattmax, int(N * (N - 1) / 2)))  # The int() is not needed, but... (see above)
-    for t in range(npattmax):
-        phIntMatr_upTri[t,:] = phIntMatr[t][Isubdiag]
 
-    if not np.isnan(phIntMatr_upTri).any():  # No problems, go ahead!!!
+    if not np.isnan(phIntMatr).any():  # No problems, go ahead!!!
+        phIntMatr_upTri = np.zeros((npattmax, int(N * (N - 1) / 2)))  # The int() is not needed, but... (see above)
+        for t in range(npattmax):
+            phIntMatr_upTri[t,:] = phIntMatr[t][Isubdiag]
         phfcd = np.zeros((size_kk3))
         kk3 = 0
         for t in range(npattmax - 2):
@@ -82,6 +107,8 @@ def from_fMRI(ts, applyFilters = True):  # Compute the FCD of an input BOLD sign
     else:
         warnings.warn('############ Warning!!! phFCD.from_fMRI: NAN found ############')
         phfcd = np.array([np.nan])
+    if saveMatrix:
+        buildMatrixToSave(phfcd, npattmax - 2)
     return phfcd
 
 

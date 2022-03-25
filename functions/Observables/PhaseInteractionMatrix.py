@@ -30,6 +30,9 @@ print("Going to use Phase-Interaction Matrix...")
 
 name = 'PhaseInteractionMatrix'
 
+saveMatrix = False
+save_file = "./Data_Produced/" + name
+
 
 discardOffset = 10  # This was necessary in the old days when, after pre-processing, data had many errors/outliers at
 # the beginning and at the end. Thus, the first (and last) 10 samples used to be discarded. Nowadays this filtering is
@@ -83,9 +86,14 @@ def from_fMRI(ts, applyFilters = True):  # Compute the Phase-Interaction Matrix 
                     # print(f'processing {t}: ({i}, {j})')
                     dFC[i, j] = np.cos(adif(phases[i, t - 1], phases[j, t - 1]))
             PhIntMatr[t - discardOffset] = dFC
+                # ================== if we need to save the matrix for some later use...
     else:
         warnings.warn('############ Warning!!! PhaseInteractionMatrix.from_fMRI: NAN found ############')
         PhIntMatr = np.array([np.nan])
+    # ======== sometimes we need to plot the matrix. To simplify the code, we save it here if needed...
+    if saveMatrix:
+        import scipy.io as sio
+        sio.savemat(save_file + '.mat', {name: PhIntMatr})
     return PhIntMatr
 
 # ================================================================================================================

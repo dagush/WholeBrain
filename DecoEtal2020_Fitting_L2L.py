@@ -84,13 +84,15 @@ def Fitting():
     WBOptimizee.neuronalModel = neuronalModel
     WBOptimizee.integrator = integrator
     WBOptimizee.simulateBOLD = simulateBOLD
-    distanceSettings = {'swFCD': (swFCD, True)}  # We need to overwrite this, as L2L only works with ONE observable at a time.
-    WBOptimizee.measure = distanceSettings['swFCD'][0]  # Measure to use to compute the error
-    WBOptimizee.applyFilters = distanceSettings['swFCD'][1]  # Whether to apply filters to the resulting signal or not
+
+    selectedObservable = 'swFCD'
+    distanceSettings = {selectedObservable: (swFCD, True)}  # We need to overwrite this, as L2L only works with ONE observable at a time.
+    WBOptimizee.measure = distanceSettings[selectedObservable][0]  # Measure to use to compute the error
+    WBOptimizee.applyFilters = distanceSettings[selectedObservable][1]  # Whether to apply filters to the resulting signal or not
     outEmpFileName = baseOutPath + '/fNeuro_emp_L2L.mat'
     WBOptimizee.processedEmp = processEmpiricalSubjects(tc_transf,
                                                         distanceSettings,
-                                                        outEmpFileName)['swFCD']  # reference values (e.g., empirical) to compare to.
+                                                        outEmpFileName)[selectedObservable]  # reference values (e.g., empirical) to compare to.
     WBOptimizee.N = N  # Number of regions in the parcellation
     WBOptimizee.trials = NumTrials  # Number of trials to try
     optimizee_parameters = namedtuple('OptimizeeParameters', [])

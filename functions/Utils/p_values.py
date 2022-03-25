@@ -79,12 +79,14 @@ plt.rcParams.update({'font.size': 22})
 posA = 1; posB = 2; posC = 3; posD = 4
 
 # Generates a boxPlot and the p-values for 3 different labels
-def plotComparisonAcrossLabels(dataA, dataB, dataC, labels, titleLabel='test'):
+def plotComparisonAcrossLabels(dataA, dataB, dataC, labels, titleLabel='test', yLimits = None):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     points = {labels[0]: dataA, labels[1]: dataB, labels[2]: dataC}
     positions = {labels[0]: posA, labels[1]: posB, labels[2]: posC}
-    plotMeanVars(ax, points, positions, title=f'Parm Comparison ({titleLabel})')  # ({AD_functions.parmLabels})')
+    if yLimits is not None:
+        ax.set_ylim(yLimits)
+    plotMeanVars(ax, points, positions, title=titleLabel)  # f'Parm Comparison ({titleLabel})'
     test = computeWilcoxonTests(points)
     plotWilcoxonTest(ax, test, positions, plotOrder=[labels[0]+'_'+labels[1],
                                                      labels[1]+'_'+labels[2],
@@ -95,12 +97,14 @@ def plotComparisonAcrossLabels(dataA, dataB, dataC, labels, titleLabel='test'):
 
 
 # Same as previous one, but with 4 labels. Too lazy to refactor this... ;-)
-def plotValuesComparisonAcross4Labels(dataA, dataB, dataC, dataD, labels, titleLabel='test'):
+def plotValuesComparisonAcross4Labels(dataA, dataB, dataC, dataD, labels, titleLabel='test', yLimits = None):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     points = {labels[0]: dataA, labels[1]: dataB, labels[2]: dataC, labels[3]: dataD}
     positions = {labels[0]: posA, labels[1]: posB, labels[2]: posC, labels[3]: posD}
-    plotMeanVars(ax, points, positions, title=f'Parm Comparison ({titleLabel})')  # ({AD_functions.parmLabels})')
+    if yLimits is not None:
+        ax.set_ylim(yLimits)
+    plotMeanVars(ax, points, positions, title=titleLabel)  # f'Parm Comparison ({titleLabel})'
     test = computeWilcoxonTests(points)
     plotWilcoxonTest(ax, test, positions, plotOrder=[labels[0]+'_'+labels[1],
                                                      labels[1]+'_'+labels[2],
@@ -111,6 +115,21 @@ def plotValuesComparisonAcross4Labels(dataA, dataB, dataC, dataD, labels, titleL
                                                     ])
     ax.set_ylabel("phFCD")
     plt.show()
+
+
+def findMinMaxSpan(a,b):
+    max = -np.inf; posMax = 0
+    min = np.inf; posMin = 0
+    for pos, (va, vb) in enumerate(zip(a,b)):
+        span = np.abs(va-vb)
+        if span > max:
+            max = span
+            posMax = pos
+        if span < min:
+            min = span
+            posMin = pos
+    return min, posMin, max, posMax
+
 
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------

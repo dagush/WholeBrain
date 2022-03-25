@@ -11,7 +11,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 
-def plotFitting(ax, WEs, fitting, distanceSettings, title):
+def plotFitting(ax, WEs, fitting, distanceSettings, title, graphLabel=None):
     print("\n\n#####################################################################################################")
     print(f"# Results (in ({WEs[0]}, {WEs[-1]}):")
     for ds in distanceSettings:
@@ -21,7 +21,10 @@ def plotFitting(ax, WEs, fitting, distanceSettings, title):
         color = next(ax._get_lines.prop_cycler)['color']
         plotFCpla, = ax.plot(WEs, fitting[ds], color=color)
         ax.axvline(x=WEs[optimValDist[1]], ls='--', c=color)
-        plotFCpla.set_label(ds)
+        if graphLabel is None:
+            plotFCpla.set_label(ds)
+        else:
+            plotFCpla.set_label(graphLabel)
         ax.set_title(title)
 
     print("#####################################################################################################\n\n")
@@ -39,7 +42,8 @@ def loadAndPlotAx(ax, filePath,
                   WEs=None,
                   weName=None,
                   decimals=3,
-                  empFilePath=None):
+                  empFilePath=None,
+                  graphLabel=None):
     def processFile(fileName, ds):
         simValues = sio.loadmat(fileName)
         we = simValues[weName]
@@ -84,7 +88,7 @@ def loadAndPlotAx(ax, filePath,
                 fitting[dspos+1, wePos] = value
 
     data = {ds: fitting[1+pos,] for pos,ds in enumerate(distanceSettings)}
-    plotFitting(ax, fitting[0], data, distanceSettings, title)
+    plotFitting(ax, fitting[0], data, distanceSettings, title, graphLabel=graphLabel)
 
 
 def loadAndPlot(filePath,
@@ -101,6 +105,28 @@ def loadAndPlot(filePath,
     localTitle = f"computing graph " + title
     loadAndPlotAx(ax, filePath, distanceSettings, localTitle,
                   WEs=WEs, weName=weName, decimals=decimals, empFilePath=empFilePath)
+    plt.legend(loc='upper right')
+    plt.show()
+
+
+def loadAndPlotMultipleGraphs(filePaths,
+                              distanceSettings,
+                              WEs=None,
+                              weName=None,
+                              decimals=3,
+                              empFilePath=None,
+                              titles=None):
+    plt.rcParams.update({'font.size': 15})
+    fig = plt.figure()
+    grid = plt.GridSpec(1, 1)
+    ax = fig.add_subplot(grid[0,0])
+    for pos, path in enumerate(filePaths):
+        if titles is not None:
+            localTitle = f"computing graph " + titles[pos]
+        else:
+            localTitle = "computing graph"
+        loadAndPlotAx(ax, path, distanceSettings, localTitle,
+                      WEs=WEs, weName=weName, decimals=decimals, empFilePath=empFilePath, graphLabel=titles[pos])
     plt.legend(loc='upper right')
     plt.show()
 
