@@ -30,8 +30,8 @@ def recompileSignatures():
 
 def configSim(abeta_burden):
     global integrator, runSim
-    import WholeBrain.Integrator_Euler
-    integrator = WholeBrain.Integrator_Euler
+    import Integrators.Euler
+    integrator = Integrators.Euler
     integrator.neuronalModel = JR
     integrator.clamping = False
     integrator.ds = ds

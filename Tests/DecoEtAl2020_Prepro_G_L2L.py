@@ -32,7 +32,7 @@ import WholeBrain.Optimizers.ParmSeep as parmSweep
 parmSweep.simulateBOLD = simulateBOLD
 parmSweep.integrator = integrator
 
-from WholeBrain.Optimizers.preprocessSignal import processEmpiricalSubjects  # processBOLDSignals
+from Utils.preprocessSignal import processEmpiricalSubjects  # processBOLDSignals
 # --------------------------------------------------------------------------
 #  End local setup...
 # --------------------------------------------------------------------------

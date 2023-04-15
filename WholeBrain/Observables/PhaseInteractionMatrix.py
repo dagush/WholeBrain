@@ -8,11 +8,11 @@
 #       Nikos K. Logothetis, and Morten L. Kringelbach
 #       PNAS September 3, 2019 116 (36) 18088-18097; https://doi.org/10.1073/pnas.1905534116
 #  But defined as this at:
-#  [Lopez-Gonzalez2020] Loss of consciousness reduces the stability of brain hubs and the heterogeneity of brain dynamics
-#       Ane Lopez-Gonzalez, Rajanikant Panda, Adrian Ponce-Alvarez, Gorka Zamora-Lopez, Anira Escrichs,
-#       Charlotte Martial, Aurore Thibaut, Olivia Gosseries, Morten L. Kringelbach, Jitka Annen,
-#       Steven Laureys, and Gustavo Deco
-#       bioRxiv preprint doi: https://doi.org/10.1101/2020.11.20.391482
+#  [Lopez-Gonzalez2021] Loss of consciousness reduces the stability of brain hubs and the heterogeneity of brain dynamics
+#       Ane López-González, Rajanikant Panda, Adrián Ponce-Alvarez, Gorka Zamora-López, Anira Escrichs, Charlotte
+#       Martial, Aurore Thibaut, Olivia Gosseries, Morten L. Kringelbach, Jitka Annen, Steven Laureys & Gustavo Deco
+#       Communications Biology 4, 1037 (2021). Doi: 10.1038/s42003-021-02537-9
+#       bioRxiv preprint doi: 10.1101/2020.11.20.391482
 #
 #  Translated to Python by Xenia Kobeleva
 #  Revised by Gustavo Patow
@@ -38,9 +38,6 @@ discardOffset = 10  # This was necessary in the old days when, after pre-process
 # the beginning and at the end. Thus, the first (and last) 10 samples used to be discarded. Nowadays this filtering is
 # done at the pre-processing stage itself, so this value is set to 0. Thus, depends on your data...
 
-BOLDFilters.flp = 0.008
-BOLDFilters.fhi = 0.08
-
 
 def adif(a, b):
     if np.abs(a - b) > np.pi:
@@ -58,7 +55,7 @@ def adif(a, b):
 #     return Isubdiag
 
 
-def from_fMRI(ts, applyFilters = True):  # Compute the Phase-Interaction Matrix of an input BOLD signal
+def from_fMRI(ts, applyFilters=True, removeStrongArtefacts=True):  # Compute the Phase-Interaction Matrix of an input BOLD signal
     (N, Tmax) = ts.shape
     npattmax = Tmax - (2*discardOffset-1)  # calculates the size of phfcd matrix
 
@@ -71,7 +68,11 @@ def from_fMRI(ts, applyFilters = True):  # Compute the Phase-Interaction Matrix 
         # syncdata = np.zeros(npattmax)
 
         # Filters seem to be always applied...
-        ts_filt = BOLDFilters.BandPassFilter(ts)  # zero phase filter the data
+        if applyFilters:
+            ts_filt = BOLDFilters.BandPassFilter(ts, removeStrongArtefacts=removeStrongArtefacts)  # zero phase filter the data
+        else:
+            ts_filt = ts
+
         for n in range(N):
             Xanalytic = signal.hilbert(demean.demean(ts_filt[n, :]))
             phases[n, :] = np.angle(Xanalytic)

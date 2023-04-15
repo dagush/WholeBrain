@@ -17,13 +17,12 @@
 # ==========================================================================
 import numpy as np
 # import matplotlib.pyplot as plt
-import scipy.io as sio
 # from pathlib import Path
 # from numba import jit
 from WholeBrain.Utils.decorators import loadOrCompute
 import time
 
-from WholeBrain.Optimizers.preprocessSignal import processBOLDSignals, processEmpiricalSubjects
+from Utils.preprocessSignal import processBOLDSignals, processEmpiricalSubjects
 verbose = True
 
 # --------------------------------------------------------------------------

@@ -21,7 +21,6 @@ import warnings
 import numpy as np
 from scipy import signal, stats
 # from scipy import stats
-from WholeBrain import BOLDFilters
 from WholeBrain.Utils import demean
 
 import WholeBrain.Observables.PhaseInteractionMatrix as PhaseInteractionMatrix
@@ -30,16 +29,9 @@ print("Going to use Integration...")
 
 name = 'Integration'
 
-ERROR_VALUE = 10
+from WholeBrain import BOLDFilters
 BOLDFilters.flp = 0.008
 BOLDFilters.fhi = 0.08
-
-
-def distance(K1, K2):  # FCD similarity, convenience function
-    if not (np.isnan(K1).any() or np.isnan(K2)):  # No problems, go ahead!!!
-        return np.abs(K1-K2)
-    else:
-        return ERROR_VALUE
 
 
 def from_fMRI(ts, applyFilters = True):  # Compute the Integration of an input BOLD signal
@@ -72,7 +64,7 @@ def from_fMRI(ts, applyFilters = True):  # Compute the Integration of an input B
         cs = np.zeros(PR.size)
         for pp, p in enumerate(PR):
             A = cc > p  # A is binarized version of cc
-            [~, csize] = get_components(A)
+            _, csize = get_components(A)
             cs[pp] = max(csize)
             pp = pp+1
         integr = sum(cs)*0.01/N
@@ -84,7 +76,15 @@ def from_fMRI(ts, applyFilters = True):  # Compute the Integration of an input B
 
 # ==================================================================
 # Simple generalization WholeBrain to abstract distance measures
+# This code is DEPRECATED (kept for backwards compatibility)
 # ==================================================================
+ERROR_VALUE = 10
+def distance(K1, K2):  # FCD similarity, convenience function
+    if not (np.isnan(K1).any() or np.isnan(K2)):  # No problems, go ahead!!!
+        return np.abs(K1-K2)
+    else:
+        return ERROR_VALUE
+
 def init(S, N):
     return np.zeros(S)
 

@@ -24,7 +24,7 @@ from numba import jit
 # import WholeBrain.Models.DynamicMeanField as neuronalModel
 import WholeBrain.Models.Transcriptional as neuronalModel
 # ----------------------------------------------
-import WholeBrain.Integrator_EulerMaruyama as integrator
+import Integrators.EulerMaruyama as integrator
 integrator.neuronalModel = neuronalModel
 integrator.verbose = False
 import WholeBrain.BOLDHemModel_Stephan2007 as Stephan2007
@@ -34,10 +34,6 @@ simulateBOLD.BOLDModel = Stephan2007
 # import WholeBrain.simulateFCD as simulateFCD
 # simulateFCD.integrator = integrator
 # simulateFCD.BOLDModel = Stephan2007
-
-import WholeBrain.Observables.FC as FC
-import WholeBrain.Observables.GBC as GBC
-import WholeBrain.Observables.swFCD as swFCD
 
 import WholeBrain.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator

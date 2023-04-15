@@ -31,7 +31,7 @@ def recompileSignatures():
 
 # Functions to convert the stimulus from a function to an array
 # --------------------------------------------------------------------------
-stimuli = None        # To add some stimuli, if needed...
+stimuli = None  # To add some stimuli, if needed...
 allStimuli = None
 def initStimuli(dt, Tmaxneuronal):
     global allStimuli
@@ -56,7 +56,7 @@ def initBookkeeping(N, tmax):
     # curr_xn = np.zeros((int(tmax), N))
     # curr_rn = np.zeros((int(tmax), N))
     obsVars = neuronalModel.numObsVars()
-    timeElements = int(tmax/ds) + 1  # the last one because of isClose roundings...
+    timeElements = int(tmax/ds) + 1  # the last +1 because of isClose roundings...
     return np.zeros((timeElements, obsVars, N))
 
 
@@ -95,7 +95,7 @@ def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
     # Tmaxneuronal = total time to integrate in milliseconds
     for t in np.arange(0, Tmaxneuronal, dt):
         stimulus = allStimuli[int(t / dt)]
-        simVars_obsVars = integrationStep(simVars, dt, stimulus)  #, doBookkeeping, curr_obsVars)
+        simVars_obsVars = integrationStep(simVars, dt, stimulus)
         simVars = simVars_obsVars[0]; obsVars = simVars_obsVars[1]  # cannot use unpacking in numba...
         if doBookkeeping:
             curr_obsVars = recordBookkeeping(t, obsVars, curr_obsVars)
@@ -108,7 +108,6 @@ def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
     N = simVars.shape[1]  # N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     curr_obsVars = initBookkeeping(N, Tmaxneuronal)
     return integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars)
-    # return simVars, curr_obsVars
 
 
 # ==========================================================================
@@ -117,19 +116,18 @@ def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
 def simulate(dt, Tmaxneuronal):
     if verbose:
         print("Simulating...", flush=True)
-    N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
+    N = neuronalModel.getParm('SC').shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     simVars = neuronalModel.initSim(N)
     initStimuli(dt, Tmaxneuronal)
     simVars, obsVars = integrate(dt, Tmaxneuronal, simVars)
     return obsVars
 
 
-def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp = 10000):
-    N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
+def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp=10000):
+    N = neuronalModel.getParm('SC').shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     simVars = neuronalModel.initSim(N)
     if verbose:
         print("Warming Up...", end=" ", flush=True)
-    TWarmUp=2
     initStimuli(dt, TWarmUp)
     simVars, obsVars = integrate(dt, TWarmUp, simVars, doBookkeeping=False)
     if verbose:
@@ -138,6 +136,54 @@ def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp = 10000):
     simVars, obsVars = integrate(dt, Tmaxneuronal, simVars, doBookkeeping=True)
     return obsVars
 
+
+# ======================================================================
+# Debug/test code
+# To use it, comment the @jit(nopython=True) line at integrationStep
+# Otherwise you'll get weird numba errors
+# ======================================================================
+if __name__ == '__main__':
+    import math
+    import matplotlib.pyplot as plt
+
+    class dummyNeuronalModel:
+        def __init__(self):
+            pass
+        # we will use the differential equation y'(t) = y(t).
+        def dfun(self, simVars, p):
+            y = simVars
+            return y, y
+        def recompileSignatures(self):
+            pass
+        def numObsVars(self):
+            return 1
+
+    # The analytic solution is y = e^t.
+    def asol(t):
+        return math.exp(t)
+
+    neuronalModel = dummyNeuronalModel()
+
+    clamping = False
+    dt = 0.5
+    ds = dt
+    Tmax = 5.0
+    y0 = np.array([[1.0]])
+
+    initStimuli(dt, Tmax)
+
+    # for i in range(1, t.size):
+    #     y_intermediate = y[i-1] + h*y1(t[i-1],y[i-1])
+    #
+    #     y[i] = y[i-1] + (h/2.0)*(y1(t[i-1],y[i-1]) + y1(t[i],y_intermediate))
+    simVars, obsVars = integrate(dt, Tmax, y0)
+
+    t = np.arange(0.0, Tmax, dt)
+    yasol = np.vectorize(asol)
+    plt.plot(t,obsVars.flatten()[:-1],'r-',label="Euler's")
+    plt.plot(t,yasol(t),'b-', label='analytical')
+    plt.legend()
+    plt.show()
 
 # ==========================================================================
 # ==========================================================================

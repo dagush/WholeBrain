@@ -15,7 +15,7 @@ import scipy.io as sio
 import matplotlib.pyplot as plt
 import WholeBrain.Models.DynamicMeanField as DMF
 # ============== chose an integrator
-import WholeBrain.Integrator_EulerMaruyama as integrator
+import Integrators.EulerMaruyama as integrator
 # integrationMode = ''
 # import WholeBrain.Integrator_Euler as integrator
 # integrationMode = 'Deterministic/'

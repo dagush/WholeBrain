@@ -12,6 +12,21 @@ import scipy.stats as stats
 fontSize = 10
 
 
+# This is a simple check to prevent the "All numbers are identical in mannwhitneyu" error...
+def checkTiecorrect(x,y):
+    x = np.asarray(x)
+    y = np.asarray(y)
+    n1 = len(x)
+    n2 = len(y)
+    ranked = stats.rankdata(np.concatenate((x, y)))
+    rankx = ranked[0:n1]  # get the x-ranks
+    u1 = n1*n2 + (n1*(n1+1))/2.0 - np.sum(rankx, axis=0)  # calc U for x
+    u2 = n1*n2 - u1  # remainder is U for y
+    T = stats.tiecorrect(ranked)
+    return T != 0
+
+
+
 def plotMeanVars(ax, data, pos, title):
     points = [data[d] for d in data]
     positions = [pos[d] for d in data]
@@ -25,17 +40,29 @@ def plotMeanVars(ax, data, pos, title):
 
 # h = fontSize / 10
 barHeight = fontSize / 2.
-def plotWilcoxonTest(ax, tests, pos, plotOrder = None, col='grey'):
-    def classify(test):
-        if test < 0.001:
-            text = f'*** p={test:.4f}'
-        elif test < 0.01:
-            text = f'** p={test:.3f}'
-        elif test < 0.05:
-            text = f'* p={test:.3f}'
-        else:
-            text = f'p={test:.3f}'
-        return text
+def plotSignificanceStars(ax, tests, pos, plotOrder = None, col='grey'):
+    def stars(p):
+       if p < 0.0001:
+           return "****"
+       elif (p < 0.001):
+           return "***"
+       elif (p < 0.01):
+           return "**"
+       elif (p < 0.05):
+           return "*"
+       else:
+           return "-"
+
+    # def stars(test):
+    #     if test < 0.001:
+    #         text = f'*** p={test:.4f}'
+    #     elif test < 0.01:
+    #         text = f'** p={test:.3f}'
+    #     elif test < 0.05:
+    #         text = f'* p={test:.3f}'
+    #     else:
+    #         text = f'p={test:.3f}'
+    #     return text
 
     def plotBar(x1, x2, h, text):  # (x1, x2, y, h, text):
         ylim = ax.get_ylim()
@@ -54,7 +81,7 @@ def plotWilcoxonTest(ax, tests, pos, plotOrder = None, col='grey'):
     h = (ylim[1] - ylim[0]) / 50
     for order, pair in enumerate(plotOrder):
         labels = pair.split('_')
-        plotBar(pos[labels[0]], pos[labels[1]], h, classify(tests[pair]))  # ylim[1] + delta * order
+        plotBar(pos[labels[0]], pos[labels[1]], h, stars(tests[pair]))  # ylim[1] + delta * order
     print()
 
 
@@ -63,7 +90,10 @@ def computeWilcoxonTests(data):
     for pair in itertools.combinations(data, r=2):
         if pair[0] != pair[1]:
             testName = pair[0]+'_'+pair[1]
-            tests[testName] = stats.mannwhitneyu(data[pair[0]], data[pair[1]]).pvalue
+            if checkTiecorrect(data[pair[0]], data[pair[1]]):
+                tests[testName] = stats.mannwhitneyu(data[pair[0]], data[pair[1]]).pvalue
+            else:
+                tests[testName] = 1
             print(f'test[{testName}] = {tests[testName]}')
     return tests
 
@@ -74,25 +104,29 @@ def computeWilcoxonTests(data):
 # Plotting func.
 # ----------------------------------------------------------------------------
 import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 22})
 
 posA = 1; posB = 2; posC = 3; posD = 4
 
 # Generates a boxPlot and the p-values for 3 different labels
-def plotComparisonAcrossLabels(dataA, dataB, dataC, labels, titleLabel='test', yLimits = None):
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
+def plotComparisonAcrossLabelsAx(ax, dataA, dataB, dataC, labels, titleLabel='test', ylabel='Obs', yLimits = None):
     points = {labels[0]: dataA, labels[1]: dataB, labels[2]: dataC}
     positions = {labels[0]: posA, labels[1]: posB, labels[2]: posC}
     if yLimits is not None:
         ax.set_ylim(yLimits)
     plotMeanVars(ax, points, positions, title=titleLabel)  # f'Parm Comparison ({titleLabel})'
     test = computeWilcoxonTests(points)
-    plotWilcoxonTest(ax, test, positions, plotOrder=[labels[0]+'_'+labels[1],
+    plotSignificanceStars(ax, test, positions, plotOrder=[labels[0]+'_'+labels[1],
                                                      labels[1]+'_'+labels[2],
                                                      labels[0]+'_'+labels[2],
                                                     ])
-    ax.set_ylabel("phFCD")
+    ax.set_ylabel(ylabel)
+
+
+# Convenience version that directly generates the picture...
+def plotComparisonAcrossLabels(dataA, dataB, dataC, labels, titleLabel='test', ylabel='Obs', yLimits=None):
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    plotComparisonAcrossLabelsAx(ax, dataA, dataB, dataC, labels, titleLabel=titleLabel, ylabel=ylabel, yLimits=yLimits)
     plt.show()
 
 
@@ -106,7 +140,7 @@ def plotValuesComparisonAcross4Labels(dataA, dataB, dataC, dataD, labels, titleL
         ax.set_ylim(yLimits)
     plotMeanVars(ax, points, positions, title=titleLabel)  # f'Parm Comparison ({titleLabel})'
     test = computeWilcoxonTests(points)
-    plotWilcoxonTest(ax, test, positions, plotOrder=[labels[0]+'_'+labels[1],
+    plotSignificanceStars(ax, test, positions, plotOrder=[labels[0]+'_'+labels[1],
                                                      labels[1]+'_'+labels[2],
                                                      labels[0]+'_'+labels[2],
                                                      labels[2]+'_'+labels[3],

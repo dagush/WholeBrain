@@ -20,8 +20,8 @@ def plotSCHistogram(ax, SC, subjectName):
     # plt.close()
 
 
-def plotSC(ax, SC, subjectName):
-    ax.imshow(np.asarray(SC))
+def plotSC(ax, SC, subjectName, colormap='viridis'):
+    ax.imshow(np.asarray(SC), cmap=colormap)
     ax.set_xlabel("Regions")
     ax.set_ylabel("Regions")
     ax.set_title("Subject {}".format(subjectName))
@@ -47,12 +47,12 @@ def plotSC_and_Histogram(subjectName, SCnorm, plotColorBar = True):
     plt.show()
 
 
-def justPlotSC(subjectName, SCnorm, plottingFunction):
+def justPlotSC(subjectName, SCnorm, plottingFunction, colormap='viridis'):
     plt.rcParams.update({'font.size': 15})
     fig = plt.figure()
     grid = plt.GridSpec(1, 1)
     ax = fig.add_subplot(grid[0,0])
-    plottingFunction(ax, SCnorm, subjectName)
+    plottingFunction(ax, SCnorm, subjectName, colormap=colormap)
     plt.show()
 
 

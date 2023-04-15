@@ -1,5 +1,9 @@
 # --------------------------------------------------------------------------------------
-# Full pipeline for analyzing AD, MCI and HC subject data
+# Full pipeline for integration analysis
+#
+# based on:
+# [DecoEtAl2015] Deco, G., Tononi, G., Boly, M. et al. Rethinking segregation and integration: contributions
+# of whole-brain modelling. Nat Rev Neurosci 16, 430–439 (2015). https://doi.org/10.1038/nrn3963
 #
 # By Gorka Zamora
 # Refactored by Gustavo Patow
@@ -10,8 +14,6 @@ from WholeBrain import BOLDFilters
 print("Going to use Integration (from FC)...")
 
 name = 'integration'
-
-ERROR_VALUE = 10
 
 
 """In this script I want to write a function to compute the metric of
@@ -24,6 +26,7 @@ from timeit import default_timer as timer
 # Third party libraries
 import matplotlib.pyplot as plt
 import numpy as np
+import warnings
 from galib.metrics_numba import FloydWarshall_Numba
 from galib import ConnectedComponents
 # My own libraries and packages
@@ -80,7 +83,7 @@ def IntegrationFromFC(fcmatrix, nbins=50, datarange=[0,1]):
     giantsizelist = np.zeros(nbins, np.float64)
     for i, thres in enumerate(threslist):
         # Threshold the FC matrix
-        bimatrix = np.where(fcmatrix > thres, 1,0).astype(np.uint8)
+        bimatrix = np.where(fcmatrix > thres, 1, 0).astype(np.uint8)
         bimatrix[diagidx] = 0
         # Calculate the pair-wise graph distance matrix
         dij = FloydWarshall_Numba(bimatrix)
@@ -101,7 +104,7 @@ def IntegrationFromFC(fcmatrix, nbins=50, datarange=[0,1]):
             giantsizelist[i] = 0
 
         #print(i, thres, giantsizelist[i])
-    print( giantsizelist )
+    # print( giantsizelist )
 
     # 2) Calculate the integration (area-under-the-curve)
     fcintegration = giantsizelist.sum() * stepsize
@@ -190,7 +193,7 @@ def IntegrationFromFC_Fast(fcmatrix, nbins=50, datarange=[0,1]):
                 break
 
         #print(i, thres, giantsizelist[i])
-    print( giantsizelist )
+    # print( giantsizelist )
 
     # 2) Calculate the integration (area-under-the-curve)
     fcintegration = giantsizelist.sum() * stepsize
@@ -203,17 +206,10 @@ def IntegrationFromFC_Fast(fcmatrix, nbins=50, datarange=[0,1]):
 # ==================================================================
 # Protocol
 # ==================================================================
-def distance(int1, int2):  # FCD similarity, convenience function
-    if not (np.isnan(int1).any() or np.isnan(int2)):  # No problems, go ahead!!!
-        return np.abs(int1-int2)
-    else:
-        return ERROR_VALUE
-
-
-def from_fMRI(signal, applyFilters = True):  # Compute the Integration of an input BOLD signal
+def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):  # Compute the Integration of an input BOLD signal
     if not np.isnan(signal).any():  # No problems, go ahead!!!
         if applyFilters:
-            signal_filt = BOLDFilters.BandPassFilter(signal)
+            signal_filt = BOLDFilters.BandPassFilter(signal, removeStrongArtefacts=removeStrongArtefacts)
             sfiltT = signal_filt.T
         else:
             sfiltT = signal.T
@@ -222,13 +218,24 @@ def from_fMRI(signal, applyFilters = True):  # Compute the Integration of an inp
         int = IntegrationFromFC_Fast(fcnet, nbins=100)
         return int
     else:
+        warnings.warn('############ Warning!!! integration.from_fMRI: NAN found ############')
         # n = signal.shape[0]
         return np.nan
 
 
 # ==================================================================
 # Simple generalization WholeBrain to abstract distance measures
+# This code is DEPRECATED (kept for backwards compatibility)
 # ==================================================================
+ERROR_VALUE = 10
+
+def distance(int1, int2):  # FCD similarity, convenience function
+    if not (np.isnan(int1).any() or np.isnan(int2)):  # No problems, go ahead!!!
+        return np.abs(int1-int2)
+    else:
+        return ERROR_VALUE
+
+
 def init(S, N):
     return np.zeros(S)
 
@@ -280,7 +287,7 @@ if __name__ == '__main__':
 
     # 2) CALCULATE THE INTEGRATION FROM RESTING STATE FCs. POPULATION AVERAGE
     print(f'\nTest with a real avg matrix: From resting state FCs population average ({N}x{N})')
-    avfcnet = abs(avfcnet)
+    avfcnet = abs(s)
     integ_rs = IntegrationFromFC(avfcnet, nbins=100)
 
     print('Integration (resting-state):', integ_rs)

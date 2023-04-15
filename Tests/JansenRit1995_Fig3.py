@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import WholeBrain.Models.JansenRit as JR
-import WholeBrain.Integrator_Euler as integrator
+import Integrators.Euler as integrator
 
 integrator.neuronalModel = JR
 integrator.clamping = False

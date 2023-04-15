@@ -19,8 +19,6 @@ from l2l.utils.experiment import Experiment
 from l2l.optimizers.gridsearch import GridSearchOptimizer, GridSearchParameters
 import WholeBrain.Optimizers.L2LOptimizee as WBOptimizee
 
-import matplotlib.pyplot as plt
-
 # --------------------------------------------------------------------------
 #  Begin local setup...
 # --------------------------------------------------------------------------
@@ -30,7 +28,7 @@ import WholeBrain.Optimizers.ParmSeep as optim1D
 optim1D.simulateBOLD = simulateBOLD
 optim1D.integrator = integrator
 
-from WholeBrain.Optimizers.preprocessSignal import processEmpiricalSubjects  # processBOLDSignals
+from Utils.preprocessSignal import processEmpiricalSubjects  # processBOLDSignals
 # --------------------------------------------------------------------------
 #  End local setup...
 # --------------------------------------------------------------------------

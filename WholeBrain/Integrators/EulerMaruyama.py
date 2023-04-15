@@ -23,10 +23,12 @@ verbose = True
 def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+    # # initBookkeeping.recompile()
     neuronalModel.recompileSignatures()
     recordBookkeeping.recompile()
     integrationStep.recompile()
     pass
+
 
 # Functions to convert the stimulus from a function to an array
 # --------------------------------------------------------------------------
@@ -52,13 +54,14 @@ else:
     from numpy.random import randn
 
 
-# # bookkeeping vars & methods -> Just forward them to the neuronal model we are using...
+# bookkeeping vars & methods -> Just forward them to the neuronal model we are using...
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================
 # Bookkeeping variables of interest...
 # --------------------------------------------------------------------------
 ds = 1  # downsampling stepsize
+# # @jit(nopython=True)
 def initBookkeeping(N, tmax):
     # global curr_xn, curr_rn, nn
     # global curr_obsVars
@@ -73,7 +76,7 @@ def initBookkeeping(N, tmax):
 def recordBookkeeping(t, obsVars, curr_obsVars):
     # global curr_obsVars
     if iC.isInt(t/ds):
-        nn = int(np.round(t/ds))  # is is an int-ish...
+        nn = int(np.round(t/ds))  # it is an int-ish...
         curr_obsVars[nn,:,:] = obsVars[:,:]
     return curr_obsVars
 
@@ -99,6 +102,9 @@ def integrationStep(simVars, dt, stimulus):  #, curr_obsVars, doBookkeeping):
 
 # # @jit(nopython=True)
 def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
+    # Variables:
+    # dt = integration time step in milliseconds
+    # Tmaxneuronal = total time to integrate in milliseconds
     for t in np.arange(0, Tmaxneuronal, dt):
         stimulus = allStimuli[int(t / dt)]
         simVars_obsVars = integrationStep(simVars, dt, stimulus)
@@ -109,7 +115,7 @@ def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars):
 
 
 # # @jit(nopython=True)
-def integrate(dt, Tmaxneuronal, simVars, doBookkeeping=True):
+def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
     # numSimVars = simVars.shape[0]
     N = simVars.shape[1]  # N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     curr_obsVars = initBookkeeping(N, Tmaxneuronal)

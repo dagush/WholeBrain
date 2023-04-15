@@ -5,6 +5,7 @@
 #  Translated to Python & refactoring by Gustavo Patow
 #--------------------------------------------------------------------------
 #--------------------------------------------------------------------------
+import warnings
 import numpy as np
 # from numba import jit
 from WholeBrain import BOLDFilters
@@ -14,8 +15,27 @@ print("Going to use Functional Connectivity (FC)...")
 name = 'FC'
 
 
-ERROR_VALUE = 10
+# @jit(nopython=True)
+def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):
+    if not np.isnan(signal).any():  # No problems, go ahead!!!
+        if applyFilters:
+            signal_filt = BOLDFilters.BandPassFilter(signal, removeStrongArtefacts=removeStrongArtefacts)
+            sfiltT = signal_filt.T
+        else:
+            sfiltT = signal.T
+        cc = np.corrcoef(sfiltT, rowvar=False)  # Pearson correlation coefficients
+        return cc
+    else:
+        warnings.warn('############ Warning!!! FC.from_fMRI: NAN found ############')
+        # n = signal.shape[0]
+        return np.nan
 
+
+# ==================================================================
+# Simple generalization WholeBrain to abstract distance measures
+# This code is DEPRECATED (kept for backwards compatibility)
+# ==================================================================
+ERROR_VALUE = 10
 
 # @jit(nopython=True)
 def pearson_r(x, y):
@@ -42,24 +62,6 @@ def distance(FC1, FC2):  # FC similarity, convenience function
         return ERROR_VALUE
 
 
-# @jit(nopython=True)
-def from_fMRI(signal, applyFilters = True):
-    if not np.isnan(signal).any():  # No problems, go ahead!!!
-        if applyFilters:
-            signal_filt = BOLDFilters.BandPassFilter(signal)
-            sfiltT = signal_filt.T
-        else:
-            sfiltT = signal.T
-        cc = np.corrcoef(sfiltT, rowvar=False)  # Pearson correlation coefficients
-        return cc
-    else:
-        n = signal.shape[0]
-        return np.nan
-
-
-# ==================================================================
-# Simple generalization WholeBrain to abstract distance measures
-# ==================================================================
 def init(S, N):
     return np.zeros((S, N, N))
 

@@ -21,6 +21,15 @@ def characterizeConnectivityMatrix(C):
 
 
 # @jit(nopython=True)
+def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):
+    return FC.from_fMRI(signal, applyFilters=applyFilters, removeStrongArtefacts=removeStrongArtefacts)
+
+
+# ==================================================================
+# Simple generalization WholeBrain to abstract distance measures
+# This code is DEPRECATED (kept for backwards compatibility)
+# ==================================================================
+# @jit(nopython=True)
 def pearson_r(x, y):
     return FC.pearson_r(x, y)
 
@@ -35,14 +44,6 @@ def distance(FC1, FC2):  # FC similarity, convenience function
     return pearson_r(FC1, FC2)
 
 
-# @jit(nopython=True)
-def from_fMRI(signal, applyFilters = True):
-    return FC.from_fMRI(signal, applyFilters=applyFilters)
-
-
-# ==================================================================
-# Simple generalization WholeBrain to abstract distance measures
-# ==================================================================
 def init(S, N):
     return FC.init(S, N)
 

@@ -1,6 +1,17 @@
 # --------------------------------------------------------------------------------------
-# Full pipeline for ignitiion computation
-# By Gustavo Deco
+# Full pipeline for Stimulated Ignition computation
+#
+#  Taken from the code from:
+#  [DecoEtAl_2021] Gustavo Deco, Kevin Aquino, Aurina Arnatkeviciute, Stuart Oldham, Kristina Sabaroedin,
+#  Nigel Rogasch, Morten L. Kringelbach, and Alex Fornito,
+#  "Dynamical consequences of regional heterogeneity in the brain’s transcriptional landscape",
+#  SCIENCE ADVANCES, 14 Jul 2021, Vol 7, Issue 29, DOI: 10.1126/sciadv.abf4752
+#
+#  Based on:
+#  [ChaudhuriEtAl_2015] A Large-Scale Circuit Mechanism for Hierarchical Dynamical Processing in the Primate Cortex
+#  Rishidev Chaudhuri, Kenneth Knoblauch, Marie-Alice Gariel, Henry Kennedy, Xiao-Jing Wang,
+#  Neuron, Volume 88, Issue 2, 21 October 2015, Pages 419-431, DOI: 10.1016/j.neuron.2015.09.008
+#
 # Adapted to python by Gustavo Patow
 # --------------------------------------------------------------------------------------
 
@@ -10,15 +21,16 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from WholeBrain.Utils.decorators import loadOrCompute
 
-print("Going to use ignition (ignition)...")
+print("Going to use Stimulated Ignition...")
 
-name = 'ignition'
+name = 'stimulatedIgnition'
 
-# 	Fitting routines for ignition
+# 	Fitting routines for Stimulated Ignition
 sigfunc = lambda x,A0,A1,A2,A3 : A0 / (1 + np.exp(-A1*(x-A2))) + A3  # sigfunc = @(A, x)(A(1) ./ (1 + exp(-A(2)*(x-A(3)))) + A(4))
 plotting = False
 
 
+# From [DecoEtAl_2021]:
 # We measure the evoked responses at the level of population firing rates rather than simulated
 # BOLD signal changes to have direct access to the millisecond timescale. To quantify the
 # effect of occipital stimulation on activity in each of the other 66 brain regions, we plot, for
@@ -29,7 +41,7 @@ plotting = False
 # regional response function (i.e., the maximal second derivative). We then summarize the
 # ignition capacity of each non-stimulated region i as I(i) = c_{max}(i) x r_{max}(i), and estimate
 # the global ignition capacity of the brain as the mean across all regions, I = 1/(N-1) \sum I(i).
-def ignition(PERTURB, neuro_act_all, SEED):
+def stimulatedIgnition(PERTURB, neuro_act_all, SEED):
     # NSUB = 389
     # Ntrials = 10
     # Tmax = 616
@@ -212,7 +224,7 @@ if __name__ == '__main__':
     #  Begin setup...
     # --------------------------------------------------------------------------
     import WholeBrain.Models.DynamicMeanField as neuronalModel
-    import WholeBrain.Integrator_EulerMaruyama as integrator
+    import Integrators.EulerMaruyama as integrator
     integrator.neuronalModel = neuronalModel
     integrator.verbose = False
 
@@ -287,7 +299,7 @@ if __name__ == '__main__':
         outFileName = outDataPath + f'neuro_act_all-we{we}-seed{s}-trials{numTrials}.mat'
         print(f"computing {outFileName} at seed {s}")
         neuro_act = simulateTrials(numTrials, N, PERTURB, s, outFileName)["neuro_act"]
-        ignition(PERTURB, neuro_act, s)
+        stimulatedIgnition(PERTURB, neuro_act, s)
 
 # ================================================================================================================
 # ================================================================================================================

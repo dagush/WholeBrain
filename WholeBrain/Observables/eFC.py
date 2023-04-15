@@ -15,6 +15,8 @@ from scipy.stats import zscore
 
 print("Going to use Edge-centric Functional Connectivity (eFC)...")
 
+name = 'eFC'
+
 
 def edge_ts(ts):
     # Number of nodes

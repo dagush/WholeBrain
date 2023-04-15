@@ -7,7 +7,6 @@
 import warnings
 import numpy as np
 import copy as cp
-from WholeBrain import BOLDFilters
 from WholeBrain.Utils.iGraphTools import Array2iGraph
 
 import leidenalg as leiden
@@ -17,10 +16,6 @@ import WholeBrain.Observables.PhaseInteractionMatrix as PhaseInteractionMatrix
 print("Going to use Segregation...")
 
 name = 'Segregation'
-
-ERROR_VALUE = 10
-BOLDFilters.flp = 0.008
-BOLDFilters.fhi = 0.08
 
 # Useful definitions, from Gorka's code
 # wcase = 'Binary'    # Binary, Weighted
@@ -71,19 +66,12 @@ def computeSegregation(fcnet):
     return Qmax, partition
 
 
-def distance(K1, K2):  # FCD similarity, convenience function
-    if not (np.isnan(K1).any() or np.isnan(K2)):  # No problems, go ahead!!!
-        return np.abs(K1-K2)
-    else:
-        return ERROR_VALUE
-
-
-def from_fMRI(ts, applyFilters = True):  # Compute the Metastability of an input BOLD signal
+def from_fMRI(ts, applyFilters=True, removeStrongArtefacts=True):  # Compute the Metastability of an input BOLD signal
     (N, Tmax) = ts.shape
     # npattmax = Tmax - 19  # calculates the size of phfcd vector
     # size_kk3 = int((npattmax - 3) * (npattmax - 2) / 2)  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
 
-    pIM = PhaseInteractionMatrix.from_fMRI(ts, applyFilters=applyFilters)  # Compute the Phase-Interaction Matrix
+    pIM = PhaseInteractionMatrix.from_fMRI(ts, applyFilters=applyFilters, removeStrongArtefacts=removeStrongArtefacts)  # Compute the Phase-Interaction Matrix
 
     if not np.isnan(ts).any():  # No problems, go ahead!!!
         # Data structures we are going to need...
@@ -99,7 +87,16 @@ def from_fMRI(ts, applyFilters = True):  # Compute the Metastability of an input
 
 # ==================================================================
 # Simple generalization WholeBrain to abstract distance measures
+# This code is DEPRECATED (kept for backwards compatibility)
 # ==================================================================
+ERROR_VALUE = 10
+def distance(K1, K2):  # similarity, convenience function
+    if not (np.isnan(K1).any() or np.isnan(K2)):  # No problems, go ahead!!!
+        return np.abs(K1-K2)
+    else:
+        return ERROR_VALUE
+
+
 def init(S, N):
     return np.zeros(S)
 

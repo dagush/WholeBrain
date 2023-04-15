@@ -32,19 +32,11 @@ print("Going to use Metastability (Kuramoto order parm)...")
 
 name = 'Metastability'
 
-ERROR_VALUE = 10
 BOLDFilters.flp = 0.008
 BOLDFilters.fhi = 0.08
 
 
-def distance(K1, K2):  # FCD similarity, convenience function
-    if not (np.isnan(K1).any() or np.isnan(K2)):  # No problems, go ahead!!!
-        return np.abs(K1-K2)
-    else:
-        return ERROR_VALUE
-
-
-def from_fMRI(ts_emp, applyFilters = True):  # Compute the Metastability of an input BOLD signal
+def from_fMRI(ts_emp, applyFilters=True):  # Compute the Metastability of an input BOLD signal
     # --------------------------------------------------------------------------
     # for isub=1:nsub
     #     for inode=1:nnodes
@@ -99,7 +91,16 @@ def from_fMRI(ts_emp, applyFilters = True):  # Compute the Metastability of an i
 
 # ==================================================================
 # Simple generalization WholeBrain to abstract distance measures
+# This code is DEPRECATED (kept for backwards compatibility)
 # ==================================================================
+ERROR_VALUE = 10
+def distance(K1, K2):  # FCD similarity, convenience function
+    if not (np.isnan(K1).any() or np.isnan(K2)):  # No problems, go ahead!!!
+        return np.abs(K1-K2)
+    else:
+        return ERROR_VALUE
+
+
 def init(S, N):
     return np.zeros(S)
 

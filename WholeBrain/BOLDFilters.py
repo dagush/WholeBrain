@@ -19,6 +19,8 @@ k = 2                             # 2nd order butterworth filter
 flp = .02                         # lowpass frequency of filter
 fhi = 0.1                         # highpass
 
+finalDetrend = False              # Only for compatibility with some Decolab codes...
+
 
 # @jit(nopython=True)
 def BandPassFilter(boldSignal, removeStrongArtefacts=True):
@@ -39,6 +41,9 @@ def BandPassFilter(boldSignal, removeStrongArtefacts=True):
                 ts[ts<-3.*np.std(ts)] = -3.*np.std(ts)  # Remove strong artefacts
 
             signal_filt[seed,:] = filtfilt(bfilt, afilt, ts, padlen=3*(max(len(bfilt),len(afilt))-1))  # Band pass filter. padlen modified to get the same result as in Matlab
+
+            if finalDetrend:  # Only for compatibility reasons. By default, don't!
+                signal_filt[seed,:] = detrend(signal_filt[seed,:])
         else:  # We've found problems, mark this region as "problematic", to say the least...
             warnings.warn(f'############ Warning!!! BandPassFilter: NAN found at region {seed} ############')
             signal_filt[seed,0] = np.nan

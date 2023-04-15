@@ -15,8 +15,6 @@ print("Going to use Sliding Windows Functional Connectivity Dynamics (swFCD)..."
 
 name = 'swFCD'
 
-ERROR_VALUE = 10
-
 
 # def mean2(x):
 #     y = np.sum(x) / np.size(x)
@@ -45,29 +43,18 @@ def pearson_r(x, y):
     return corr_mat[0,1]
 
 
-# @jit(nopython=True)
-def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
-    d, pvalue = stats.ks_2samp(FCD1.flatten(), FCD2.flatten())
-    return d
-
-
-# @jit(nopython=True)
-def distance(FCD1, FCD2):  # FCD similarity, convenience function
-    if not (np.isnan(FCD1).any() or np.isnan(FCD2).any()):  # No problems, go ahead!!!
-        return KolmogorovSmirnovStatistic(FCD1, FCD2)
-    else:
-        return ERROR_VALUE
-
-
 windowSize = 30
 windowStep = 3
-def from_fMRI(signal, applyFilters = True):  # Compute the FCD of an input BOLD signal
+def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):  # Compute the FCD of an input BOLD signal
     (N, Tmax) = signal.shape
     lastWindow = Tmax - windowSize  # 190 = 220 - 30
     N_windows = calc_length(0, lastWindow, windowStep)  # N_windows = len(np.arange(0, lastWindow, windowStep))
 
     if not np.isnan(signal).any():  # No problems, go ahead!!!
-        signal_filt = BOLDFilters.BandPassFilter(signal)  # Filters seem to be always applied...
+        if applyFilters:  # Filters seem to be always applied...
+            signal_filt = BOLDFilters.BandPassFilter(signal, removeStrongArtefacts=removeStrongArtefacts)  # zero phase filter the data
+        else:
+            signal_filt = signal
         Isubdiag = np.tril_indices(N, k=-1)  # Indices of triangular lower part of matrix
 
         # For each pair of sliding windows calculate the FC at t and t2 and
@@ -97,7 +84,24 @@ def from_fMRI(signal, applyFilters = True):  # Compute the FCD of an input BOLD 
 
 # ==================================================================
 # Simple generalization WholeBrain to abstract distance measures
+# This code is DEPRECATED (kept for backwards compatibility)
 # ==================================================================
+ERROR_VALUE = 10
+
+# @jit(nopython=True)
+def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
+    d, pvalue = stats.ks_2samp(FCD1.flatten(), FCD2.flatten())
+    return d
+
+
+# @jit(nopython=True)
+def distance(FCD1, FCD2):  # FCD similarity, convenience function
+    if not (np.isnan(FCD1).any() or np.isnan(FCD2).any()):  # No problems, go ahead!!!
+        return KolmogorovSmirnovStatistic(FCD1, FCD2)
+    else:
+        return ERROR_VALUE
+
+
 def init(S, N):
     return np.array([], dtype=np.float64)
 

@@ -51,6 +51,7 @@ G = 1.          # Coupling constant
 SC = None       # Structural Connectivity (should be provided externally)
 SCT = None      # Transposed Structural Connectivity (we initialize it at initSim(N))
 ink = None      # Convenience parameters: sum_i(Cij) = SCT.sum(axis=1) (we initialize it at initSim(N))
+conservative = True  # Select between Conservative and Non-conservative (remove the x_j - x_i dependence, i.e., ink=0)
 
 # --------------------------------------------------------------------------
 # Simulation variables
@@ -58,7 +59,10 @@ initialValue = 0.001
 def initSim(N):
     global SCT, ink
     SCT = SC.T
-    ink = SCT.sum(axis=1)   # Careful: component 2 in Matlab is component 1 in Python
+    if conservative:
+        ink = SCT.sum(axis=1)   # Careful: component 2 in Matlab is component 1 in Python
+    else:
+        ink = 0
     x = initialValue * np.ones(N)  # Initialize x
     y = initialValue * np.ones(N)  # Initialize y
     return np.array([x, y])
@@ -73,13 +77,16 @@ def numObsVars():  # Returns the number of observation vars used, here xn and rn
 # --------------------------------------------------------------------------
 # Set the parameters for this model
 def setParms(modelParms):
-    global G, SC, a
+    global G, SC, a, omega
     if 'we' in modelParms:
         G = modelParms['we']
     if 'SC' in modelParms:
         SC = modelParms['SC']
+        initSim(SC.shape[0])
     if 'a' in modelParms:
         a = modelParms['a']
+    if 'omega' in modelParms:
+        omega = modelParms['omega']
 
 
 def getParm(parmList):
@@ -113,8 +120,10 @@ def dfun(simVars, p):  # p is the stimulus...?
     #    = (y)*(-omega) + (x) * (a - (x)*(x) - (y)*(y)) + suma      # here, (x)*(x) should actually be (x) * (x,y)
     #    =  x *(+omega)    y          y * y     x * x               #        y   y                     (y)
     # ---------------------
+    # Calculate the input to nodes due to couplings
     xcoup = np.dot(SCT,x) - ink * x  # sum(Cij*xi) - sum(Cij)*xj
     ycoup = np.dot(SCT,y) - ink * y  #
+    # Integration step
     dx = (a - x**2 - y**2) * x - omega * y + G * xcoup + pC.real
     dy = (a - x**2 - y**2) * y + omega * x + G * ycoup + pC.imag
     return np.stack((dx, dy)), np.stack((x, y))

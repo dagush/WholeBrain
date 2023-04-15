@@ -4,7 +4,6 @@
 # --------------------------------------------------------------------------------------
 import numpy as np
 from scipy import signal, stats
-from WholeBrain import BOLDFilters
 from WholeBrain.Utils import demean
 
 print("Going to use multi-measurement metrics...")
@@ -29,12 +28,12 @@ def distance(measure1, measure2):
     return distances
 
 
-def from_fMRI(BOLDSignal, applyFilters=True):
+def from_fMRI(BOLDSignal, applyFilters=True, removeStrongArtefacts=True):
     procSignal = {}
     for ds in distanceSettings:  # Now, let's compute each measure and store the results
         measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
         applyFilters = distanceSettings[ds][1]  # whether we apply filters or not...
-        procSignal[ds] = measure.from_fMRI(BOLDSignal, applyFilters=applyFilters)
+        procSignal[ds] = measure.from_fMRI(BOLDSignal, applyFilters=applyFilters, removeStrongArtefacts=removeStrongArtefacts)
         # measureValues[ds] = measure.accumulate(measureValues[ds], pos, procSignal)
     return procSignal
 

@@ -25,7 +25,7 @@ from numba import jit
 # two gain functions phie and phii for the right ones...
 import WholeBrain.Models.serotonin2A as serotonin2A
 # ----------------------------------------------
-import WholeBrain.Integrator_EulerMaruyama as integrator
+import Integrators.EulerMaruyama as integrator
 integrator.neuronalModel = serotonin2A
 integrator.verbose = False
 import WholeBrain.BOLDHemModel_Stephan2007 as Stephan2007
@@ -36,9 +36,6 @@ simulateBOLD.BOLDModel = Stephan2007
 import WholeBrain.Optimizers.ParmSeep as optim1D
 optim1D.simulateBOLD = simulateBOLD
 optim1D.integrator = integrator
-
-import WholeBrain.Observables.FC as FC
-import WholeBrain.Observables.swFCD as swFCD
 
 import WholeBrain.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
