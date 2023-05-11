@@ -165,6 +165,49 @@ def findMinMaxSpan(a,b):
     return min, posMin, max, posMax
 
 
+# --------------------------------------------------------------------------------------
+# Full pipeline using the statannotations library, much better replacement for my
+# own p_values implementation...
+# https://github.com/trevismd/statannotations
+# --------------------------------------------------------------------------------------
+from itertools import combinations
+import pandas as pd
+import seaborn as sns
+from statannotations.Annotator import Annotator
+
+
+def padEqualLengtLists(tests):
+    totalLen = max([len(l) for l in tests])
+    fixed = []
+    for t in tests:
+        fixed.append(np.pad(t, (0, totalLen-len(t)), 'constant', constant_values=np.nan))
+    return fixed
+
+
+def padEqualLengthDicts(tests):
+    totalLen = max([len(l) for l in tests.values()])
+    fixed = {}
+    for c in tests:
+        fixed[c] = np.pad(tests[c], (0,totalLen-len(tests[c])), 'constant', constant_values=np.nan)
+    return fixed
+
+
+def plotComparisonAcrossLabels2(tests, columnLables, graphLabel, pairs=None):
+    if isinstance(tests, dict):
+        tests = padEqualLengthDicts(tests)
+    df = pd.DataFrame(tests, columns=columnLables)
+    ax = sns.boxplot(data=df, order=columnLables)
+    # sns.catplot(data=df, kind="box")
+    if pairs == None:
+        pairs = list(combinations(columnLables, 2))
+    annotator = Annotator(ax, pairs, data=df, order=list(columnLables))
+    annotator.configure(test='Mann-Whitney', text_format='star', loc='inside')
+    annotator.configure(comparisons_correction="BH", correction_format="replace")  # BH / Bonferroni
+    annotator.apply_and_annotate()
+    ax.set_title(graphLabel)
+    plt.show()
+
+
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------EOF
