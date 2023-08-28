@@ -10,11 +10,14 @@
 #
 #  Translated to Python by Xenia Kobeleva
 #  Revised by Gustavo Patow
+#  Optimized by Facundo Roffet
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 import warnings
 import numpy as np
 from scipy import signal, stats
+from numba import jit
+
 import WholeBrain.Observables.PhaseInteractionMatrix as PhaseInteractionMatrix
 
 print("Going to use Phase Functional Connectivity Dynamics (phFCD)...")
@@ -44,7 +47,7 @@ name = 'phFCD'
 
 
 discardOffset = 10  # This was necessary in the old days when, after pre-processing, data had many errors/outliers at
-# the beginning and at the end. Thus, the first (and last) 10 samples used to be discarded. Nowadays this filtering is
+# the beginning and at the end. Thus, the first (and last) 10 samples used to be discarded. Nowadays, this filtering is
 # done at the pre-processing stage itself, so this value is set to 0. Thus, depends on your data...
 
 
@@ -64,6 +67,32 @@ def triu_indices_column(N, k=0):
     return Isubdiag
 
 
+@jit(nopython=True)
+def mean(x, axis=None):
+    if axis == None:
+        return np.sum(x, axis) / np.prod(x.shape)
+    else:
+        return np.sum(x, axis) / x.shape[axis]
+
+
+@jit(nopython=True)
+def numba_phFCD(phIntMatr_upTri, npattmax, size_kk3):
+    phfcd = np.zeros((size_kk3))
+    kk3 = 0
+
+    for t in range(npattmax - 2):
+        p1_sum = np.sum(phIntMatr_upTri[t:t + 3, :], axis=0)
+        p1_norm = np.linalg.norm(p1_sum)
+        for t2 in range(t + 1, npattmax - 2):
+            p2_sum = np.sum(phIntMatr_upTri[t2:t2 + 3, :], axis=0)
+            p2_norm = np.linalg.norm(p2_sum)
+
+            dot_product = np.dot(p1_sum, p2_sum)
+            phfcd[kk3] = dot_product / (p1_norm * p2_norm)
+            kk3 += 1
+    return phfcd
+
+
 # From [Deco2019]: Comparing empirical and simulated FCD.
 # For a single subject session where M time points were collected, the corresponding phase-coherence based
 # FCD matrix is defined as a MxM symmetric matrix whose (t1, t2) entry is defined by the cosine similarity
@@ -72,26 +101,18 @@ def triu_indices_column(N, k=0):
 # Epochs of stable FC(t) configurations are reflected around the FCD diagonal in blocks of elevated
 # inter-FC(t) correlations.
 def from_fMRI(ts, applyFilters=True, removeStrongArtefacts=True):  # Compute the FCD of an input BOLD signal
-    (N, Tmax) = ts.shape
-    npattmax = Tmax - (2*discardOffset-1)  # calculates the size of phfcd vector
-    size_kk3 = int((npattmax - 3) * (npattmax - 2) / 2)  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
-
-    Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
     phIntMatr = PhaseInteractionMatrix.from_fMRI(ts, applyFilters=applyFilters,
                                                  removeStrongArtefacts=removeStrongArtefacts)  # Compute the Phase-Interaction Matrix
-
     if not np.isnan(phIntMatr).any():  # No problems, go ahead!!!
+        (N, Tmax) = ts.shape
+        npattmax = Tmax - (2 * discardOffset - 1)  # calculates the size of phfcd vector
+        size_kk3 = int((npattmax - 3) * (
+                    npattmax - 2) / 2)  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
+        Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
         phIntMatr_upTri = np.zeros((npattmax, int(N * (N - 1) / 2)))  # The int() is not needed, but... (see above)
         for t in range(npattmax):
             phIntMatr_upTri[t,:] = phIntMatr[t][Isubdiag]
-        phfcd = np.zeros((size_kk3))
-        kk3 = 0
-        for t in range(npattmax - 2):
-            p1 = np.mean(phIntMatr_upTri[t:t + 3, :], axis=0)
-            for t2 in range(t + 1, npattmax - 2):
-                p2 = np.mean(phIntMatr_upTri[t2:t2 + 3, :], axis=0)
-                phfcd[kk3] = np.dot(p1, p2) / np.linalg.norm(p1) / np.linalg.norm(p2)  # this (phFCD) what I want to get
-                kk3 = kk3 + 1
+        phfcd = numba_phFCD(phIntMatr_upTri, npattmax, size_kk3,)
     else:
         warnings.warn('############ Warning!!! phFCD.from_fMRI: NAN found ############')
         phfcd = np.array([np.nan])
