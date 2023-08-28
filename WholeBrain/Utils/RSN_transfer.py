@@ -69,6 +69,30 @@ def assignRSNLabels(referenceSet, targetSet):
     return targetSetLabelled
 
 
+def collectNamesAndIDsRSN(rsn, useLR=True):
+    names = [(roi[1], int(roi[0])-1) for roi in rsn]  # extract names
+    if useLR:
+        cleanNames = ['_'.join(n[0].split('_')[1:3]) for n in names]  # and clean them! (left/right separated)
+    else:
+        cleanNames = [n[0].split('_')[2] for n in names]  # and clean them! (without left/right hemispheres)
+    # onlyNames = list(set(cleanNames))
+    return cleanNames  #, onlyNames
+
+
+def indices4RSNs(parcellation):
+    names = list(set(parcellation))
+    res = {}
+    for rsn in names:
+        idx = [pos for pos,roi in enumerate(parcellation) if roi == rsn]
+        res[rsn] = idx
+    return res
+
+
+def parcellationFormat(labelledTarget):
+    parc = [[pos+1, roi[1], roi[2][0], roi[2][1], roi[2][2]] for pos,roi in enumerate(labelledTarget)]
+    return parc
+
+
 def saveParcellation2CSV(filename, parcellation):
     header = ["ROI Label", "ROI Name", "R", "A", "S"]
     with open(filename, 'w', encoding='UTF8', newline='') as f:
@@ -76,32 +100,46 @@ def saveParcellation2CSV(filename, parcellation):
         # write the header
         writer.writerow(header)
         # write the data
-        for pos, r in enumerate(parcellation):
-            writer.writerow([pos+1, r[1], r[2][0], r[2][1], r[2][2]])
+        for r in parcellation:
+            writer.writerow(r)
+
+
+def saveRSNIndices(idxs, outFile):
+    with open(outFile, 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+        for rsn in idxs:
+            writer.writerow([rsn, idxs[rsn]])
 
 
 # ==================================================================
-# test code
+# test code: transfer RSNs to the Glasser360 parcellation
 # ==================================================================
 if __name__ == '__main__':
     numNodes = 1000
+    # -------- As input, we are going to use Yeo's 1000 roi RSN info on Schaefer's 2018 parcellation
     inPath = '../../Data_Raw/Parcellations/'
-    fileNameRef = f'Schaefer2018-RSN_Centroid_coordinates/Schaefer2018_{numNodes}Parcels_7Networks_order_FSLMNI152_1mm.Centroid_RAS.csv'
-    fileNameTarget = 'Glasser360/glasser_coords.txt'
+    inFileNameRef = f'Schaefer2018-RSN_Centroid_coordinates/Schaefer2018_{numNodes}Parcels_7Networks_order_FSLMNI152_1mm.Centroid_RAS.csv'
+    inFileNameTarget = 'Glasser360/glasser_coords.txt'
 
-    dataRef = readReferenceRSN(inPath+fileNameRef)
+    dataRef = readReferenceRSN(inPath+inFileNameRef)
     print(f'we have {len(dataRef)} elements')
     if plotNodes:
         plotParcellation(dataRef, title='Ref')
 
-    dataTarget = readDestinationParcellation(inPath+fileNameTarget)
+    dataTarget = readDestinationParcellation(inPath+inFileNameTarget)
     print(f'we have {len(dataTarget)} elements')
     if plotNodes:
         plotParcellation(dataTarget, title='Target')
 
     labelledTarget = assignRSNLabels(dataRef, dataTarget)
-    outPath = '../../Data_Produced/Glasser360RSN.csv'
-    saveParcellation2CSV(outPath, labelledTarget)
+    outPath = '../../Data_Produced/Parcellations/Glasser360RSN.csv'
+    saveParcellation = parcellationFormat(labelledTarget)
+    saveParcellation2CSV(outPath, saveParcellation)
+
+    names = collectNamesAndIDsRSN(saveParcellation, useLR=False)
+    i = indices4RSNs(names)
+    outPath = '../../Data_Produced/Parcellations/Glasser360RSN_indices.csv'
+    saveRSNIndices(i, outPath)
 
 
 # ======================================================

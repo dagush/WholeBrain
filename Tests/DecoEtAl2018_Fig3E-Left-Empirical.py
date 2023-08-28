@@ -27,7 +27,7 @@ from DecoEtAl2018_Setup import *
 
 
 # set BOLD filter settings
-import WholeBrain.BOLDFilters as filters
+import Observables.BOLDFilters as filters
 filters.k = 2                             # 2nd order butterworth filter
 filters.flp = .04                         # lowpass frequency of filter
 filters.fhi = 0.07                        # highpass

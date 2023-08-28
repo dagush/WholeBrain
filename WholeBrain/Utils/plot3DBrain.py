@@ -13,6 +13,8 @@ from matplotlib.collections import TriMesh, PolyCollection
 # Import lighting object for shading surface plots.
 from matplotlib.colors import LightSource, Normalize
 
+import nibabel as nib
+
 
 def normalize_v3(arr):
     ''' Normalize a numpy array of 3 component vectors shape=(n,3) '''
@@ -110,7 +112,7 @@ def plotColorView(ax, cortex, data, numRegions,
                   shadowed=True,
                   cmap=plt.cm.coolwarm,
                   l_azimuth=0, l_altitude=0, lightingBias=0.2,  # Light azimuth and altitude, and bias
-                  zlim=None, suptitle='', viewlabel=False):
+                  zlim=None, suptitle='', viewlabel=False, norm=None, fontSize=24):
     # ================= This part should be computed only once for all views, but this way it is easier...
     if 'flat' not in viewkey:
         vtx_L, tri_L = cortex['model_L'].agg_data()
@@ -156,11 +158,11 @@ def plotColorView(ax, cortex, data, numRegions,
             kwargs = {'shading': 'flat'}  # No edgecolors...
         else:
             kwargs = {'shading': 'flat', 'edgecolors': 'k', 'linewidth': 0.1}
-        tc = ax.tripcolor(v, vvalues, cmap=cmap, **kwargs)
+        tc = ax.tripcolor(v, vvalues, cmap=cmap, norm=norm)
         if zlim:
             tc.set_clim(vmin=-zlim, vmax=zlim)
     elif gouraud and not shadowed:
-        tc = ax.tripcolor(v, vvalues, cmap=cmap, shading='gouraud')
+        tc = ax.tripcolor(v, vvalues, cmap=cmap, shading='gouraud', norm=norm)
         if zlim:
             tc.set_clim(vmin=-zlim, vmax=zlim)
     else:  # =================
@@ -197,21 +199,27 @@ def plotColorView(ax, cortex, data, numRegions,
     # =================
     ax.set_aspect('equal')
     if suptitle:
-        ax.set_title(suptitle, fontsize=24)
+        ax.set_title(suptitle, fontsize=fontSize)
     if viewlabel:
         plt.xlabel(viewkey)
     ax.axis('off')
 
 
 # =================================================================
+# =================================================================
 # Utility WholeBrain to compute multi-views of the cortex data
 # =================================================================
+# =================================================================
 
+
+# =================================================================
 # plots the 6-plot
 #           Lh-lateral,     Rh-lateral,
 #           Lh-medial,      Rh-medial,
 #           L-flat,         R-flat
-def multiview6(cortex, data, numRegions, leftCmap=plt.cm.coolwarm, rightCmap=plt.cm.coolwarm, suptitle='', figsize=(15, 10), **kwds):
+# =================================================================
+def multiview6(cortex, data, numRegions, leftCmap=plt.cm.coolwarm, rightCmap=plt.cm.coolwarm,
+               suptitle='', figsize=(15, 10), display=True, savePath=None, **kwds):
     fig = plt.figure(figsize=figsize)
 
     ax = plt.subplot(3, 2, 1)
@@ -229,14 +237,21 @@ def multiview6(cortex, data, numRegions, leftCmap=plt.cm.coolwarm, rightCmap=plt
     ax = fig.add_subplot(3, 2, 6)  # right hemisphere flat
     plotColorView(ax, cortex, data, numRegions, 'R-flat', cmap=rightCmap, **kwds)
 
-    plt.show()
+    if savePath is not None:
+        plt.savefig(savePath)
+        plt.close()
+    if display:
+        plt.show()
 
 
+# =================================================================
 # plots a 5-view plot:
 #           lh-lateral,               rh-lateral,
 #                       l/r-superior,
 #           lh-medial,                rh-medial
-def multiview5(cortex, data, numRegions, cmap=plt.cm.coolwarm, suptitle='', figsize=(15, 10), **kwds):
+# =================================================================
+def multiview5(cortex, data, numRegions, cmap=plt.cm.coolwarm,
+               suptitle='', figsize=(15, 10), display=True, savePath=None, **kwds):
     fig, axs = plt.subplots(2, 3, figsize=figsize)
     plotColorView(axs[0,0], cortex, data, numRegions, 'Lh-lateral', cmap=cmap, **kwds)
     plotColorView(axs[1,0], cortex, data, numRegions, 'Lh-medial', cmap=cmap, **kwds)
@@ -253,18 +268,28 @@ def multiview5(cortex, data, numRegions, cmap=plt.cm.coolwarm, suptitle='', figs
     # ============= Adjust the sizes
     plt.subplots_adjust(left=0.0, right=0.8, bottom=0.0, top=1.0, wspace=0, hspace=0)
     # ============= now, let's add a colorbar...
-    norm = Normalize(vmin=np.min(data['func_L']), vmax=np.max(data['func_L']))
+    if 'norm' not in kwds:
+        norm = Normalize(vmin=np.min(data['func_L']), vmax=np.max(data['func_L']))
+    else:
+        norm = kwds['norm']
     PCM = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])  # This parameter is the dimensions [left, bottom, width, height] of the new axes.
     fig.colorbar(PCM, cax=cbar_ax)
     # ============ and show!!!
-    plt.show()
+    if savePath is not None:
+        plt.savefig(savePath)
+        plt.close()
+    if display:
+        plt.show()
 
 
+# =================================================================
 # plots the 4-plot
 #           Lh-lateral,     Rh-lateral,
 #           Lh-medial,      Rh-medial,
-def multiview4(cortex, data, numRegions, leftCmap=plt.cm.coolwarm, rightCmap=plt.cm.coolwarm, suptitle='', figsize=(15, 10), **kwds):
+# =================================================================
+def multiview4(cortex, data, numRegions, leftCmap=plt.cm.coolwarm, rightCmap=plt.cm.coolwarm,
+               suptitle='', figsize=(15, 10), display=True, savePath=None, **kwds):
     fig = plt.figure(figsize=figsize)
 
     ax = plt.subplot(2, 2, 1)
@@ -276,37 +301,60 @@ def multiview4(cortex, data, numRegions, leftCmap=plt.cm.coolwarm, rightCmap=plt
     ax = plt.subplot(2, 2, 4)
     plotColorView(ax, cortex, data, numRegions, 'Rh-lateral', cmap=rightCmap, **kwds)
 
-    plt.show()
+    if savePath is not None:
+        plt.savefig(savePath)
+        plt.close()
+    if display:
+        plt.show()
 
 
+# =================================================================
 # plots a left/Right-view plot:
 #                       l/r-superior,
-def leftRightView(cortex, data, numRegions, cmap=plt.cm.coolwarm, suptitle='', figsize=(15, 10), **kwds):
+# =================================================================
+def leftRightView(cortex, data, numRegions, cmap=plt.cm.coolwarm,
+                  suptitle='', figsize=(15, 10), display=True, savePath=None, **kwds):
     plt.figure(figsize=figsize)
     ax = plt.subplot(1, 2, 1)
     plotColorView(ax, cortex, data, numRegions, 'Lh-medial', cmap=cmap, **kwds)
     ax = plt.subplot(1, 2, 2)
     plotColorView(ax, cortex, data, numRegions, 'Lh-lateral', cmap=cmap, **kwds)
-    plt.show()
+    if savePath is not None:
+        plt.savefig(savePath)
+        plt.close()
+    if display:
+        plt.show()
 
 
+# =================================================================
 # plots a top-view plot:
 #                       l/r-superior,
-def topView(cortex, data, numRegions, cmap=plt.cm.coolwarm, suptitle='', figsize=(15, 10), **kwds):
-    plt.figure(figsize=figsize)
-    ax = plt.subplot(1, 1, 1)
+# =================================================================
+def topViewAxs(ax, cortex, data, numRegions, cmap=plt.cm.coolwarm,
+               suptitle='', **kwds):
     plotColorView(ax, cortex, data, numRegions, 'L-superior', suptitle=suptitle, cmap=cmap, **kwds)
     plotColorView(ax, cortex, data, numRegions, 'R-superior', suptitle=suptitle, cmap=cmap, **kwds)
-    plt.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0, hspace=0)
-    plt.show()
+    if suptitle == '':
+        plt.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0, wspace=0, hspace=0)
 
 
-# ================================= module test code
-if __name__ == '__main__':
-    import nibabel as nib
-    from matplotlib import cm
+def topView(cortex, data, numRegions,
+            figsize=(15, 10), display=True, savePath=None, **kwd):
+    plt.figure(figsize=figsize)
+    ax = plt.subplot(1, 1, 1)
+    topViewAxs(ax, cortex, data, numRegions, **kwd)
+    if savePath is not None:
+        plt.savefig(savePath)
+        plt.close()
+    if display:
+        plt.show()
 
-    Glasser360_baseFolder = "../../Data_Raw"
+
+# ===========================
+#  Convenience function for the Glasser parcellation, for debug purposes only...
+# ===========================
+def setUpGlasser360():
+    Glasser360_baseFolder = "../../Data_Raw/Parcellations"
     # =============== Load the geometry ==================
     glassers_L = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.L.mid.32k_fs_LR.surf.gii')
     # glassers_L = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.L.inflated.32k_fs_LR.surf.gii')
@@ -324,6 +372,15 @@ if __name__ == '__main__':
     cortex = {'model_L': glassers_L, 'model_R': glassers_R,
               'flat_L': flat_L, 'flat_R': flat_R,
               'map_L': mapL, 'map_R': mapR}
+    return cortex
+
+
+# =================================================================
+# ================================= module test code
+if __name__ == '__main__':
+    from matplotlib import cm
+
+    crtx = setUpGlasser360()
 
     # =============== Plot!!! =============================
     testData = np.arange(0, 360)
@@ -331,5 +388,5 @@ if __name__ == '__main__':
     # testColors = cm.cividis
     testColors = cm.YlOrBr
 
-    multiview5(cortex, data, 360, testColors, lightingBias=0.1, gouraud=True, shadowed=True)
+    multiview5(crtx, data, 360, testColors, lightingBias=0.1, gouraud=False, shadowed=True)
 

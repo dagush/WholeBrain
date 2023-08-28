@@ -24,7 +24,7 @@ import WholeBrain.Optimizers.L2LOptimizee as WBOptimizee
 # --------------------------------------------------------------------------
 from DecoEtAl2020_Setup import *
 
-import WholeBrain.Optimizers.ParmSeep as optim1D
+import WholeBrain.Optimizers.ParmSweep as optim1D
 optim1D.simulateBOLD = simulateBOLD
 optim1D.integrator = integrator
 

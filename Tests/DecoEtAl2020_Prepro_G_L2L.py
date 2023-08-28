@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 # --------------------------------------------------------------------------
 from DecoEtAl2020_Setup import *
 
-import WholeBrain.Optimizers.ParmSeep as parmSweep
+import WholeBrain.Optimizers.ParmSweep as parmSweep
 parmSweep.simulateBOLD = simulateBOLD
 parmSweep.integrator = integrator
 

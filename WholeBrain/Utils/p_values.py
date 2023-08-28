@@ -194,7 +194,7 @@ def padEqualLengthDicts(tests):
 
 def plotComparisonAcrossLabels2(tests, columnLables=None, graphLabel='', pairs=None):
     if columnLables is None:
-        columnLables = test.keys()
+        columnLables = tests.keys()
     if isinstance(tests, dict):
         tests = padEqualLengthDicts(tests)
     df = pd.DataFrame(tests, columns=columnLables)

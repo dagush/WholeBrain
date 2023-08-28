@@ -3,8 +3,6 @@
 # having to worry about the details of each one
 # --------------------------------------------------------------------------------------
 import numpy as np
-from scipy import signal, stats
-from WholeBrain.Utils import demean
 
 print("Going to use multi-measurement metrics...")
 

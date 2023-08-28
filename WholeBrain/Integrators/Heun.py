@@ -31,9 +31,9 @@ def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     # # initBookkeeping.recompile()
-    neuronalModel.recompileSignatures()
-    recordBookkeeping.recompile()
-    integrationStep.recompile()
+    # neuronalModel.recompileSignatures()
+    # recordBookkeeping.recompile()
+    # integrationStep.recompile()
     pass
 
 
@@ -68,7 +68,7 @@ def initBookkeeping(N, tmax):
     return np.zeros((timeElements, obsVars, N))
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def recordBookkeeping(t, obsVars, curr_obsVars):
     # global curr_obsVars
     if iC.isInt(t/ds):
@@ -84,7 +84,7 @@ def recordBookkeeping(t, obsVars, curr_obsVars):
 # --------------------------------------------------------------------------
 # sigma = 0.01
 clamping = True
-@jit(nopython=True)
+# @jit(nopython=True)
 def integrationStep(simVars, dt, stimulus):  #, curr_obsVars, doBookkeeping):
     def doClamping(simVariables):
         if clamping:

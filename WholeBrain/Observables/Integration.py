@@ -9,7 +9,7 @@
 # Refactored by Gustavo Patow
 #
 # --------------------------------------------------------------------------------------
-from WholeBrain import BOLDFilters
+from Observables import BOLDFilters
 
 print("Going to use Integration (from FC)...")
 

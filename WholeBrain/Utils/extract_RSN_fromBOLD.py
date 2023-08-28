@@ -1,17 +1,10 @@
 # ========================================================================
-# Extract RSN BOLD signals
+# Extract BOLD signals corresponding to a given RSN partition
 #
 #  Code by Gustavo Patow
 # ========================================================================
 import numpy as np
-
-def collectNamesAndIDsRSN(rsn, useLR=True):
-    names = [(r[1], int(r[0])-1) for r in rsn]  # extract names
-    if useLR:
-        cleanNames = [('_'.join(n[0].split('_')[0:3]), n[1]) for n in names]  # and clean them! (left/right separated)
-    else:
-        cleanNames = [(n[0].split('_')[2], n[1]) for n in names]  # and clean them! (without left/right hemispheres)
-    return cleanNames
+from RSN_transfer import collectNamesAndIDsRSN
 
 
 def extractSubjectRSNfMRI(BOLD, namesAndIDs):
@@ -30,19 +23,6 @@ def extractRSNGroupfMRI(BOLDs, rsn, useLR=True):
     for s in BOLDs:
         res[s] = extractSubjectRSNfMRI(BOLDs[s], namesAndIDs)
     return res
-
-
-
-# ==================================================================
-# test code
-# ==================================================================
-if __name__ == '__main__':
-    from RSN_transfer import readReferenceRSN, plotParcellation
-    inPath = '../../Data_Produced/Glasser360RSN.csv'
-    rsn = readReferenceRSN(inPath, roundCoords=False)
-    print(f'len of RSN Glasser is {len(rsn)} (should be 360)')
-    plotParcellation(rsn, 'Glasser360')
-    print('Done')
 
 
 # ======================================================

@@ -22,7 +22,7 @@ import numpy as np
 from WholeBrain.Utils.decorators import loadOrCompute
 import time
 
-from Utils.preprocessSignal import processBOLDSignals, processEmpiricalSubjects
+from WholeBrain.Utils.preprocessSignal import processBOLDSignals, processEmpiricalSubjects
 verbose = True
 
 # --------------------------------------------------------------------------

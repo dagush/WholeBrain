@@ -8,16 +8,16 @@
 import warnings
 import numpy as np
 from scipy.signal import butter, detrend, filtfilt
-from WholeBrain.Utils import demean
+from Observables import demean
 from scipy import signal
 # from numba import jit
 
 # FILTER SETTINGS (from Gustavo Deco's FCD_LSD_model.m)
 # -----------------------------------------------------
-TR = 2.                           # sampling interval
+TR = None                         # sampling interval. Original was 2.
 k = 2                             # 2nd order butterworth filter
-flp = .02                         # lowpass frequency of filter
-fhi = 0.1                         # highpass
+flp = None                        # lowpass frequency of filter. Original was .02
+fhi = None                        # highpass. Original was 0.1
 
 finalDetrend = False              # Only for compatibility with some Decolab codes...
 

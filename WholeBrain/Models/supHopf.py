@@ -55,7 +55,8 @@ conservative = True  # Select between Conservative and Non-conservative (remove 
 
 # --------------------------------------------------------------------------
 # Simulation variables
-initialValue = 0.001
+initialValueX = 0.001
+initialValueY = 0.001
 def initSim(N):
     global SCT, ink
     SCT = SC.T
@@ -63,8 +64,8 @@ def initSim(N):
         ink = SCT.sum(axis=1)   # Careful: component 2 in Matlab is component 1 in Python
     else:
         ink = 0
-    x = initialValue * np.ones(N)  # Initialize x
-    y = initialValue * np.ones(N)  # Initialize y
+    x = initialValueX * np.ones(N)  # Initialize x
+    y = initialValueY * np.ones(N)  # Initialize y
     return np.array([x, y])
 
 

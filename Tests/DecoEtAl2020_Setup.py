@@ -39,7 +39,7 @@ import WholeBrain.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
 
 # set BOLD filter settings
-import WholeBrain.BOLDFilters as filters
+import Observables.BOLDFilters as filters
 filters.k = 2       # 2nd order butterworth filter
 filters.flp = .008  # lowpass frequency of filter
 filters.fhi = .08   # highpass

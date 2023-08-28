@@ -20,12 +20,15 @@ def plotSCHistogram(ax, SC, subjectName):
     # plt.close()
 
 
-def plotSC(ax, SC, subjectName, colormap='viridis'):
+def plotSC(ax, SC, title, labelAxis='both', colormap='viridis', fontSize=24):
     ax.imshow(np.asarray(SC), cmap=colormap)
-    ax.set_xlabel("Regions")
-    ax.set_ylabel("Regions")
-    ax.set_title("Subject {}".format(subjectName))
-    print("Scale({}): Max={}, Min={}".format(subjectName, np.max(SC), np.min(SC)))
+    if labelAxis == 'both' or labelAxis == 'xlabels':
+        ax.set_xlabel("Regions")
+    if labelAxis == 'both' or labelAxis == 'ylabels':
+            ax.set_ylabel("Regions")
+    ax.set_title(title, fontsize=fontSize)
+    # ax.tick_params(left=True, right=True, labelleft=True, labelbottom=True, bottom=True)
+    print(f"Scale({title}): Max={np.max(SC)}, Min={np.min(SC)}")
 
 
 def plotSC_and_Histogram(subjectName, SCnorm, plotColorBar = True):

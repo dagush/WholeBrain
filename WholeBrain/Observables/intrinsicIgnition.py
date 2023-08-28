@@ -35,10 +35,8 @@ from scipy import signal
 # import scipy.io as sio
 # import matplotlib.pyplot as plt
 # from scipy.optimize import curve_fit
-from numba import jit
 
-from WholeBrain import BOLDFilters
-from WholeBrain.Utils import demean
+from Observables import BOLDFilters, demean
 # import WholeBrain.Observables.Integration as Integration
 
 # ==================================

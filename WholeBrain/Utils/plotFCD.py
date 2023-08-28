@@ -5,7 +5,8 @@ import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
 import WholeBrain.Observables.phFCD as phFCD
-from WholeBrain import BOLDFilters
+from Observables import BOLDFilters
+
 BOLDFilters.flp = 0.008
 BOLDFilters.fhi = 0.08
 

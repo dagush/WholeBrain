@@ -19,9 +19,7 @@
 # component as a function of the threshold.
 import warnings
 import numpy as np
-from scipy import signal, stats
 # from scipy import stats
-from WholeBrain.Utils import demean
 
 import WholeBrain.Observables.PhaseInteractionMatrix as PhaseInteractionMatrix
 
@@ -29,7 +27,8 @@ print("Going to use Integration...")
 
 name = 'Integration'
 
-from WholeBrain import BOLDFilters
+from Observables import BOLDFilters
+
 BOLDFilters.flp = 0.008
 BOLDFilters.fhi = 0.08
 

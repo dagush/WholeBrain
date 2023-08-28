@@ -33,7 +33,7 @@ import WholeBrain.simulate_SimAndBOLD as simulateBOLD
 simulateBOLD.integrator = integrator
 simulateBOLD.BOLDModel = Stephan2007
 
-import WholeBrain.Optimizers.ParmSeep as optim1D
+import WholeBrain.Optimizers.ParmSweep as optim1D
 optim1D.simulateBOLD = simulateBOLD
 optim1D.integrator = integrator
 
@@ -41,10 +41,11 @@ import WholeBrain.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
 
 # set BOLD filter settings
-import WholeBrain.BOLDFilters as filters
+import Observables.BOLDFilters as filters
 filters.k = 2                             # 2nd order butterworth filter
 filters.flp = .01                         # lowpass frequency of filter
 filters.fhi = .1                          # highpass
+filters.TR = 2.                           # TR
 
 PLACEBO_cond = 4; LSD_cond = 1   # 1=LSD rest, 4=PLACEBO rest -> The original code used [2, 5] because arrays in Matlab start with 1...
 # --------------------------------------------------------------------------

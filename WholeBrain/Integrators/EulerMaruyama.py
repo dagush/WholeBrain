@@ -10,7 +10,7 @@
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 import numpy as np
-from WholeBrain.randn2 import randn2
+from WholeBrain.Utils.randn2 import randn2
 from WholeBrain.Utils import numTricks as iC
 from numba import jit
 

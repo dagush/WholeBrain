@@ -23,19 +23,27 @@
 # --------------------------------------------------------------------------
 import warnings
 import numpy as np
-from scipy import signal, stats
+from scipy import signal
 # from scipy import stats
-from WholeBrain import BOLDFilters
-from WholeBrain.Utils import demean
+from Observables import BOLDFilters, demean
 
-print("Going to use Metastability (Kuramoto order parm)...")
+print("Going to use Metastability Level (Kuramoto order parm)...")
 
-name = 'Metastability'
+name = 'MetastabilityLevel'
 
 BOLDFilters.flp = 0.008
 BOLDFilters.fhi = 0.08
 
 
+# From [Cabral2014}: At the global level, the network synchrony was evaluated by the order parameter R(t) defined by:
+# R(t) exp(j Phi(t)) = 1/N Sum^N_n=1 exp(j theta_n(t))
+# (j is sqrt(-1))
+# where R(t) measures phase uniformity, varying between 1 for a fully synchronized state and 0 for a fully incoherent
+# state. Phi(t) describes the phase of the global ensemble. To characterize the system's synchronization behavior in
+# the parameter space of k and \bar{ tau}, we estimated the mean synchrony level, \bar{R}, and the standard
+# deviation, sigma_R, which captures how the synchrony degree fluctuates in time. Fluctuations in the synchrony
+# degree have been associated with the existence of metastable synchronized states and therefore sigma_R is
+# indicative of the system's metastability level (Shanahan, 2010, Wildie and Shanahan, 2012).
 def from_fMRI(ts_emp, applyFilters=True):  # Compute the Metastability of an input BOLD signal
     # --------------------------------------------------------------------------
     # for isub=1:nsub
@@ -65,12 +73,14 @@ def from_fMRI(ts_emp, applyFilters=True):  # Compute the Metastability of an inp
     # size_kk3 = int((npattmax - 3) * (npattmax - 2) / 2)  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
 
     if not np.isnan(ts_emp).any():  # No problems, go ahead!!!
+        if applyFilters:
+            # Filters seem to be always applied...
+            ts_emp_filt = BOLDFilters.BandPassFilter(ts_emp)  # zero phase filter the data
+
         # Data structures we are going to need...
         phases_emp = np.zeros([N, Tmax])
         # sync = np.zeros(npattmax)
 
-        # Filters seem to be always applied...
-        ts_emp_filt = BOLDFilters.BandPassFilter(ts_emp)  # zero phase filter the data
         for n in range(N):
             Xanalytic = signal.hilbert(demean.demean(ts_emp_filt[n, :]))
             phases_emp[n, :] = np.angle(Xanalytic)
