@@ -12,7 +12,23 @@ import scipy.stats as stats
 fontSize = 10
 
 
+# --------------------------------------------------------------------------------------
+# Simply avg and Std Dev printing function...
+# --------------------------------------------------------------------------------------
+def printAveragesAndStd(dataset):
+    print("\nAverages and Std Dev:")
+    if isinstance(dataset, dict):
+        for setToPlot in dataset:
+            print(f'{setToPlot}: avg={np.average(dataset[setToPlot])}, stdev={np.std(dataset[setToPlot])}')
+    else:
+        for pos, setToPlot in enumerate(dataset.T):
+            print(f'{pos}: avg={np.average(setToPlot)}, stdev={np.std(setToPlot)}')
+    print()
+
+
+# --------------------------------------------------------------------------------------
 # This is a simple check to prevent the "All numbers are identical in mannwhitneyu" error...
+# --------------------------------------------------------------------------------------
 def checkTiecorrect(x,y):
     x = np.asarray(x)
     y = np.asarray(y)
@@ -172,6 +188,7 @@ def findMinMaxSpan(a,b):
 # --------------------------------------------------------------------------------------
 from itertools import combinations
 import pandas as pd
+pd.DataFrame.iteritems = pd.DataFrame.items  # internal Pandas bugfix for Pandas 2.0
 import seaborn as sns
 from statannotations.Annotator import Annotator
 
@@ -193,6 +210,7 @@ def padEqualLengthDicts(tests):
 
 
 def plotComparisonAcrossLabels2(tests, columnLables=None, graphLabel='', pairs=None):
+    printAveragesAndStd(tests)
     if columnLables is None:
         columnLables = tests.keys()
     if isinstance(tests, dict):

@@ -8,8 +8,6 @@ import numpy as np
 from scipy import spatial
 import matplotlib.pyplot as plt
 
-plotNodes = False
-
 
 def plotParcellation(parcellationData, title=''):
     fig = plt.figure()
@@ -68,15 +66,27 @@ def assignRSNLabels(referenceSet, targetSet):
 
     return targetSetLabelled
 
+# detailedRSNs is a dictionary of {'RoI': subareas}, where
+# subareas is a list of all subarea names to be considered. If empty, the default RoI value
+# will be used. All nodes not in any of these subareas will be added to the 'OTHER' default area.
+def collectNamesRSN(rsn, useLR=True, detailedRSNs={}):
+    def generateName(name):
+        rsnName = name.split('_')[2]
+        if rsnName in detailedRSNs:
+            subregionsTest = [sub in name.split('_')[3] for sub in detailedRSNs[rsnName]]  # check whether the subarea name is in the list
+            if any(subregionsTest):
+                rsnName += '_' + detailedRSNs[rsnName][subregionsTest.index(True)]
+            else:
+                if len(detailedRSNs[rsnName]) > 0:  # if we were given a list, but this particular area is missing...
+                    rsnName += '_OTHER'
+                # If we weren't given a llist, nothing to do!
+        if useLR:
+            rsnName += '_' + name.split('_')[1]  # and clean them! (left/right separated)
+        return rsnName
 
-def collectNamesAndIDsRSN(rsn, useLR=True):
     names = [(roi[1], int(roi[0])-1) for roi in rsn]  # extract names
-    if useLR:
-        cleanNames = ['_'.join(n[0].split('_')[1:3]) for n in names]  # and clean them! (left/right separated)
-    else:
-        cleanNames = [n[0].split('_')[2] for n in names]  # and clean them! (without left/right hemispheres)
-    # onlyNames = list(set(cleanNames))
-    return cleanNames  #, onlyNames
+    cleanNames = [generateName(n[0]) for n in names]
+    return cleanNames
 
 
 def indices4RSNs(parcellation):
@@ -105,8 +115,10 @@ def saveParcellation2CSV(filename, parcellation):
 
 
 def saveRSNIndices(idxs, outFile):
+    header = ["RSN Label", "Indices"]
     with open(outFile, 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
+        writer.writerow(header)
         for rsn in idxs:
             writer.writerow([rsn, idxs[rsn]])
 
@@ -121,25 +133,42 @@ if __name__ == '__main__':
     inFileNameRef = f'Schaefer2018-RSN_Centroid_coordinates/Schaefer2018_{numNodes}Parcels_7Networks_order_FSLMNI152_1mm.Centroid_RAS.csv'
     inFileNameTarget = 'Glasser360/glasser_coords.txt'
 
+
+    detailNetworks = {}  # If a mode detailed region is NOT needed, use an empty detailNetworks
+    # detailNetworks = {'Default': ['PFC', 'Par', 'Temp', 'pCunPCC', 'PHC']}  # If a more detailed region is needed, especify it here (see comment for collectNamesAndIDsRSN)
+
+    plotNodes = False
+
+    # Read all reference values, i.e., from Yeo's Schaefer2018 RSN labels
     dataRef = readReferenceRSN(inPath+inFileNameRef)
     print(f'we have {len(dataRef)} elements')
     if plotNodes:
         plotParcellation(dataRef, title='Ref')
 
+    # read all coords for the target parcellation (here, Glasser360)
     dataTarget = readDestinationParcellation(inPath+inFileNameTarget)
     print(f'we have {len(dataTarget)} elements')
     if plotNodes:
         plotParcellation(dataTarget, title='Target')
 
+    # First, transfer the closest RSN label to each node of the target parcellation
     labelledTarget = assignRSNLabels(dataRef, dataTarget)
+    # this keeps all the originalnames, no distinctions whether we use detailed regions or not...
     outPath = '../../Data_Produced/Parcellations/Glasser360RSN.csv'
     saveParcellation = parcellationFormat(labelledTarget)
     saveParcellation2CSV(outPath, saveParcellation)
+    print(f'saved parcellation to: {outPath}')
 
-    names = collectNamesAndIDsRSN(saveParcellation, useLR=False)
+    # This groups RSN labels into fewer sets, grouping by RSN name and, if needed, subregion name
+    useLR = False
+    names = collectNamesRSN(saveParcellation, useLR=useLR, detailedRSNs=detailNetworks)
+    print(f'Names collected: {list(set(names))}')
     i = indices4RSNs(names)
-    outPath = '../../Data_Produced/Parcellations/Glasser360RSN_indices.csv'
+    # The outfile should change according to whether we use or not detailed regions...
+    outPath = f'../../Data_Produced/Parcellations/Glasser360RSN_{"14" if useLR else "7"}_indices.csv'  # if we do NOT use detailed regions
+    # outPath = f'../../Data_Produced/Parcellations/Glasser360RSN_{"-".join(detailNetworks.keys())}_indices.csv'  # if we use detailed regions...
     saveRSNIndices(i, outPath)
+    print(f'saved indices to: {outPath}')
 
 
 # ======================================================

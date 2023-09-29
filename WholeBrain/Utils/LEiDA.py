@@ -117,6 +117,16 @@ def calculateProbabilitiesOfOccurrence(clustering, LEigs, numClusters):
     return labels, P
 
 
+def calculateSwitchingStates(labels, numClusters, subset=None):
+    pass
+
+
+def normalizeTransitionMatrix(a):
+    row_sums = a.sum(axis=1)
+    new_matrix = a / row_sums[:, np.newaxis]
+    return new_matrix
+
+
 # compute the switching matrix (if no subset, use all labels => global)
 def calculateSwitchingMatrix(labels, numClusters, subset=None):
     actualLabels = labels if subset is None else subset
@@ -131,7 +141,8 @@ def calculateSwitchingMatrix(labels, numClusters, subset=None):
             # if np.count_nonzero(IDX == i) != 0:  # if there are entries == i
             #     PTransition[i, j] = sumatr/np.count_nonzero(IDX == i)
             PTransition[i, j] = sumatr
-    return PTransition
+    FinalPTransition = normalizeTransitionMatrix(PTransition)
+    return FinalPTransition
 
 
 # Compute the mean lifetimes
@@ -171,12 +182,12 @@ def analyseClustering(clustering, LEigs):
     labels, P = calculateProbabilitiesOfOccurrence(clustering, LEigs, numClusters)
 
     # Calculate the GLOBAL switching matrix
-    PTransition = calculateSwitchingMatrix(labels, numClusters)
+    # PTransition = calculateSwitchingMatrix(labels, numClusters)
 
     # Compute the mean lifetimes
     LT = calculateMeanLifetimes(labels, numClusters)
     print('Done analyseClustering!!!')
-    return P, PTransition, LT, labels
+    return P, LT, labels  #, PTransition
 
 
 # --------------------------------------------------------------------------------------
@@ -196,10 +207,10 @@ def processBOLDSignals(BOLDsignals):
     ind_max, Kmeans_results = clusterEigenvectors(LEigenvalues)
 
     # 3 - Analyse the Clustering results
-    P, PTransition, LT, labels = analyseClustering(Kmeans_results, LEigenvalues)
+    P, LT, labels = analyseClustering(Kmeans_results, LEigenvalues)
 
     print('Done processBOLDSignals')
-    return ind_max, Kmeans_results, P, PTransition, LT, labels
+    return ind_max, Kmeans_results, P, LT, labels  #, PTransition
 
 
 # ============== a practical way to save recomputing necessary (but lengthy) results ==========
