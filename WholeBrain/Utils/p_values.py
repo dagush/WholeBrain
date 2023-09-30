@@ -209,14 +209,14 @@ def padEqualLengthDicts(tests):
     return fixed
 
 
-def plotComparisonAcrossLabels2(tests, columnLables=None, graphLabel='', pairs=None):
+def plotComparisonAcrossLabelsAx(ax, tests, columnLables=None, graphLabel='', pairs=None):
     printAveragesAndStd(tests)
     if columnLables is None:
         columnLables = tests.keys()
     if isinstance(tests, dict):
         tests = padEqualLengthDicts(tests)
     df = pd.DataFrame(tests, columns=columnLables)
-    ax = sns.boxplot(data=df, order=columnLables)
+    sns.boxplot(data=df, order=columnLables, ax=ax)
     # sns.catplot(data=df, kind="box")
     if pairs == None:
         pairs = list(combinations(columnLables, 2))
@@ -225,6 +225,11 @@ def plotComparisonAcrossLabels2(tests, columnLables=None, graphLabel='', pairs=N
     annotator.configure(comparisons_correction="BH", correction_format="replace")  # BH / Bonferroni
     annotator.apply_and_annotate()
     ax.set_title(graphLabel)
+
+
+def plotComparisonAcrossLabels2(tests, columnLables=None, graphLabel='', pairs=None):
+    fig, ax = plt.subplots()
+    plotComparisonAcrossLabelsAx(ax, tests, columnLables=columnLables, graphLabel=graphLabel, pairs=pairs)
     plt.show()
 
 
