@@ -28,12 +28,30 @@ name = 'swFCD'
 #     return r
 
 
+# ==================================================================
+# buildFullMatrix: given the output of from_fMRI, this function
+# returns the full matrix. Not needed, except for plotting and such...
+# ==================================================================
+def buildFullMatrix(FCD_data):
+    LL = FCD_data.shape[0]
+    # T is size of the matrix given the length of the lower/upper triangular part (displaced by 1)
+    T = int((1. + np.sqrt(1. + 8. * LL)) / 2.)
+    fcd_mat = np.zeros((T, T))
+    fcd_mat[np.triu_indices(T, k=1)] = FCD_data
+    fcd_mat += fcd_mat.T
+    return fcd_mat
+
+
+# ==================================================================
+# ==================================================================
 def calc_length(start, end, step):
     # This fails for a negative step e.g., range(10, 0, -1).
     # From https://stackoverflow.com/questions/31839032/python-how-to-calculate-the-length-of-a-range-without-creating-the-range
     return (end - start - 1) // step + 1
 
 
+# ==================================================================
+# ==================================================================
 # @jit(nopython=True)
 def pearson_r(x, y):
     """Compute Pearson correlation coefficient between two arrays."""
@@ -43,6 +61,8 @@ def pearson_r(x, y):
     return corr_mat[0,1]
 
 
+# ==================================================================
+# ==================================================================
 windowSize = 30
 windowStep = 3
 def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):  # Compute the FCD of an input BOLD signal
@@ -117,6 +137,36 @@ def postprocess(FCDs):
 
 def findMinMax(arrayValues):
     return np.min(arrayValues), np.argmin(arrayValues)
+
+
+# --------------------------------------------------------------------------------------
+# Test code
+# --------------------------------------------------------------------------------------
+if __name__ == '__main__':
+    import scipy.io as sio
+    import matplotlib.pyplot as plt
+
+    from Observables import BOLDFilters
+    BOLDFilters.flp = 0.008
+    BOLDFilters.fhi = 0.08
+    BOLDFilters.TR = 3
+
+    inFilePath = "../../Data_Raw/"
+    allData = sio.loadmat(inFilePath + 'all_SC_FC_TC_76_90_116.mat')
+    sc90 = allData['sc90']
+    C = sc90 / np.max(sc90[:]) * 0.2  # Normalization...
+    ts90 = allData['tc90symm_s0004']
+
+    # plt.plot(ts90)
+    # plt.show()
+
+    discardOffset = 0
+    fcd = from_fMRI(ts90)
+    full_fcd = buildFullMatrix(fcd)
+    plt.imshow(full_fcd)
+    plt.show()
+
+    print('test done!')
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================EOF

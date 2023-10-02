@@ -102,28 +102,33 @@ def radar_factory(num_vars, frame='circle'):
 
 
 def plotRadial_ax(ax, title, data, colors, theta,
-                  dim_labels, radialGridSpacing=None, set_labels=None):
+                  dim_labels, set_labels, radialGridSpacing=None):
     if radialGridSpacing is not None:
         ax.set_rgrids(radii=radialGridSpacing)
     ax.set_title(title, weight='bold', size='medium', position=(0.5, 1.1),
                  horizontalalignment='center', verticalalignment='center')
+    N = len(set_labels)
     for d, color in zip(data, colors):
         ax.plot(theta, d, color=color)
         ax.fill(theta, d, facecolor=color, alpha=0.25, label='_nolegend_')
-    ax.set_varlabels(set_labels)
+    ax.set_varlabels(set_labels)  # set_varlabels
+    # angles = [a if a <=360. else a - 360. for a in np.arange(90, 90+360, 360.0/N)]
+    # ax.set_thetagrids(angles, labels=set_labels)  #fontsize=12, weight="bold", color="black")
     if dim_labels is not None:
         # add legend
         ax.legend(dim_labels, loc=(0.9, .95),
                   labelspacing=0.1, fontsize='small')
 
 
-def plotRadial(title, data, colors, set_labels, dim_labels, radialGridSpacing=None):
-    N = len(set_labels)
+def plotRadial(title, data, colors,
+               dim_labels, set_labels, radialGridSpacing=None):
     theta = radar_factory(N, frame='polygon')
     fig, ax = plt.subplots(figsize=(9, 9), nrows=1, ncols=1,
                            subplot_kw=dict(projection='radar'))
     plotRadial_ax(ax, title, data, colors, theta,
-                  dim_labels, set_labels=set_labels, radialGridSpacing=radialGridSpacing)
+                  dim_labels,  # dim_labels are the dimensions plotted, used at the legend
+                  set_labels,  # set_labels are the labels for each angle
+                  radialGridSpacing=radialGridSpacing)
     plt.show()
 
 
@@ -196,7 +201,8 @@ if __name__ == '__main__':
     colors = ['b', 'r', 'g', 'm', 'y']
     # Plot the four cases from the example data on separate axes
     for ax, (title, case_data) in zip(axs.flat, data):
-        plotRadial_ax(ax, title, case_data, colors, theta, spoke_labels)
+        plotRadial_ax(ax, title, case_data, colors, theta,
+                      dim_labels=None, set_labels=spoke_labels)
 
     # add legend relative to top-left plot
     labels = ('Factor 1', 'Factor 2', 'Factor 3', 'Factor 4', 'Factor 5')
