@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------------
 # This prog. optimizes the strengh of the feedback inhibition of the FIC model
 # for a given global coupling (G)
-# Returns the feedback inhibition (J) (and the the steady states if wanted).
+# Returns the feedback inhibition (J) (and the steady states if wanted).
 #
 #
 # For an isolated node, an input to the excitatory pool equal to I_i^E - b_E/a_E = -0.026;
@@ -28,12 +28,10 @@
 # Adrian Ponce-Alvarez. Refactoring (& Python translation) by Gustavo Patow
 # --------------------------------------------------------------------------
 import numpy as np
-from pathlib import Path
-import scipy.io as sio
-import multiprocessing as mp
+
 from WholeBrain.Utils.decorators import loadOrCompute
 
-integrator = None  # WholeBrain.Integrator_EulerMaruyama
+integrator = None  # in the original paper, Integrator_EulerMaruyama
 
 veryVerbose = False
 verbose = True
@@ -197,7 +195,7 @@ def Balance_J9(we, N, warmUp=False): # Computes (and sets) the optimized J for F
     return {'we': we, 'J': bestJ.flatten()}
 
 
-def Balance_AllJ9(C, WEs,  # wStart=0, wEnd=6+0.001, wStep=0.05,
+def Balance_AllJ9(C, WEs,
                   baseName=None,
                   parallel=False):
     # all tested global couplings (G in the paper):

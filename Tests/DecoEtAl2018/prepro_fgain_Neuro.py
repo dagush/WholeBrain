@@ -11,7 +11,7 @@
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L.
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #       (2018) Current Biology
-#       https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
+#       https://www.cell.com/current-biology/fulltext/S0960-9822(18)31045-5
 #
 #  Translated to Python & refactoring by Gustavo Patow
 # ==========================================================================
@@ -21,7 +21,7 @@
 # --------------------------------------------------------------------------
 #  Begin setup...
 # --------------------------------------------------------------------------
-from DecoEtAl2018_Setup import *
+from setup import *
 # --------------------------------------------------------------------------
 #  End setup...
 # --------------------------------------------------------------------------
@@ -32,7 +32,8 @@ from DecoEtAl2018_Setup import *
 # ==========================================================================
 # IMPORTANT: This function was created to reproduce Deco et al.'s 2018 code for Figure 3A.
 # Actually, this only performs the fitting which gives the value of we (we in the original
-# code, G in the paper) to use for further computations (e.g., plotting Figure 3A)
+# code, G in the paper) to use for further computations (e.g., plotting Figure 3A).
+# For the plotting, see the respective file (fig3A.py)
 def prepro_G_Optim():
     # %%%%%%%%%%%%%%% Set General Model Parameters
     J_fileNames = outFilePath + "/J_Balance_we{}.mat"
@@ -72,6 +73,7 @@ def prepro_G_Optim():
 
 if __name__ == '__main__':
     prepro_G_Optim()
+
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================EOF

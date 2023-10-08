@@ -35,7 +35,7 @@ simulateBOLD.BOLDModel = Stephan2007
 # simulateFCD.integrator = integrator
 # simulateFCD.BOLDModel = Stephan2007
 
-import WholeBrain.BalanceFIC as BalanceFIC
+import Utils.FIC.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
 
 # set BOLD filter settings

@@ -63,7 +63,7 @@ def computeLEigens(BOLDsignal):
 
 
 # Compute the Leading Eigenvectors from the BOLD datasets
-def computeEigenvectores(BOLDsignals):
+def computeEigenvectors(BOLDsignals):
     NumSubjects = len(BOLDsignals)
     print(f'\nGoing to compute Leading Eigenvectors for BOLD signals for {NumSubjects} subjects\n')
 
@@ -117,8 +117,8 @@ def calculateProbabilitiesOfOccurrence(clustering, LEigs, numClusters):
     return labels, P
 
 
-def calculateSwitchingStates(labels, numClusters, subset=None):
-    pass
+# def calculateSwitchingStates(labels, numClusters, subset=None):
+#     pass
 
 
 def normalizeTransitionMatrix(a):
@@ -201,7 +201,7 @@ def processBOLDSignals(BOLDsignals):
     # N = BOLDsignals[next(iter(BOLDsignals))].shape[0]  # get the first key to retrieve the value of N = number of areas
 
     # 1 - Compute the Leading Eigenvectors from the BOLD datasets
-    LEigenvalues = computeEigenvectores(BOLDsignals)
+    LEigenvalues = computeEigenvectors(BOLDsignals)
 
     # 2 - Cluster the Leading Eigenvectors
     ind_max, Kmeans_results = clusterEigenvectors(LEigenvalues)

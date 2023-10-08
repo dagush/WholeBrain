@@ -5,7 +5,7 @@
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L.
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #       (2018) Current Biology
-#       https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
+#       https://www.cell.com/current-biology/fulltext/S0960-9822(18)31045-5
 #
 #  Translated to Python & refactoring by Gustavo Patow
 # ==========================================================================
@@ -33,13 +33,20 @@ import WholeBrain.simulate_SimAndBOLD as simulateBOLD
 simulateBOLD.integrator = integrator
 simulateBOLD.BOLDModel = Stephan2007
 
+# --------------------------------------------------------------------------
+# Import optimizer (ParmSweep)
 import WholeBrain.Optimizers.ParmSweep as optim1D
 optim1D.simulateBOLD = simulateBOLD
 optim1D.integrator = integrator
 
-import WholeBrain.BalanceFIC as BalanceFIC
+# --------------------------------------------------------------------------
+# FIC mechanism
+import Utils.FIC.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
 
+# --------------------------------------------------------------------------
+# Filters and Observables
+# --------------------------------------------------------------------------
 # set BOLD filter settings
 import Observables.BOLDFilters as filters
 filters.k = 2                             # 2nd order butterworth filter
@@ -47,6 +54,12 @@ filters.flp = .01                         # lowpass frequency of filter
 filters.fhi = .1                          # highpass
 filters.TR = 2.                           # TR
 
+# import observables
+import Observables.FC as FC
+import Observables.swFCD as swFCD
+
+# --------------------------------------------------------------------------
+# setp up IDs...
 PLACEBO_cond = 4; LSD_cond = 1   # 1=LSD rest, 4=PLACEBO rest -> The original code used [2, 5] because arrays in Matlab start with 1...
 # --------------------------------------------------------------------------
 #  End modules setup...

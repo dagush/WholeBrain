@@ -11,12 +11,14 @@
 #  - the optimal coupling (we=2.1) for fitting the placebo condition
 #  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
 #
-#  Taken from the code (Code_Figure3.m) from:
+#  Before this, needs the results computed in
+#   - prepro_fgain_Neuro.py
 #
+#  Taken from the code (Code_Figure3.m) from:
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
-#       https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
+#       https://www.cell.com/current-biology/fulltext/S0960-9822(18)31045-5
 #
 #  Code written by Josephine Cruzat josephine.cruzat@upf.edu
 #
@@ -29,11 +31,11 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 
-from DecoEtAl2018_Setup import *
+from setup import *
 
 filePath = outFilePath + '/DecoEtAl2018_fneuro.mat'
 if not Path(filePath).is_file():
-    import DecoEtAl2018_Prepro_fgain_Neuro as prepro
+    import prepro_fgain_Neuro as prepro
     prepro.prepro_G_Optim()
 
 print('Loading {}'.format(filePath))

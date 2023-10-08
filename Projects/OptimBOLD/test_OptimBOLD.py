@@ -22,7 +22,7 @@ import scipy.io as sio
 from pathlib import Path
 from scipy import signal
 import matplotlib.pyplot as plt
-from WholeBrain import BalanceFIC
+from Utils.FIC import BalanceFIC
 from Projects.OptimBOLD import optimBOLD
 from WholeBrain.Models import DynamicMeanField #, serotonin2A
 from Integrators import EulerMaruyama as integrator
@@ -559,7 +559,7 @@ tc_aal = LSDnew['tc_aal']
 # ==== J is calculated this only once, then saved
 if not Path("J_Balance.mat").is_file():
     print("Computing Data_Produced/J_Balance !!!")
-    DynamicMeanField.J=BalanceFIC.JOptim(we, C) # This is the Feedback Inhibitory Control
+    DynamicMeanField.J= BalanceFIC.JOptim(we, C) # This is the Feedback Inhibitory Control
     sio.savemat('Data_Produced/J_Balance.mat', {'J': J})  # save J_Balance J
 else:
     print("Loading Data_Produced/J_Balance !!!")

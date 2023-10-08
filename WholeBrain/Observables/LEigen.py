@@ -25,7 +25,7 @@ def computeLEigen(phIntMatr):
     V1s = np.zeros((phIntMatr.shape[1], timePoints))
     for t in range(timePoints):
         # Get the leading eigenvector
-        val1, V1 = eigs(phIntMatr[t], k=1)
+        val1, V1 = eigs(phIntMatr[t], k=1, which='LM')  # get the Leading Magnitude eval and evect.
         # Make sure the largest component is negative
         if np.mean(V1 > 0) > .5:
             V1 = -V1

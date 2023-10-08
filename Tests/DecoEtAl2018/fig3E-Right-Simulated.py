@@ -16,7 +16,7 @@
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
-#       https://www.cell.com/current-biology/pdfExtended/S0960-9822(18)31045-5
+#       https://www.cell.com/current-biology/fulltext/S0960-9822(18)31045-5
 #
 #  Code written by Gustavo Deco gustavo.deco@upf.edu 2017
 #  Reviewed by Josephine Cruzat and Joana Cabral
@@ -30,9 +30,9 @@ import time
 # --------------------------------------------------------------------------
 #  Begin setup...
 # --------------------------------------------------------------------------
-from DecoEtAl2018_Setup import *
+from setup import *
 
-import DecoEtAl2018_simulateFCD as simulateFCD
+import simulateFCD as simulateFCD
 simulateFCD.integrator = integrator
 simulateFCD.simModel = simulateBOLD
 # --------------------------------------------------------------------------

@@ -228,7 +228,7 @@ if __name__ == '__main__':
     integrator.neuronalModel = neuronalModel
     integrator.verbose = False
 
-    import WholeBrain.BalanceFIC as BalanceFIC
+    import Utils.FIC.BalanceFIC as BalanceFIC
     BalanceFIC.integrator = integrator
     # --------------------------------------------------------------------------
     #  End setup...
