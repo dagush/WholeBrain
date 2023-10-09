@@ -55,6 +55,8 @@ filters.fhi = .1                          # highpass
 filters.TR = 2.                           # TR
 
 # import observables
+import Observables.FC as FC
+import Observables.swFCD as swFCD
 
 # --------------------------------------------------------------------------
 # setp up IDs...
@@ -69,7 +71,7 @@ PLACEBO_cond = 4; LSD_cond = 1   # 1=LSD rest, 4=PLACEBO rest -> The original co
 # File loading…
 # --------------------------------------------------------------------------
 inFilePath = '../../Data_Raw/'
-outFilePath = '../../Data_Produced/SC90'
+outFilePath = '../../Data_Produced/SC90/'
 
 
 # ==================================================================================

@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 
-from DecoEtAl2020_Setup import *
+from setup import *
 
 def plotData(fig, DataFitt, title, pos, optim):
     Values = DataFitt.reshape(grid[0].shape)
@@ -42,7 +42,7 @@ def plotData(fig, DataFitt, title, pos, optim):
 # baseInPath = 'Data_Raw/DecoEtAl2020'
 filePath = baseOutPath + '/DecoEtAl2020_fittingBZ.mat'
 if not Path(filePath).is_file():
-    import DecoEtAl2020_Fitting_genes_balanced_gain as fitting
+    import fitting_genes_balanced_gain as fitting
     fitting.Fitting()
 
 print('Loading {}'.format(filePath))

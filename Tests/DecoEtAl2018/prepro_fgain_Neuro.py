@@ -36,7 +36,7 @@ from setup import *
 # For the plotting, see the respective file (fig3A.py)
 def prepro_G_Optim():
     # %%%%%%%%%%%%%%% Set General Model Parameters
-    J_fileNames = outFilePath + "/J_Balance_we{}.mat"
+    J_fileNames = outFilePath + "J_Balance_we{}.mat"
 
     distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True)}
 
@@ -63,7 +63,7 @@ def prepro_G_Optim():
     optimal = {sd: distanceSettings[sd][0].findMinMax(fitting[sd]) for sd in distanceSettings}
     print("Optimal:\n", optimal)
 
-    filePath = outFilePath + '/DecoEtAl2018_fneuro.mat'
+    filePath = outFilePath + 'DecoEtAl2018_fneuro.mat'
     sio.savemat(filePath, #{'JI': JI})
                 {'we': WEs,
                  'fitting_PLA': fitting['FC'],  # fitting_PLA,

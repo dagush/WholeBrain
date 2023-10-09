@@ -12,7 +12,7 @@
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
-from WholeBrain.Models import Abeta_StefanovskiEtAl2019 as Abeta
+from StefanovskiEtAl2019 import Abeta_Model as Abeta
 from WholeBrain.Models import JansenRit as JR
 
 integrator = None
@@ -192,7 +192,7 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
 visualizeAll = True
 if __name__ == '__main__':
     plt.rcParams.update({'font.size': 15})
-    # for the visualization of the ABeta curve, look the file StefanovskiEtAl2019_Fig3.py
+    # for the visualization of the ABeta curve, look the file fig3.py
     # ------------------------------------------------
     # Load individual Abeta PET SUVRs
     # ------------------------------------------------

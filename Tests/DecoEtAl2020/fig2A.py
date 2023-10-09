@@ -20,12 +20,12 @@ import matplotlib.pyplot as plt
 
 from pathlib import Path
 
-from DecoEtAl2020_Setup import *
+from setup import *
 
 # baseInPath = 'Data_Raw/DecoEtAl2020'
 filePath = baseOutPath + '/DecoEtAl2020_fneuro.mat'
 if not Path(filePath).is_file():
-    import DecoEtAl2020_Prepro_G_Optim as prepro
+    import prepro_G_Optim as prepro
     prepro.prepro()
 
 print('Loading {}'.format(filePath))

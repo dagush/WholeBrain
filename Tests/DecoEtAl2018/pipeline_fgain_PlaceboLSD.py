@@ -37,7 +37,7 @@ from setup import *
 def fitting_ModelParms(tc_transf, suffix):
     # %%%%%%%%%%%%%%% Set General Model Parameters
     # neuronalModel.setParm({'we':2.1})  # Global Coupling parameter, found in the DecoEtAl2018_Prepro_* file...
-    J_fileName = outFilePath + "/J_Balance_we2.1.mat"  # "Data_Produced/SC90/J_test_we{}.mat"
+    J_fileName = outFilePath + "J_Balance_we2.1.mat"  # "Data_Produced/SC90/J_test_we{}.mat"
     balancedG = BalanceFIC.Balance_J9(2.1, C, False, J_fileName)
     balancedG['J'] = balancedG['J'].flatten()
     balancedG['we'] = balancedG['we']  #.flatten()
@@ -64,7 +64,7 @@ def fitting_ModelParms(tc_transf, suffix):
                                            outFilePath=basePath,
                                            fileNameSuffix=suffix)
 
-    filePath = '../Data_Produced/DecoEtAl2018_fitting'+suffix+'.mat'
+    filePath = outFilePath + 'DecoEtAl2018_fitting'+suffix+'.mat'
     sio.savemat(filePath, #{'JI': JI})
                 {'S_E': S_Es,
                  'fitting_FCD': fitting['swFCD'],
