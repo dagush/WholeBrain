@@ -18,7 +18,7 @@
 # --------------------------------------------------------------------------
 import numpy as np
 import simulateFCD
-from WholeBrain import BOLDHemModel_Stephan2008 as BOLDModel
+from Utils.BOLD import BOLDHemModel_Stephan2008 as BOLDModel
 from WholeBrain.Utils import errorMetrics
 from Observables import BOLDFilters
 

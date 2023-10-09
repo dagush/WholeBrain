@@ -27,7 +27,7 @@ from Projects.OptimBOLD import optimBOLD
 from WholeBrain.Models import DynamicMeanField #, serotonin2A
 from Integrators import EulerMaruyama as integrator
 import simulateFCD
-from WholeBrain import BOLDHemModel_Stephan2008
+from Utils.BOLD import BOLDHemModel_Stephan2008
 from WholeBrain.Utils import errorMetrics
 from Observables import BOLDFilters
 import time

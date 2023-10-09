@@ -28,8 +28,8 @@ import WholeBrain.Models.serotonin2A as serotonin2A
 import Integrators.EulerMaruyama as integrator
 integrator.neuronalModel = serotonin2A
 integrator.verbose = False
-import WholeBrain.BOLDHemModel_Stephan2007 as Stephan2007
-import WholeBrain.simulate_SimAndBOLD as simulateBOLD
+import Utils.BOLD.BOLDHemModel_Stephan2007 as Stephan2007
+import Utils.simulate_SimAndBOLD as simulateBOLD
 simulateBOLD.integrator = integrator
 simulateBOLD.BOLDModel = Stephan2007
 
@@ -55,8 +55,6 @@ filters.fhi = .1                          # highpass
 filters.TR = 2.                           # TR
 
 # import observables
-import Observables.FC as FC
-import Observables.swFCD as swFCD
 
 # --------------------------------------------------------------------------
 # setp up IDs...
