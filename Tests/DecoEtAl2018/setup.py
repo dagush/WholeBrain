@@ -65,8 +65,13 @@ PLACEBO_cond = 4; LSD_cond = 1   # 1=LSD rest, 4=PLACEBO rest -> The original co
 #  End modules setup...
 # --------------------------------------------------------------------------
 
-inFilePath = '../Data_Raw/'
-outFilePath = '../Data_Produced/SC90'
+
+
+# --------------------------------------------------------------------------
+# File loading…
+# --------------------------------------------------------------------------
+inFilePath = '../../Data_Raw/'
+outFilePath = '../../Data_Produced/SC90'
 
 
 # ==================================================================================
@@ -101,6 +106,7 @@ def transformEmpiricalSubjects(tc_aal, cond, NumSubjects):
         # transformed[s] = np.zeros(tc_aal[0,cond].shape)
         transformed[s] = LR_version_symm(tc_aal[s,cond])
     return transformed
+
 
 # ==================================================================================
 # ==================================================================================
