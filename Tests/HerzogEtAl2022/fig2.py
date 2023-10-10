@@ -1,17 +1,18 @@
 # ================================================================================================================
 #
-# This prog. plots the max frec for varying global couplings (G)
+# This code plots Figure 2 in [HerzogEtAl2022]
 #
 # see:
-# [D*2014]  Deco et al. (2014) J Neurosci.
-#           http://www.jneurosci.org/content/34/23/7886.long
+# [HerzogEtAl2022] Neural mass modelling for the masses: Democratising access to
+# whole-brain biophysical modelling with FastDMF, Rubén Herzog, Pedro A.M. Mediano,
+# Fernando E. Rosas, Andrea I. Luppi, Yonatan Sanz Perl, Enzo Tagliazucchi, Morten
+# Kringelbach, Rodrigo Cofré, Gustavo Deco, bioRxiv
+# doi: https://doi.org/10.1101/2022.04.11.487903
 #
 # By Gustavo Patow
 # ================================================================================================================
 import numpy as np
 import scipy.io as sio
-# import os, csv
-# from pathlib import Path
 import matplotlib.pyplot as plt
 
 # ============== chose a model
@@ -23,6 +24,8 @@ integrator.verbose = False
 # ============== chose a FIC mechanism
 import Utils.FIC.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
+import Utils.FIC.Balance_Herzog2022 as Herzog2022Mechanism
+BalanceFIC.balancingMechanism = Herzog2022Mechanism
 
 np.random.seed(42)  # Fix the seed for debug purposes...
 
@@ -108,12 +111,14 @@ if __name__ == '__main__':
     outFilePath = '../../Data_Produced'
     CFile = sio.loadmat(inFilePath + '/Human_66.mat')  # load Human_66.mat C
     C = CFile['C']
-    fileName = outFilePath + '/Human_66/Benji_Human66_{}.mat'  # integrationMode+'Benji_Human66_{}.mat'
+    fileName = outFilePath + '/Human_66/Herzog_Benji_Human66_{}.mat'  # integrationMode+'Benji_Human66_{}.mat'
 
     # ================================================================
     # This plots the graphs at Fig 2c of [D*2014]
     plotMaxFrecForAllWe(C, fileName=fileName)
 
-# ================================================================================================================
-# ================================================================================================================
-# ================================================================================================================EOF
+
+
+# ==========================================================================
+# ==========================================================================
+# ==========================================================================EOF

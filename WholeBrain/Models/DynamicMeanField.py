@@ -100,7 +100,7 @@ def numObsVars():  # Returns the number of observation vars used, here xn and rn
 # Set the parameters for this model
 def setParms(modelParms):
     global we, J, SC
-    if 'we' in modelParms:
+    if 'we' in modelParms or 'G' in modelParms:  # I've made this mistake too many times...
         we = modelParms['we']
     if 'J' in modelParms:
         J = modelParms['J']
@@ -109,7 +109,7 @@ def setParms(modelParms):
 
 
 def getParm(parmList):
-    if 'we' in parmList:
+    if 'we' in parmList or 'G' in parmList:  # I've made this mistake too many times...
         return we
     if 'J' in parmList:
         return J
