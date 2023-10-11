@@ -2,9 +2,7 @@
 #  Extract RSN signals from a whole-brain fMRI signal
 #  by Gustavo Patow
 # -------------------------------------------------------------------------
-import numpy as np
 import csv
-import Utils.RSN_transfer as RSN_transfer
 
 
 def readIndicesFile(filePath):
