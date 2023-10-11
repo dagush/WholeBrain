@@ -16,6 +16,7 @@
 # by Gustavo Patow
 # --------------------------------------------------------------------------
 import numpy as np
+import matplotlib.pyplot as plt
 
 integrator = None  # in the original paper, Integrator_EulerMaruyama
 
@@ -34,9 +35,9 @@ print("Going to use the Balanced J (FIC) mechanism in HerzogEtAl2022...")
 # alpha = 0.725), finding an optimal value for alpha = 0.75. This approach,
 # as expected, better matches the slope values for high G values and
 # also extends the range where stability can be attained by the linear
-# approximation (Fig. 2C, green dots).
+# approximation.
 alpha = 0.75
-def defaultValues():
+def computeFirstOrderHeuristic():  # heuristic values
     G = integrator.neuronalModel.getParm({'G'})
     SC = integrator.neuronalModel.getParm({'SC'})
     J = alpha * G * np.sum(SC, axis=0) + 1
@@ -49,9 +50,8 @@ def defaultValues():
 # =====================================
 # Computes the optimum of the J_i for a given structural connectivity matrix C and
 # a coupling coefficient G, which should be set externally directly at the neuronal model.
-forceOptimization = False
 def JOptim(N, warmUp = False):
-    bestJ = defaultValues()
+    bestJ = computeFirstOrderHeuristic()
     return bestJ, N
 
 

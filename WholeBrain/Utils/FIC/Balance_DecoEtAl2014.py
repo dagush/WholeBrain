@@ -27,6 +27,18 @@
 #
 # Adrian Ponce-Alvarez. Refactoring (& Python translation) by Gustavo Patow
 # --------------------------------------------------------------------------
+import numpy as np
+
+integrator = None  # in the original paper, Integrator_EulerMaruyama
+
+veryVerbose = False
+verbose = True
+
+use_N_algorithm = True
+
+print("Going to use the Balanced J9 (FIC) mechanism in DecoEtAl2014...")
+
+
 def updateJ(N, tmax, delta, curr, J):  # This is the original method by Gus, from the paper...
     tmin = 1000 if (tmax>1000) else int(tmax/10)
     currm = np.mean(curr[tmin:tmax, :], 0)  # takes the mean of all xn values along dimension 1...
@@ -51,16 +63,6 @@ def updateJ(N, tmax, delta, curr, J):  # This is the original method by Gus, fro
             if veryVerbose: print("-", end='')
     if veryVerbose: print("]")
     return flag
-
-
-import numpy as np
-
-integrator = None  # in the original paper, Integrator_EulerMaruyama
-
-veryVerbose = False
-verbose = True
-
-print("Going to use the Balanced J9 (FIC) mechanism in DecoEtAl2014...")
 
 
 def recompileSignatures():
@@ -125,7 +127,6 @@ def updateJ_N(N, tmax, delta, curr, J):  # 2nd version of updateJ
 # =====================================
 # Computes the optimum of the J_i for a given structural connectivity matrix C and
 # a coupling coefficient G, which should be set externally directly at the neuronal model.
-use_N_algorithm = True
 def JOptim(N, warmUp = False):
     print("(using {} optim)".format("N" if use_N_algorithm else "A"))
 
