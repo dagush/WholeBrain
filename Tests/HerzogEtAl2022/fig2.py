@@ -12,7 +12,11 @@
 #     How local excitation-inhibition ratio impacts the whole brain dynamics
 #     J. Neurosci., 34 (2014), pp. 7886-7898
 #     http://www.jneurosci.org/content/34/23/7886.long
-
+#
+# Observation: In my dataset, things look a lot messier than on the original manuscript. However,
+# the linear patterns can be clearly observed, and they follow what is described there.
+# Second, the original fit in [DecoEtAl2014] is for a frequency of 3Hz, while [HerzogEtAl2022]
+# tune their model for 3.4Hz. Not a big difference, but...
 #
 # By Gustavo Patow
 # ================================================================================================================
@@ -53,6 +57,48 @@ def purgeTempFiles():
             os.remove(os.path.join(dir, f))
 
 
+def plotGvsSlopeG(ax, C, wes):
+    BalanceFIC.balancingMechanism = Deco2014Mechanism
+    betas = np.sum(C, axis=0)
+    res = np.zeros(len(wes))
+    for pos, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
+        # if it was pre-computed, this simply loads the result...
+        balancedJ = BalanceFIC.Balance_J9(we, C, fileNameDeco2014.format(np.round(we, decimals=2)))['J'].flatten()
+
+        x = betas; y = balancedJ
+        # obtain m (slope) and b(intercept) of linear regression line
+        res[pos] = stats.linregress(x, y).slope
+    ax.plot(wes, res)
+    ax.plot(wes, 0.75 * wes * np.average(betas), label=r'$\alpha=0.75$')
+    ax.plot(wes, 0.725 * wes * np.average(betas), label=r'$\alpha=0.725$')
+    ax.set_xlabel('Global Coupling (G)')
+    ax.set_ylabel('Slope(G)')
+    ax.legend()
+
+
+# Although this has been verified through other means (TVB C++), I cannot seem to reproduce it...
+def plotFICvsBeta(ax, C, wes):
+    BalanceFIC.balancingMechanism = Deco2014Mechanism
+    betas = np.sum(C, axis=0)
+    for we in wes[::5]:  # iterate over the weight range (G in the paper, we here)
+        # if it was pre-computed, this simply loads the result...
+        balancedJ = BalanceFIC.Balance_J9(we, C, fileNameDeco2014.format(np.round(we, decimals=2)))['J'].flatten()
+
+        x = betas; y = balancedJ
+        # create basic scatterplot
+        ax.plot(x, y, '.')
+        # obtain m (slope) and b(intercept) of linear regression line
+        res = stats.linregress(x, y)
+        # add linear regression line to scatterplot
+        ax.plot(x, 1 + res.slope*x, label=f'G={np.round(we, decimals=1)}')
+
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+    # Put a legend to the right of the current axis
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize="8")
+
+
 def plotMaxFreq(ax, wes, label, shuffle=False, averaging=False, fileName=None):
     print("======================================")
     print(f"=    simulating {label}             =")
@@ -74,24 +120,6 @@ def plotMaxFreq(ax, wes, label, shuffle=False, averaging=False, fileName=None):
         print(f"MaxRate: {label} => {maxRate[kk]}")
     ee, = ax.plot(wes, maxRate)
     ee.set_label(label)
-
-
-# Although this has been verified through other means (TVB C++), I cannot seem to reproduce it...
-# def plotFICvsBeta(ax, C, wes):
-#     BalanceFIC.balancingMechanism = Deco2014Mechanism
-#     betas = np.sum(C, axis=0)
-#     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
-#         # if it was pre-computed, this simply loads the result...
-#         balancedJ = BalanceFIC.Balance_J9(we, C, fileNameDeco2014.format(np.round(we, decimals=2)))['J'].flatten()
-#
-#         x = betas; y = balancedJ
-#         # create basic scatterplot
-#         ax.plot(x, y, '.')
-#         # obtain m (slope) and b(intercept) of linear regression line
-#         res = stats.linregress(x, y)
-#         # add linear regression line to scatterplot
-#         ax.plot(x, res.intercept + res.slope*x, label='fitted line')
-#     # ax.legend()
 
 
 def plotMaxFrecForAllWe(ax, C, wes):
@@ -161,12 +189,14 @@ if __name__ == '__main__':
     fileNameDeco2014 = outFilePath + '/Human_66/Benji_Human66_{}.mat'  # integrationMode+'Benji_Human66_{}.mat'
 
     # ================================================================
-    # ax1 = plt.subplot(2, 1, 2)
-    ax1 = plt.subplot()
+    ax1 = plt.subplot(2, 1, 2)
     plotMaxFrecForAllWe(ax1, C, wes)
 
-    # ax2 = plt.subplot(2, 2, 1)
-    # plotFICvsBeta(ax2, C, wes)
+    ax2 = plt.subplot(2, 2, 1)
+    plotFICvsBeta(ax2, C, wes)
+
+    ax3 = plt.subplot(2, 2, 2)
+    plotGvsSlopeG(ax3, C, wes)
 
     plt.show()
 
