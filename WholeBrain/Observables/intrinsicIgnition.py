@@ -28,7 +28,6 @@
 #   - PhaseBasedIntrinsicIgnition: uses the phase lock matrix at each time-point, as described in [DecoEtAl2017]
 #   and [EscrichsEtAl2021]
 # --------------------------------------------------------------------------------------
-
 import numpy as np
 import warnings
 from scipy import signal
@@ -36,7 +35,7 @@ from scipy import signal
 # import matplotlib.pyplot as plt
 # from scipy.optimize import curve_fit
 
-from Observables import BOLDFilters, demean
+from WholeBrain.Observables import BOLDFilters, demean
 # import WholeBrain.Observables.Integration as Integration
 
 # ==================================

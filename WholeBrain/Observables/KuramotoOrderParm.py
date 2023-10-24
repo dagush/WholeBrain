@@ -8,7 +8,7 @@
 import warnings
 import numpy as np
 from scipy import signal
-from Observables import BOLDFilters, demean
+from WholeBrain.Observables import BOLDFilters, demean
 
 print("Going to use Kuramoto Order Parameter...")
 

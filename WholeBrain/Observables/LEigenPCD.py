@@ -12,7 +12,7 @@
 import warnings
 import numpy as np
 
-import Observables.LEigen as LEigen
+import WholeBrain.Observables.LEigen as LEigen
 
 print("Going to use LEigenFCD...")
 

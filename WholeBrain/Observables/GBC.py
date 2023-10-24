@@ -22,7 +22,7 @@ def characterizeConnectivityMatrix(C):
 
 # @jit(nopython=True)
 def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):
-    return FC.from_fMRI(signal, applyFilters=applyFilters, removeStrongArtefacts=removeStrongArtefacts)
+    return np.mean(FC.from_fMRI(signal, applyFilters=applyFilters, removeStrongArtefacts=removeStrongArtefacts), 1)
 
 
 # ==================================================================

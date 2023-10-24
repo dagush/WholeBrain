@@ -25,7 +25,7 @@ import numpy as np
 from scipy import signal
 from numba import jit, prange
 
-from Observables import BOLDFilters, demean
+from WholeBrain.Observables import BOLDFilters, demean
 
 print("Going to use Phase-Interaction Matrix...")
 

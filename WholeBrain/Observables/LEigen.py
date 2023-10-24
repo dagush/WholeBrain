@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 from scipy.sparse.linalg import eigs
 
-import Observables.PhaseInteractionMatrix as PhIntMatr
+import WholeBrain.Observables.PhaseInteractionMatrix as PhIntMatr
 
 print("Going to use LEigen...")
 

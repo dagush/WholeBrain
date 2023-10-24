@@ -8,7 +8,7 @@
 import warnings
 import numpy as np
 # from numba import jit
-from Observables import BOLDFilters
+from WholeBrain.Observables import BOLDFilters
 
 print("Going to use Functional Connectivity (FC)...")
 
