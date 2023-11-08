@@ -36,7 +36,7 @@ verbose = True
 
 use_N_algorithm = True
 
-print("Going to use the Balanced J9 (FIC) mechanism in DecoEtAl2014...")
+print("Going to use the FIC mechanism in DecoEtAl2014...")
 
 
 def updateJ(N, tmax, delta, curr, J):  # This is the original method by Gus, from the paper...
@@ -144,7 +144,7 @@ def JOptim(N, warmUp = False):
     if verbose:
         print("  Trials:", end=" ", flush=True)
 
-    ### Balance (greedy algorithm)
+    # ======== Balance (greedy algorithm)
     # note that we used stochastic equations to estimate the JIs
     # Doing that gives more stable solutions as the JIs for each node will be
     # a function of the variance.

@@ -19,6 +19,9 @@ def recompileSignatures():
     phie.recompile()
     phii.recompile()
     dfun.recompile()
+    # coupling.recompile()
+    pass
+
 
 # ==========================================================================
 # ==========================================================================
@@ -37,39 +40,6 @@ w = 1.4
 we = 2.1        # Global coupling scaling (G in the paper)
 SC = None       # Structural connectivity (should be provided externally)
 
-# transfer WholeBrain:
-# --------------------------------------------------------------------------
-# transfer function: excitatory
-ae = 310.  # [nC^{-1}], g_E in the paper
-be = 125.  # = g_E * I^{(E)_{thr}} in the paper = 310 * .403 [nA] = 124.93
-de=0.16
-@jit(nopython=True)
-def phie(x):
-    # in the paper this was g_E * (I^{(E)_n} - I^{(E)_{thr}})
-    # Here, we distribute as g_E * I^{(E)_n} - g_E * I^{(E)_{thr}}, thus...
-    y = (ae*x-be)
-    # if (y != 0):
-    return y/(1.-np.exp(-de*y))
-    # else:
-    #     return 0
-
-# transfer function: inhibitory
-ai = 615.  # [nC^{-1}], g_I in the paper
-bi = 177.  # = g_I * I^{(I)_{thr}} in the paper = 615 * .288 [nA] = 177.12
-di=0.087
-@jit(nopython=True)
-def phii(x):
-    # in the paper this was g_I * (I^{(I)_n} - I^{(I)_{thr}}).
-    # Apply same distributing as above...
-    y = (ai*x-bi)
-    # if (y != 0):
-    return y/(1.-np.exp(-di*y))
-    # else:
-    #     return 0
-
-# transfer WholeBrain used by the simulation...
-He = phie
-Hi = phii
 
 # --------------------------------------------------------------------------
 # Simulation variables
@@ -108,26 +78,74 @@ def setParms(modelParms):
         SC = modelParms['SC']
 
 
-def getParm(parmList):
-    if 'we' in parmList or 'G' in parmList:  # I've made this mistake too many times...
+def getParm(parmName):
+    if 'we' in parmName or 'G' in parmName:  # I've made this mistake too many times...
         return we
-    if 'J' in parmList:
+    if 'J' in parmName:
         return J
-    if 'be' in parmList:
+    if 'be' in parmName:
         return be
-    if 'ae' in parmList:
+    if 'ae' in parmName:
         return ae
-    if 'SC' in parmList:
+    if 'SC' in parmName:
         return SC
     return None
 
 
-# ----------------- Dynamic Mean Field (a.k.a., reducedWongWang) ----------------------
+# -----------------------------------------------------------------------------
+# ----------------- Dynamic Mean Field (a.k.a., reducedWongWang) --------------
+# -----------------------------------------------------------------------------
+
+# ----------------- Coumpling ----------------------
+# @jit(nopython=True)
+# def instantaneousDirectCouplingOp(x):
+#     return SC @ x      # coupling = SC @ sn
+couplingOp = None
+
+
+# ----------------- Model ----------------------
+# transfer WholeBrain:
+# --------------------------------------------------------------------------
+# transfer function: excitatory
+ae = 310.  # [nC^{-1}], g_E in the paper
+be = 125.  # = g_E * I^{(E)_{thr}} in the paper = 310 * .403 [nA] = 124.93
+de=0.16
 @jit(nopython=True)
-def dfun(simVars, I_external):
+def phie(x):
+    # in the paper this was g_E * (I^{(E)_n} - I^{(E)_{thr}})
+    # Here, we distribute as g_E * I^{(E)_n} - g_E * I^{(E)_{thr}}, thus...
+    y = (ae*x-be)
+    # if (y != 0):
+    return y/(1.-np.exp(-de*y))
+    # else:
+    #     return 0
+
+
+# transfer function: inhibitory
+ai = 615.  # [nC^{-1}], g_I in the paper
+bi = 177.  # = g_I * I^{(I)_{thr}} in the paper = 615 * .288 [nA] = 177.12
+di=0.087
+@jit(nopython=True)
+def phii(x):
+    # in the paper this was g_I * (I^{(I)_n} - I^{(I)_{thr}}).
+    # Apply same distributing as above...
+    y = (ai*x-bi)
+    # if (y != 0):
+    return y/(1.-np.exp(-di*y))
+    # else:
+    #     return 0
+
+# transfer WholeBrain used by the simulation...
+He = phie
+Hi = phii
+
+
+@jit(nopython=True)
+def dfun(simVars, coupling, I_external):
     # global xn, rn
     sn = simVars[0]; sg = simVars[1]  # should be [sn, sg] = simVars
-    xn = I0 * Jexte + w * J_NMDA * sn + we * J_NMDA * (SC @ sn) - J * sg + I_external  # Eq for I^E (5). I_external = 0 => resting state condition.
+    coupl = coupling.couple(sn)
+    xn = I0 * Jexte + w * J_NMDA * sn + we * J_NMDA * coupl - J * sg + I_external  # Eq for I^E (5). I_external = 0 => resting state condition.
     xg = I0 * Jexti + J_NMDA * sn - sg  # Eq for I^I (6). \lambda = 0 => no long-range feedforward inhibition (FFI)
     rn = He(xn)  # Calls He(xn). r^E = H^E(I^E) in the paper (7)
     rg = Hi(xg)  # Calls Hi(xg). r^I = H^I(I^I) in the paper (8)

@@ -22,18 +22,6 @@ def plotParcellation(parcellationData, title=''):
     plt.show()
 
 
-def readReferenceRSN(filePath, roundCoords=True):
-    res = []
-    with open(filePath, newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            if roundCoords:
-                res.append((row['ROI Label'], row['ROI Name'], np.array([int(row['R']), int(row['A']), int(row['S'])])))
-            else:
-                res.append((row['ROI Label'], row['ROI Name'], np.array([float(row['R']), float(row['A']), float(row['S'])])))
-    return res
-
-
 def readDestinationParcellation(filePath):
     res = []
     with open(filePath) as f:
@@ -66,26 +54,31 @@ def assignRSNLabels(referenceSet, targetSet):
 
     return targetSetLabelled
 
+
+# Simple function to extract the RSN name from a description string in Yeo's format. For instance, from
+# '7Networks_LH_Default_Temp_8' we extract 'Default'. If an detailedRSNs llist is added, these will be
+# added to the output. If no detailes wanted, just pass []
+def extractRSNName(name, useLR, detailedRSNs):
+    rsnName = name.split('_')[2]
+    if rsnName in detailedRSNs:
+        subregionsTest = [sub in name.split('_')[3] for sub in detailedRSNs[rsnName]]  # check whether the subarea name is in the list
+        if any(subregionsTest):
+            rsnName += '_' + detailedRSNs[rsnName][subregionsTest.index(True)]
+        else:
+            if len(detailedRSNs[rsnName]) > 0:  # if we were given a list, but this particular area is missing...
+                rsnName += '_OTHER'
+            # If we weren't given a llist, nothing to do!
+    if useLR:
+        rsnName += '_' + name.split('_')[1]  # and clean them! (left/right separated)
+    return rsnName
+
+
 # detailedRSNs is a dictionary of {'RoI': subareas}, where
 # subareas is a list of all subarea names to be considered. If empty, the default RoI value
 # will be used. All nodes not in any of these subareas will be added to the 'OTHER' default area.
 def collectNamesRSN(rsn, useLR=True, detailedRSNs={}):
-    def generateName(name):
-        rsnName = name.split('_')[2]
-        if rsnName in detailedRSNs:
-            subregionsTest = [sub in name.split('_')[3] for sub in detailedRSNs[rsnName]]  # check whether the subarea name is in the list
-            if any(subregionsTest):
-                rsnName += '_' + detailedRSNs[rsnName][subregionsTest.index(True)]
-            else:
-                if len(detailedRSNs[rsnName]) > 0:  # if we were given a list, but this particular area is missing...
-                    rsnName += '_OTHER'
-                # If we weren't given a llist, nothing to do!
-        if useLR:
-            rsnName += '_' + name.split('_')[1]  # and clean them! (left/right separated)
-        return rsnName
-
     names = [(roi[1], int(roi[0])-1) for roi in rsn]  # extract names
-    cleanNames = [generateName(n[0]) for n in names]
+    cleanNames = [extractRSNName(n[0], useLR, detailedRSNs) for n in names]
     return cleanNames
 
 
@@ -103,6 +96,9 @@ def parcellationFormat(labelledTarget):
     return parc
 
 
+# ================================================================
+# Load and save parcellation data
+# ================================================================
 def saveParcellation2CSV(filename, parcellation):
     header = ["ROI Label", "ROI Name", "R", "A", "S"]
     with open(filename, 'w', encoding='UTF8', newline='') as f:
@@ -112,6 +108,18 @@ def saveParcellation2CSV(filename, parcellation):
         # write the data
         for r in parcellation:
             writer.writerow(r)
+
+
+def readReferenceRSN(filePath, roundCoords=True):
+    res = []
+    with open(filePath, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if roundCoords:
+                res.append((row['ROI Label'], row['ROI Name'], np.array([int(float(row['R'])), int(float(row['A'])), int(float(row['S']))])))
+            else:
+                res.append((row['ROI Label'], row['ROI Name'], np.array([float(row['R']), float(row['A']), float(row['S'])])))
+    return res
 
 
 def saveRSNIndices(idxs, outFile):

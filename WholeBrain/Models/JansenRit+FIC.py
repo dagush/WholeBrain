@@ -101,7 +101,8 @@ def dfun(simVars, p):  # p is the stimulus
     dy3 = A * a * sigm(y1-y2) - 2.0 * a * y3 - a**2 * y0
     # excitatory stellate cells
     dy1 = y4
-    dy4 = A * a * (p + we * C @ sigm(v) + a_2*C * sigm(a_1*C*y0)) - 2.0 * a * y4 - a**2 * y1
+    coupling = C @ sigm(v)
+    dy4 = A * a * (p + we * coupling + a_2*C * sigm(a_1*C*y0)) - 2.0 * a * y4 - a**2 * y1
     # inhibitory cells
     dy2 = y5
     dy5 = B * b * (J*a_4*C * sigm(a_3*C*y0)) - 2.0 * b * y5 - b**2 * y2

@@ -8,7 +8,7 @@
 import numpy as np
 from scipy.signal import butter, detrend, filtfilt
 from scipy.stats import zscore
-import Observables.BOLDFilters as BOLDFilters
+import WholeBrain.Observables.BOLDFilters as BOLDFilters
 
 
 def conv(u,v):  # python equivalent to matlab conv 'same' method

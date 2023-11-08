@@ -4,6 +4,7 @@
 # From:
 # Hierarchy of Information Processing in the Brain: A Novel ‘Intrinsic Ignition’ Framework,
 # Gustavo Deco and Morten L. Kringelbach, Neuron, Volume 94, Issue 5, 961 - 968
+# Doi: https://doi.org/10.1016/j.neuron.2017.03.028
 #
 # Adapted to python by Gustavo Patow
 # --------------------------------------------------------------------------------------
@@ -22,8 +23,10 @@ if __name__ == '__main__':
 
     # Load connectome:
     # --------------------------------
-    inFilePath = '../Data_Raw'
+    inFilePath = '../../Data_Raw'
     # outFilePath = '../Data_Produced'
     CFile = sio.loadmat(inFilePath + '/Human_66.mat')  # load Human_66.mat C
     C = CFile['C']
     # fileName = outFilePath + '/Human_66/Benji_Human66_{}.mat'  # integrationMode+'Benji_Human66_{}.mat'
+
+    # ... TODO: finish ignition/metastability!!!

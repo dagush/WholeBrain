@@ -5,7 +5,8 @@
 #  Taken from the code from:
 #  [DecoEtAl_2021] Gustavo Deco, Kevin Aquino, Aurina Arnatkeviciute, Stuart Oldham, Kristina Sabaroedin,
 #  Nigel Rogasch, Morten L. Kringelbach, and Alex Fornito, "Dynamical consequences of regional heterogeneity
-#  in the brain’s transcriptional landscape", 2021, biorXiv
+#  in the brain’s transcriptional landscape", Sci. Adv.7,eabf4752(2021).
+#  DOI:10.1126/sciadv.abf4752
 #
 #  Translated to Python & refactoring by Gustavo Patow
 # ==========================================================================
@@ -23,10 +24,15 @@ from numba import jit
 # Setup for ...-based DMF simulation!!!
 # import WholeBrain.Models.DynamicMeanField as neuronalModel
 import WholeBrain.Models.Transcriptional as neuronalModel
+import Models.Couplings as Couplings
 # ----------------------------------------------
-import Integrators.EulerMaruyama as integrator
+import Integrators.EulerMaruyama as scheme
+scheme.neuronalModel = neuronalModel
+import Integrators.Integrator as integrator
+integrator.integrationScheme = scheme
 integrator.neuronalModel = neuronalModel
 integrator.verbose = False
+# ----------------------------------------------
 import Utils.BOLD.BOLDHemModel_Stephan2007 as Stephan2007
 import Utils.simulate_SimAndBOLD as simulateBOLD
 simulateBOLD.integrator = integrator
@@ -34,16 +40,25 @@ simulateBOLD.BOLDModel = Stephan2007
 # import WholeBrain.simulateFCD as simulateFCD
 # simulateFCD.integrator = integrator
 # simulateFCD.BOLDModel = Stephan2007
-
+# --------------------------------------------------------------------------
+# Import and setup FIC
 import Utils.FIC.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
+import Utils.FIC.Balance_DecoEtAl2014 as Deco2014Mechanism
+BalanceFIC.balancingMechanism = Deco2014Mechanism  # default behaviour for this project
 
-# set BOLD filter settings
+# --------------------------------------------------------------------------
+# Setup filters and import observables
+# ----- set BOLD filter settings
 import Observables.BOLDFilters as filters
 filters.k = 2       # 2nd order butterworth filter
 filters.flp = .008  # lowpass frequency of filter
 filters.fhi = .08   # highpass
 filters.TR = 0.754  # sampling interval
+# ----- Import observables
+import Observables.FC as FC
+import Observables.swFCD as swFCD
+import Observables.GBC as GBC
 # --------------------------------------------------------------------------
 #  End modules setup...
 # --------------------------------------------------------------------------
@@ -78,8 +93,8 @@ def transformEmpiricalSubjects(tc_aal, tcrange, NumSubjects):
 # ==================================================================================
 # ==================================================================================
 initRandom()
-baseInPath = '../Data_Raw/DecoEtAl2020'
-baseOutPath = '../Data_Produced/DecoEtAl2020'
+baseInPath = '../../Data_Raw/DecoEtAl2020'
+baseOutPath = '../../Data_Produced/DecoEtAl2020'
 
 
 N = 68
@@ -99,7 +114,7 @@ DKGenes = sio.loadmat(baseInPath+'/DKcortex_selectedGenes.mat')
 expMeasures = DKGenes['expMeasures']
 print(f'raw expMeasures from DKGenes shape is {expMeasures.shape}')
 
-coefe = np.sum(expMeasures[:,17:25],1) # / np.sum(expMeasures[:,1:6],1)  # ampa+nmda/gaba
+coefe = np.sum(expMeasures[:,17:25],1)  # / np.sum(expMeasures[:,1:6],1)  # ampa+nmda/gaba
 ratioE = np.zeros(N)
 ratioI = np.zeros(N)
 ratioE[0:34] = coefe/(np.max(coefe))
@@ -126,11 +141,11 @@ C = GrCV[:, tcrange][tcrange, ]
 C = C/np.max(C)*0.2
 print(f'C shape is {C.shape}')
 neuronalModel.setParms({'SC': C})  # Set the neuronal model with the SC
+neuronalModel.couplingOp = Couplings.instantaneousDirectCoupling(C)
 
 print('loading DKatlas_noGSR_timeseries.mat')
 ts = sio.loadmat(baseInPath+'/DKatlas_noGSR_timeseries.mat')['ts']
 print(f'ts shape is {ts.shape}')
-
 # ====================== By default, we set up the parameters for the DEFAULT mode:
 tc_transf = transformEmpiricalSubjects(ts, tcrange, NSUB)
 print(f'tc_transf shape is {tc_transf[0].shape} for {NSUB} subjects')

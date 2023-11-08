@@ -66,7 +66,7 @@ def plot(u, x, time, nt, nx, tmax, xmax):
     colour = iter(cm.rainbow(np.linspace(0, nt/factor, nt)))
     for t in range(0, nt, int(nt/factor)):
         c = next(colour)
-        ax.plot(x, u[t, :], c=c, label=f'{np.int(t/nt*tmax)}')
+        ax.plot(x, u[t, :], c=c, label=f'{int(t/nt*tmax)}')
         ax.set_xlabel('Relative distance')
         ax.set_ylabel('Tau')
         # ax.set_ylim([0, 1.2])

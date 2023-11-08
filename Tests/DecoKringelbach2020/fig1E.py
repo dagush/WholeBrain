@@ -29,27 +29,28 @@ import numpy as np
 import nibabel as nib
 from matplotlib import cm
 import matplotlib.pyplot as plt
-import WholeBrain.Utils.plot3DBrain as plot
+import WholeBrain.Utils.plot3DBrain_Utils as plot
 
-base_folder = "../Data_Raw"
+base_folder = "../../Data_Raw/"
+parcellationsBaseFoler = base_folder + 'Parcellations/'
 
 
 # ====================================================
 # =============== Load the geometry ==================
-glassers_L = nib.load(base_folder + '/Glasser360/' + 'Glasser360.L.mid.32k_fs_LR.surf.gii')
-# glassers_L = nib.load(base_folder + '/Glasser360/' + 'Glasser360.L.inflated.32k_fs_LR.surf.gii')
-# glassers_L = nib.load(base_folder + '/Glasser360/' + 'Glasser360.L.very_inflated.32k_fs_LR.surf.gii')
+glassers_L = nib.load(parcellationsBaseFoler + 'Glasser360/' + 'Glasser360.L.mid.32k_fs_LR.surf.gii')
+# glassers_L = nib.load(parcellationsBaseFoler + 'Glasser360/' + 'Glasser360.L.inflated.32k_fs_LR.surf.gii')
+# glassers_L = nib.load(parcellationsBaseFoler + 'Glasser360/' + 'Glasser360.L.very_inflated.32k_fs_LR.surf.gii')
 
-glassers_R = nib.load(base_folder + '/Glasser360/' + 'Glasser360.R.mid.32k_fs_LR.surf.gii')
-# glassers_R = nib.load(base_folder + '/Glasser360/' + 'Glasser360.R.inflated.32k_fs_LR.surf.gii')
-# glassers_R = nib.load(base_folder + '/Glasser360/' + 'Glasser360.R.very_inflated.32k_fs_LR.surf.gii')
+glassers_R = nib.load(parcellationsBaseFoler + 'Glasser360/' + 'Glasser360.R.mid.32k_fs_LR.surf.gii')
+# glassers_R = nib.load(parcellationsBaseFoler + 'Glasser360/' + 'Glasser360.R.inflated.32k_fs_LR.surf.gii')
+# glassers_R = nib.load(parcellationsBaseFoler + 'Glasser360/' + 'Glasser360.R.very_inflated.32k_fs_LR.surf.gii')
 
-flat_L = nib.load(base_folder + '/Glasser360/' + 'Glasser360.L.flat.32k_fs_LR.surf.gii')
-flat_R = nib.load(base_folder + '/Glasser360/' + 'Glasser360.R.flat.32k_fs_LR.surf.gii')
+flat_L = nib.load(parcellationsBaseFoler + 'Glasser360/' + 'Glasser360.L.flat.32k_fs_LR.surf.gii')
+flat_R = nib.load(parcellationsBaseFoler + 'Glasser360/' + 'Glasser360.R.flat.32k_fs_LR.surf.gii')
 
 # =============== Load the information to display =====
-atlas_l = nib.load(base_folder + '/DecoKringelbach2020/Schaefer1000_L.func.gii').agg_data()
-atlas_r = nib.load(base_folder + '/DecoKringelbach2020/Schaefer1000_R.func.gii').agg_data()
+atlas_l = nib.load(base_folder + 'DecoKringelbach2020/Schaefer1000_L.func.gii').agg_data()
+atlas_r = nib.load(base_folder + 'DecoKringelbach2020/Schaefer1000_R.func.gii').agg_data()
 
 
 # =============== Plot!!! =============================
@@ -59,7 +60,7 @@ rightColors = cm.brg
 cortex = {'model_L': glassers_L, 'model_R':glassers_R,
           'flat_L': flat_L, 'flat_R': flat_R}
 data = {'func_L': atlas_l, 'func_R': atlas_r}
-plot.multiview6(cortex, data, leftColors, rightColors, shaded=False)  # shadowed=True)
+plot.multiview6(cortex, data, leftColors, rightColors)  # shadowed=True)
 
 # ====================================================
 # ====================================================

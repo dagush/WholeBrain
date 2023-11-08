@@ -23,9 +23,14 @@ from numba import jit
 # Setup for Serotonin 2A-based DMF simulation!!!
 # This is a wrapper for the DMF (calls it internally, but before switches the
 # two gain functions phie and phii for the right ones...
+import WholeBrain.Models.DynamicMeanField as DMF
 import WholeBrain.Models.serotonin2A as serotonin2A
+import WholeBrain.Models.Couplings as Couplings
 # ----------------------------------------------
-import Integrators.EulerMaruyama as integrator
+import Integrators.EulerMaruyama as scheme
+scheme.neuronalModel = serotonin2A
+import Integrators.Integrator as integrator
+integrator.integrationScheme = scheme
 integrator.neuronalModel = serotonin2A
 integrator.verbose = False
 import Utils.BOLD.BOLDHemModel_Stephan2007 as Stephan2007
@@ -40,9 +45,12 @@ optim1D.simulateBOLD = simulateBOLD
 optim1D.integrator = integrator
 
 # --------------------------------------------------------------------------
-# FIC mechanism
+# chose a FIC mechanism
 import Utils.FIC.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
+import Utils.FIC.Balance_DecoEtAl2014 as Deco2014Mechanism
+BalanceFIC.balancingMechanism = Deco2014Mechanism  # default behaviour for this project
+
 
 # --------------------------------------------------------------------------
 # Filters and Observables
@@ -120,6 +128,7 @@ print(f"Loading {inFilePath}/all_SC_FC_TC_76_90_116.mat")
 sc90 = sio.loadmat(inFilePath+'/all_SC_FC_TC_76_90_116.mat')['sc90']
 C = sc90/np.max(sc90[:])*0.2  # Normalization...
 serotonin2A.setParms({'SC': C})  # Set the model with the SC
+serotonin2A.couplingOp = Couplings.instantaneousDirectCoupling(C)
 
 # Load Regional Drug Receptor Map
 print(f'Loading {inFilePath}/mean5HT2A_bindingaal.mat')

@@ -4,11 +4,9 @@
 #
 #  From the original code:
 # --------------------------------------------------------------------------
-#  Computes simulations with the Dynamic Mean Field Model (DMF) using
-#  Feedback Inhibitory Control (FIC) and Regional Drug Receptor Modulation (RDRM):
+#  Computes empirical histograms from the placebo/LCD fMRIs
 #
-#  - the optimal coupling (we=2.1) for fitting the placebo condition
-#  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
+#  This code can be run without other previous file.
 #
 #  Taken from the code (FCD_LSD_empirical.m) from:
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
@@ -43,8 +41,9 @@ Subjects = 15
 Conditions = [1, 4]  # 1=LSD rest, 4=PLACEBO rest -> The original code used [2, 5] because arrays in Matlab start with 1...
 
 #load fMRI data
-print("Loading Data_Raw/LSDnew.mat")
-LSDnew = sio.loadmat(inFilePath+'/LSDnew.mat')  #load LSDnew.mat tc_aal
+fMRIFile = inFilePath + '/LSDnew.mat'
+print(f"Loading {fMRIFile}")
+LSDnew = sio.loadmat(fMRIFile)  #load LSDnew.mat tc_aal
 tc_aal = LSDnew['tc_aal']
 (N, Tmax) = tc_aal[1,1].shape  # [N, Tmax]=size(tc_aal{1,1}) # N = number of areas; Tmax = total time
 
@@ -64,8 +63,9 @@ for task in range(len(Conditions)):
 
 # Save & Plot
 # ----------------------------------------------------
-print("Saving Data_Raw/FCD_values_Empirical.mat")
-sio.savemat(inFilePath + '/FCD_values_Empirical.mat', {'cotsampling': cotsampling})  # Save all project variables!
+fileName = outFilePath + '/FCD_values_Empirical.mat'
+print(f"Saving {fileName}")
+sio.savemat(fileName, {'cotsampling': cotsampling})  # Save all project variables!
 
 cots = cotsampling[0, :]
 cotsf = cots.T.flatten()

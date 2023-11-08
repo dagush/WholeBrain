@@ -5,14 +5,15 @@
 #  From the original code:
 # --------------------------------------------------------------------------
 #   
-#  Computes simulations with the Dynamic Mean Field Model (DMF) using 
+#  Computes SIMULATIONS of Placebo and LSD with the Dynamic Mean Field Model (DMF) using
 #  Feedback Inhibitory Control (FIC) and Regional Drug Receptor Modulation (RDRM):
-#
 #  - the optimal coupling (we=2.1) for fitting the placebo condition 
 #  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
 #
-#  Taken from the code (Code_Figure3.m) from:
+#  Before this, needs the results computed in
+#   - pipeline_fgain_PlaceboLSD.py to get the we=2.1 value...
 #
+#  Taken from the code (Code_Figure3.m) from:
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #       Logothetis,N.K. & Kringelbach,M.L. (2018) Current Biology
@@ -75,6 +76,7 @@ if not Path(pla_path).is_file():
     serotonin2A.setParms({'S_E':0., 'S_I':0.})
     recompileSignatures()
 
+    # ------------- Simulate!
     start_time = time.clock()
     cotsampling_pla_s = simulateFCD.simulate(NumSubjects, C)
     print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))
@@ -93,9 +95,10 @@ if True: #not Path(lsd_path).is_file():
     # SIMULATION OF OPTIMAL LSD fit
     print("\n\nSIMULATION OF OPTIMAL LSD fit ")
     # sets the wgaine and wgaini, but using the standard protocol... S_E = 0 for placebo, 0.2 for LSD
-    serotonin2A.setParms({'S_E':0.2, 'S_I':0.})
+    serotonin2A.setParms({'S_E': 0.2, 'S_I': 0.})
     recompileSignatures()
 
+    # ------------- Simulate!
     # start_time = time.clock()
     cotsampling_lsd_s = simulateFCD.simulate(NumSubjects)
     # print("\n\n--- TOTAL TIME: {} seconds ---\n\n".format(time.clock() - start_time))

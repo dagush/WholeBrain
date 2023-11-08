@@ -40,7 +40,7 @@ def plotMatrixAsFancyGraph(M, fig, ax):
                        Line2D([0], [0], marker='o', color='black', label='Brainstem', linewidth=0, markersize=15)]
 
     # Now, plot it!!!
-    G = nx.from_numpy_matrix(M)
+    G = nx.from_numpy_array(M)
     isolates = list(nx.isolates(G))
     G.remove_nodes_from(isolates)
     print(f"resulting edges => {G.number_of_edges()}")
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     # Load the Avg SC matrix
     # ------------------------------------------------
     # load SC
-    sc_folder = "../Data_Raw/surrogate_AD"
+    sc_folder = "../../Data_Raw/surrogate_AD"
     SCnorm = np.loadtxt(sc_folder+"/avg_healthy_normSC_mod_379.txt")
     print("# of elements in AVG connectome: {}".format(SCnorm.shape))
 

@@ -1,7 +1,8 @@
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================
-#                       Figure 4 from [DF_2003]
+# Figure 4 from [DF_2003]
+#
 # [DF_2003] Olivier David, Karl J. Friston, “A neural mass model for MEG/EEG:: coupling and neuronal dynamics”, NeuroImage,
 #           Volume 20, Issue 3, 2003, Pages 1743-1755, ISSN 1053-8119, https://doi.org/10.1016/j.neuroimage.2003.07.015.
 #
@@ -21,13 +22,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import WholeBrain.Models.JansenRit as JR
-import Integrators.Euler as integrator
+import Integrators.Euler as scheme
+scheme.neuronalModel = JR
+scheme.clamping = False
+import Integrators.Integrator as integrate
+integrate.integrationScheme = scheme
+integrate.neuronalModel = JR
+integrate.verbose = False
+
+
 import WholeBrain.Utils.fft as fft
 
 np.random.seed(7)
 
-integrator.neuronalModel = JR
-integrator.clamping = False
 
 import WholeBrain.Utils.visualization as viz
 import bisect
@@ -37,25 +44,25 @@ import WholeBrain.Stimuli.randomStdNormal as stimuli
 stimuli.onset = 0.
 stimuli.mu = 220.
 stimuli.sigma = 22.
-integrator.stimuli = stimuli
+integrate.stimuli = stimuli
 
 
 def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     # print("\n\nRecompiling signatures!!!")
-    integrator.recompileSignatures()
-    JR.recompileSignatures()
+    integrate.recompileSignatures()
 
 
 # Integration parms...
 dt = 5e-5
 tmax = 10.
-integrator.ds = 1e-4
+integrate.ds = 1e-4
 Tmaxneuronal = int((tmax+dt))
 N = 1
 Conn = np.zeros((N,N))
 JR.setParms({'SC': Conn})
+JR.couplingOp = JR.instantaneousSigmoidalCoupling(Conn)
 
 
 # Take the original values, so we can keep the ratio invariant later on...
@@ -64,34 +71,20 @@ H_i_orig = 22           # JR.B [mV]
 tau_e_orig = 10e-3      # 1./JR.a [s]
 tau_i_orig = 20e-3      # 1./JR.b [s]
 
-# ---------------------------------------------------------------
-# ---------------------------------------------------------------
-# # Some quick debug code...
-# ---------------------------------------------------------------
-# tau_e = 60e-3
-# tau_i = 60e-3
-# JR.A = H_e_orig*tau_e_orig/tau_e #H_e_orig / tau_e_orig * tau_e # 3.25e-3*10e-3/tau_e
-# JR.B = H_i_orig*tau_i_orig/tau_i #H_i_orig / tau_i_orig * tau_i # -22e-3*20e-3/tau_i
-# JR.a = 1./tau_e
-# JR.b = 1./tau_i
-# JR.initBookkeeping(N, tmax)
-# integrator.simulate(dt, Tmaxneuronal, Conn)
-# v = JR.returnBookkeeping()
-# plt.plot(v[10000:20000])
-# plt.show()
-# print("Single freq done...")
-# ---------------------------------------------------------------
-# ---------------------------------------------------------------
 
+# ---------------------------------------------------------------
+# ---------------------------------------------------------------
 # compute the ranges we are going to use for tau_e and tau_i
-tau_es = np.arange(1e-3, 63e-3, 5e-3)         # excitatory synaptic timescales
-tau_is = np.arange(1e-3, 63e-3, 5e-3)         # inhibitory synaptic timescales
+# tau_es = np.arange(1e-3, 63e-3, 5e-3)  # excitatory synaptic timescales
+# tau_is = np.arange(1e-3, 63e-3, 5e-3)  # inhibitory synaptic timescales
+tau_es = np.arange(1e-3, 63e-3, 5e-3)  # excitatory synaptic timescales
+tau_is = np.arange(1e-3, 63e-3, 5e-3)  # inhibitory synaptic timescales
 max_freq = np.zeros((len(tau_is), len(tau_es)))
 freq_pow = np.zeros_like(max_freq)
 # calculate PSDs
 for idx_c, tau_e in enumerate(tau_es):
     for idx_r, tau_i in enumerate(tau_is):
-        print("Computing ({},{}) at ({},{})...".format(tau_e, tau_i, idx_c, idx_r), end='')
+        print(f"Computing ({tau_e},{tau_i}) at ({idx_c},{idx_r})...")
 
         # Simulate for a given combination of tau_e and tau_i
         # This uses the definition by [SpieglerEtAl2013] & [PyRates], which are "similar" to the one used in [DF_2003]
@@ -99,16 +92,16 @@ for idx_c, tau_e in enumerate(tau_es):
                      'B': H_i_orig*tau_i_orig/tau_i,
                      'a': 1./tau_e,
                      'b': 1./tau_i})
-        integrator.initBookkeeping(N, tmax)
+        integrate.initBookkeeping(N, tmax)
         recompileSignatures()
-        v = integrator.simulate(dt, Tmaxneuronal)
+        v = integrate.simulate(dt, Tmaxneuronal)
 
-        lowCut = int(1./integrator.ds)  # Ignore the first steps for warm-up...
-        freqs, power = fft.fft(v[lowCut:]/1e3, integrator.ds)  # we make use of linearity of the fft to avoid too high values...
+        lowCut = int(1./integrate.ds)  # Ignore the first steps for warm-up...
+        freqs, power = fft.fft(v[lowCut:]/1e3, integrate.ds)  # we make use of linearity of the fft to avoid too high values...
         p = np.max(power)
         f = freqs[np.argmax(power)]
         if p < 140.:
-            max_freq[idx_r, idx_c] = bisect.bisect_left([4., 8., 12., 30.], f) + 1
+            max_freq[idx_r, idx_c] = np.searchsorted([4., 8., 12., 30.], f) + 1  # bisect.bisect_left
         else:
             max_freq[idx_r, idx_c] = 0.
         freq_pow[idx_r, idx_c] = p

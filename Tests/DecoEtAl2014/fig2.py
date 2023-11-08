@@ -3,8 +3,10 @@
 # This prog. plots the max frec for varying global couplings (G)
 #
 # see:
-# [D*2014]  Deco et al. (2014) J Neurosci.
-#           http://www.jneurosci.org/content/34/23/7886.long
+# [D*2014] How Local Excitation–Inhibition Ratio Impacts the Whole Brain Dynamics
+#          Gustavo Deco, Adrián Ponce-Alvarez, Patric Hagmann, Gian Luca Romani, Dante Mantini and Maurizio Corbetta
+#          Journal of Neuroscience 4 June 2014, 34 (23) 7886-7898;
+#          DOI: https://doi.org/10.1523/JNEUROSCI.5068-13.2014
 #
 # By Gustavo Patow
 # ================================================================================================================
@@ -16,13 +18,19 @@ import matplotlib.pyplot as plt
 
 # ============== chose a model
 import Models.DynamicMeanField as DMF
+import Models.Couplings as Couplings
 # ============== chose and setup an integrator
-import Integrators.EulerMaruyama as integrator
+import Integrators.EulerMaruyama as scheme
+scheme.neuronalModel = DMF
+import Integrators.Integrator as integrator
+integrator.integrationScheme = scheme
 integrator.neuronalModel = DMF
 integrator.verbose = False
 # ============== chose a FIC mechanism
 import Utils.FIC.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
+import Utils.FIC.Balance_DecoEtAl2014 as Deco2014Mechanism
+BalanceFIC.balancingMechanism = Deco2014Mechanism  # default behaviour for this project
 
 np.random.seed(42)  # Fix the seed for debug purposes...
 
@@ -34,12 +42,13 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
     tmax = 10000.
     Tmaxneuronal = int((tmax+dt))
     # all tested global couplings (G in the paper):
-    wes = np.arange(wStart + wStep, wEnd, wStep)  # warning: the range of wes depends on the conectome.
+    wes = np.arange(wStart, wEnd, wStep)  # warning: the range of wes depends on the conectome.
     # wes = np.arange(2.0, 2.11, 0.1)  # only for debug purposes...
     # numW = wes.size  # length(wes);
     N = C.shape[0]
 
     DMF.setParms({'SC': C})
+    DMF.couplingOp = Couplings.instantaneousDirectCoupling(C)
 
     print("======================================")
     print("=    simulating E-E (no FIC)         =")

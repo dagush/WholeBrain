@@ -32,6 +32,8 @@
 # ==========================================================================
 import numpy as np
 from numba import jit
+from numba import int32, double   # import the types
+from numba.experimental import jitclass
 
 print("Going to use the supercritical Hopf bifurcation neuronal model...")
 
@@ -98,16 +100,32 @@ def getParm(parmList):
     return None
 
 
+# -----------------------------------------------------------------------------
 # ----------------- supercritical Hopf bifurcation model ----------------------
+# -----------------------------------------------------------------------------
+
+# ----------------- Coupling ----------------------
+@jitclass([('SC', double[:, :])])
+class instantaneousDifferenceCoupling:
+    def __init__(self, SC):
+        self.SC = SC
+
+    def couple(self, x):
+        return np.dot(SCT, x) - ink * x
+
+coupling = None
+
+
+# ----------------- Model ----------------------
 @jit(nopython=True)
-def dfun(simVars, p):  # p is the stimulus...?
+def dfun(simVars, coupling, stimulus):  # p is the stimulus...?
     x = simVars[0]; y = simVars[1]
-    pC = p + 0j
+    pC = stimulus + 0j
     # --------------------- From Gus' original code:
     # First, we need to compute the term (in pseudo-LaTeX notation):
-    #               G sum_i SC_ij (x_i - x_j) =
-    #               G (Sum_i sC_ij x_i + Sum_i SC_ij xj) =
-    #               G ((Sum_i SC_ij x_i) + (Sum_i SC_ij) xj)   <- adding some unnecessary parenthesis.
+    #               G Sum_i SC_ij (x_i - x_j) =
+    #               G (Sum_i SC_ij x_i + Sum_i SC_ij x_j) =
+    #               G ((Sum_i SC_ij x_i) + (Sum_i SC_ij) x_j)   <- adding some unnecessary parenthesis.
     # This is implemented as:
     # suma = wC*z - sumC.*z                 # this is sum(Cij*xi) - sum(Cij)*xj, all multiplied by G
     #      = G * SC * z - sum(G*SC,2) * z   # Careful, component 2 in Matlab is component 1 in Python...
@@ -122,8 +140,8 @@ def dfun(simVars, p):  # p is the stimulus...?
     #    =  x *(+omega)    y          y * y     x * x               #        y   y                     (y)
     # ---------------------
     # Calculate the input to nodes due to couplings
-    xcoup = np.dot(SCT,x) - ink * x  # sum(Cij*xi) - sum(Cij)*xj
-    ycoup = np.dot(SCT,y) - ink * y  #
+    xcoup = coupling.couple(x)  # np.dot(SCT,x) - ink * x  # this is sum(Cij*xi) - sum(Cij)*xj
+    ycoup = coupling.couple(y)  # np.dot(SCT,y) - ink * y  #
     # Integration step
     dx = (a - x**2 - y**2) * x - omega * y + G * xcoup + pC.real
     dy = (a - x**2 - y**2) * y + omega * x + G * ycoup + pC.imag

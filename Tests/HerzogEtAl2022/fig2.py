@@ -29,8 +29,12 @@ import matplotlib.pyplot as plt
 
 # ============== chose a model
 import Models.DynamicMeanField as DMF
+import Models.Couplings as Couplings
 # ============== chose and setup an integrator
-import Integrators.EulerMaruyama as integrator
+import Integrators.EulerMaruyama as scheme
+scheme.neuronalModel = DMF
+import Integrators.Integrator as integrator
+integrator.integrationScheme = scheme
 integrator.neuronalModel = DMF
 integrator.verbose = False
 # ============== chose a FIC mechanism
@@ -124,6 +128,7 @@ def plotMaxFreq(ax, wes, label, shuffle=False, averaging=False, fileName=None):
 
 def plotMaxFrecForAllWe(ax, C, wes):
     DMF.setParms({'SC': C})
+    DMF.couplingOp = Couplings.instantaneousDirectCoupling(C)
     N = C.shape[0]
     # DMF.lambda = 0.  # make sure no long-range feedforward inhibition (FFI) is computed
 

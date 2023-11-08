@@ -9,7 +9,8 @@
 #  Taken from the code (slurm.sbatch_genes_balanced_G_optimization.m) from:
 #  [DecoEtAl_2021] Gustavo Deco, Kevin Aquino, Aurina Arnatkeviciute, Stuart Oldham, Kristina Sabaroedin,
 #  Nigel Rogasch, Morten L. Kringelbach, and Alex Fornito, "Dynamical consequences of regional heterogeneity
-#  in the brain’s transcriptional landscape", 2021, biorXiv
+#  in the brain’s transcriptional landscape", Sci. Adv.7,eabf4752(2021).
+#  DOI:10.1126/sciadv.abf4752
 #
 #  Translated to Python & refactoring by Gustavo Patow
 # ==========================================================================
@@ -29,6 +30,8 @@ parmSweep.integrator = integrator
 
 
 def prepro():
+    # baseGOptimNames = baseOutPath+"/fitting_we{}.mat"
+
     # Make the neuronal model to work as the DMF model
     neuronalModel.alpha = 0.
     neuronalModel.beta = 0.
@@ -37,15 +40,15 @@ def prepro():
     swFCD.windowSize = 80
     swFCD.windowStep = 18
 
-    J_fileNames = baseOutPath+"/J_Balance_we{}.mat"
-    # baseGOptimNames = baseOutPath+"/fitting_we{}.mat"
-
     step = 0.001
     # WEs = np.arange(0, 3.+step, step)  # Range used in the original code
     WEs = np.arange(0, 3.+step, 0.05)  # reduced range for DEBUG only!!!
 
     # Model Simulations
     # ------------------------------------------
+    # ------------------------------------------
+    # FIC
+    J_fileNames = baseOutPath+"/J_Balance_we{}.mat"
     BalanceFIC.verbose = True
     balancedParms = BalanceFIC.Balance_AllJ9(C, WEs, baseName=J_fileNames)
     modelParms = [balancedParms[i] for i in balancedParms]

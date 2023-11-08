@@ -7,8 +7,11 @@
 #  Taken from the code (read_G.m) from:
 #  [DecoEtAl_2021] Gustavo Deco, Kevin Aquino, Aurina Arnatkeviciute, Stuart Oldham, Kristina Sabaroedin,
 #  Nigel Rogasch, Morten L. Kringelbach, and Alex Fornito, "Dynamical consequences of regional heterogeneity
-#  in the brain’s transcriptional landscape", 2020, biorXiv
-#  https://doi.org/10.1101/2020.10.28.359943
+#  in the brain’s transcriptional landscape", Sci. Adv.7,eabf4752(2021).
+#  DOI:10.1126/sciadv.abf4752
+#
+#  Before this, needs the results computed in
+#   - prepro_G_Optim.py
 #
 #  Code by Gustavo Deco and Kevin Aquino
 #  Translated to Python & refactoring by Gustavo Patow

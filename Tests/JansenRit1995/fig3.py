@@ -11,10 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import WholeBrain.Models.JansenRit as JR
-import Integrators.Euler as integrator
-
+import Integrators.Euler as scheme
+scheme.neuronalModel = JR
+scheme.clamping = False
+import Integrators.Integrator as integrator
+integrator.integrationScheme = scheme
 integrator.neuronalModel = JR
-integrator.clamping = False
 
 # In the original [JR_1995] paper, the random white noise input p(t) had an amplitude
 # varying between 120 and 320 pulses per second.
@@ -30,7 +32,6 @@ def recompileSignatures():
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     # print("\n\nRecompiling signatures!!!")
     integrator.recompileSignatures()
-    JR.recompileSignatures()
 
 
 # Integration parms...
@@ -39,8 +40,9 @@ tmax = 3.
 integrator.ds = 1e-3
 Tmaxneuronal = int((tmax+dt))
 N = 1
-Conn = np.zeros((N,N))
-JR.setParms({'SC':Conn})
+Conn = np.zeros((N,N), dtype=np.double)
+JR.setParms({'SC': Conn})
+JR.couplingOp = JR.instantaneousSigmoidalCoupling(Conn)
 
 
 plt.rcParams.update({'font.size': 16})

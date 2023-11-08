@@ -209,7 +209,7 @@ def padEqualLengthDicts(tests):
     return fixed
 
 
-def plotComparisonAcrossLabelsAx(ax, tests, columnLables=None, graphLabel='', pairs=None):
+def plotComparisonAcrossLabels2Ax(ax, tests, columnLables=None, graphLabel='', pairs=None):
     printAveragesAndStd(tests)
     if columnLables is None:
         columnLables = tests.keys()
@@ -229,7 +229,7 @@ def plotComparisonAcrossLabelsAx(ax, tests, columnLables=None, graphLabel='', pa
 
 def plotComparisonAcrossLabels2(tests, columnLables=None, graphLabel='', pairs=None):
     fig, ax = plt.subplots()
-    plotComparisonAcrossLabelsAx(ax, tests, columnLables=columnLables, graphLabel=graphLabel, pairs=pairs)
+    plotComparisonAcrossLabels2Ax(ax, tests, columnLables=columnLables, graphLabel=graphLabel, pairs=pairs)
     plt.show()
 
 

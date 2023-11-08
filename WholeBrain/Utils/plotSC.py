@@ -97,7 +97,7 @@ def plotSCMatrixAsFancyGraph(M):
                        Line2D([0], [0], marker='o', color='black', label='Brainstem', linewidth=0, markersize=15)]
 
     # Now, plot it!!!
-    G = nx.from_numpy_matrix(M)
+    G = nx.from_numpy_array(M)
     isolates = list(nx.isolates(G))
     G.remove_nodes_from(isolates)
     print(f"resulting edges => {G.number_of_edges()}")

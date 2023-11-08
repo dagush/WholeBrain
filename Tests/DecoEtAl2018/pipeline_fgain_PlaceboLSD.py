@@ -6,8 +6,10 @@
 # --------------------------------------------------------------------------
 #  OPTIMIZATION GAIN
 #
-#  Taken from the code (fgain_Placebo.m and fgain_LCD.m) from:
+#  Before this, needs the result computed in
+#   - prepro_fgain_Neuro.py (i.e., G = we = 2.1)
 #
+#  Taken from the code (fgain_Placebo.m and fgain_LCD.m) from:
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L.
 #       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
 #       (2018) Current Biology
@@ -45,7 +47,7 @@ def fitting_ModelParms(tc_transf, suffix):
 
     # serotonin2A.wgaine = 0.
     # serotonin2A.wgaini = 0.
-    serotonin2A.setParms({'S_E':0., 'S_I':0.})
+    serotonin2A.setParms({'S_E': 0., 'S_I': 0.})
 
     distanceSettings = {'swFCD': (swFCD, True)}  #'phFCD': (phFCD, True)}, 'FC': (FC, False)
 

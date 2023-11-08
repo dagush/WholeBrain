@@ -35,6 +35,7 @@ def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     phie.recompile(); phii.recompile()
+    DMF.dfun.recompile()
 
 
 # Regional Drug Receptor Modulation (RDRM) constants for their transfer WholeBrain:
@@ -117,9 +118,11 @@ def getParm(parmList):
 
 
 # ----------------- Call the Dynamic Mean Field (a.k.a., reducedWongWang) ----------------------
+couplingOp = None
+
 @jit(nopython=True)
-def dfun(simVars, I_external):
-    return DMF.dfun(simVars, I_external)
+def dfun(simVars, coupling, I_external):
+    return DMF.dfun(simVars, coupling, I_external)
 
 
 DMF.He = phie

@@ -100,9 +100,11 @@ def getParm(parmList):
 
 
 # ----------------- Call the Dynamic Mean Field (a.k.a., reducedWongWang) ----------------------
+couplingOp = None
+
 @jit(nopython=True)
-def dfun(simVars, I_external):
-    return DMF.dfun(simVars, I_external)
+def dfun(simVars, coupling, I_external):
+    return DMF.dfun(simVars, coupling, I_external)
 
 
 DMF.He = phie_gain

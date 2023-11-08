@@ -44,7 +44,12 @@
 # ==========================================================================
 # ==========================================================================
 import numpy as np
+import numba as nb
+from numba import int32, double    # import the types
+from numba.experimental import jitclass
+from numba.typed import List
 from numba import jit
+
 
 print("Going to use the Jansen-Rit neuronal model...")
 
@@ -55,6 +60,7 @@ def recompileSignatures():
     # initSim.recompile()
     sigm.recompile()
     dfun.recompile()
+    # coupling.recompile()
     pass
 
 
@@ -81,6 +87,7 @@ a_4 = 0.25      # C4 = a_4 * C. Average probability of synaptic contacts in the 
 we = 2.1
 SC = None       # Structural connectivity (should be provided externally)
 
+
 # --------------------------------------------------------------------------
 # Simulation variables
 # @jit(nopython=True)
@@ -106,11 +113,13 @@ def numObsVars():
 # --------------------------------------------------------------------------
 # Set the parameters for this model
 def setParms(modelParms):
-    global we, C, SC, A, B, a, b, ds
+    global we, C, A, B, a, b, ds, SC
     if 'we' in modelParms:
         we = modelParms['we']
     if 'SC' in modelParms:
         SC = modelParms['SC']
+        # global coupling
+        # coupling = instantaneousSigmoidalCoupling(SC)
     if 'C' in modelParms:
         C = modelParms['C']
     if 'A' in modelParms:
@@ -133,20 +142,42 @@ def getParm(parmList):
     return None
 
 
-# ----------------- Jansen and Rit model ----------------------
+# -----------------------------------------------------------------------------
+# ----------------- Jansen and Rit model --------------------------------------
+# -----------------------------------------------------------------------------
+
+# ----------------- Coupling ----------------------
 @jit(nopython=True)
 def sigm(y):
     return 2.0 * e_0 / (1.0 + np.exp(r * (v0 - y)))
 
+
+# @jit(nopython=True)
+# def instantaneousSigmoidalCoupling(x):
+#     return SC @ sigm(x)      # coupling = SC @ sigm(v)
+
+@jitclass([('SC', double[:, :])])
+class instantaneousSigmoidalCoupling:
+    def __init__(self, data):
+        self.SC = data
+
+    def couple(self, x):
+        return SC @ sigm(x)
+
+
+couplingOp = None
+
+
+# ----------------- Model ----------------------
 @jit(nopython=True)
-def dfun(simVars, p):  # p is the stimulus
-    # global v
+def dfun(simVars, coupling, stimulus):  # p is the stimulus
     y0 = simVars[0]; y1=simVars[1]; y2=simVars[2]; y3=simVars[3]; y4=simVars[4]; y5=simVars[5]
     v = y1 - y2
     dy0 = y3
     dy3 = A * a * sigm(y1-y2) - 2.0 * a * y3 - a**2 * y0
     dy1 = y4
-    dy4 = A * a * (p + we * SC @ sigm(v) + a_2*C * sigm(a_1*C*y0)) - 2.0 * a * y4 - a**2 * y1
+    coupl = coupling.couple(v)
+    dy4 = A * a * (we * coupl + stimulus + a_2*C * sigm(a_1*C*y0)) - 2.0 * a * y4 - a**2 * y1
     dy2 = y5
     dy5 = B * b * (a_4*C * sigm(a_3*C*y0)) - 2.0 * b * y5 - b**2 * y2
     return np.stack((dy0, dy1, dy2, dy3, dy4, dy5)), np.stack((v,))

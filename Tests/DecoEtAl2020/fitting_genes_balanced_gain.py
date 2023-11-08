@@ -9,7 +9,11 @@
 #  Taken from the code (slurm.sbatch_genes_balanced_G_optimization.m) from:
 #  [DecoEtAl_2021] Gustavo Deco, Kevin Aquino, Aurina Arnatkeviciute, Stuart Oldham, Kristina Sabaroedin,
 #  Nigel Rogasch, Morten L. Kringelbach, and Alex Fornito, "Dynamical consequences of regional heterogeneity
-#  in the brain’s transcriptional landscape", 2021, biorXiv
+#  in the brain’s transcriptional landscape", Sci. Adv.7,eabf4752(2021).
+#  DOI:10.1126/sciadv.abf4752
+#
+#  Before this, needs the result computed in
+#   - prepro_G_Optim.py to get the value for G, i.e., we = 2.1
 #
 #  Translated to Python & refactoring by Gustavo Patow
 # ==========================================================================

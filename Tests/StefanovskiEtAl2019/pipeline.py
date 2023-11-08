@@ -12,7 +12,7 @@
 import numpy as np
 import scipy.io as sio
 import matplotlib.pyplot as plt
-from StefanovskiEtAl2019 import Abeta_Model as Abeta
+import Abeta_Model as Abeta
 from WholeBrain.Models import JansenRit as JR
 
 integrator = None
@@ -25,20 +25,17 @@ Tmaxneuronal = int((tmax+dt))
 
 def recompileSignatures():
     integrator.recompileSignatures()  # just in case...
-    JR.recompileSignatures()
 
 
-def configSim(abeta_burden):
+def configSim(abeta_burden, SCnormalized):
     global integrator, runSim
-    import Integrators.Euler
-    integrator = Integrators.Euler
+    import Integrators.Euler as scheme
+    scheme.neuronalModel = JR
+    scheme.clamping = False
+    import Integrators.Integrator as integrator
+    integrator.integrationScheme = scheme
     integrator.neuronalModel = JR
-    integrator.clamping = False
     integrator.ds = ds
-
-    # b = 0.07  # default Jansen-Rit inhibitory membrane constant
-    JR.setParms({'b': Abeta.transform_abeta_exp(abeta_burden) * 1000})  # I use the original JR values for b...
-
     # Use a constant stimuli of 108.5/s.
     import WholeBrain.Stimuli.constant as stimuli
     # Do not set N, as it is constant...
@@ -46,7 +43,13 @@ def configSim(abeta_burden):
     stimuli.amp = 108.5  # [s^-1]
     integrator.stimuli = stimuli
 
+    # b = 0.07  # default Jansen-Rit inhibitory membrane constant
+    JR.setParms({'b': Abeta.transform_abeta_exp(abeta_burden) * 1000})  # I use the original JR values for b...
     JR.setParms({'ds': ds})
+
+    # ---------- init JR model
+    JR.setParms({'SC': SCnormalized})
+    JR.couplingOp = JR.instantaneousSigmoidalCoupling(SCnormalized)
 
     # In the original code we had:
     # mu = 0.1085
@@ -56,7 +59,7 @@ def configSim(abeta_burden):
 
     # init = np.random.rand(4000,6,SCnorm.shape[0],1);
 
-    # omitting any time delay between regions -> not needed in my implementation...
+    # omitting any time delay between regions
     # white_matter = connectivity.Connectivity(weights=SCnorm, tract_lengths=np.zeros(SCnorm.shape))
 
     # set up the simulator -> Already done in my implementation...
@@ -78,9 +81,8 @@ def run_sim(SCnorm, lf_mat):
     import scipy.signal as sig
 
     N = SCnorm.shape[0]
-    # JR.initBookkeeping(N, tmax)
-    JR.setParms({'SC': SCnorm})
-    recompileSignatures()  # just in case...
+
+    recompileSignatures()  # needed...
     v = integrator.simulate(dt, Tmaxneuronal)
     # v = integrator.returnBookkeeping()
     PSP = v[400:,0,:]
@@ -89,10 +91,10 @@ def run_sim(SCnorm, lf_mat):
     ##### Analyze PSP
     # analyze signal, get baseline and frequency
     psp_baseline = PSP.mean(axis=0)
-    psp_f, psp_pxx = sig.periodogram(PSP-psp_baseline, axis=0) # nfft=1024, fs=200)
+    psp_f, psp_pxx = sig.periodogram(PSP-psp_baseline, axis=0)  # nfft=1024, fs=200)
     psp_f *= 10./(dt*tmax)  # needed because of...
     psp_peak_freq = psp_f[np.argmax(psp_pxx, axis=0)]
-    p = np.max(psp_pxx, axis=0)
+    # p = np.max(psp_pxx, axis=0)
 
     # --------------------------------------------------------------
     # ##### Analyze EEG
@@ -123,7 +125,7 @@ def run_sim(SCnorm, lf_mat):
     return psp_baseline, psp_peak_freq, eeg_peak_freq
 
 
-def simAllGC(gc_range, SCnorm, lf_mat):
+def simAllGC(gc_range, lf_mat):
     def simWe(we):
         JR.setParms({'we': we})
         return run_sim(SCnorm, lf_mat)
@@ -160,7 +162,7 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
     # plot psp frequency
     plt.subplot(grid[0,0])
     plt.hist2d(x_coord, psp_peak_freq.flatten(), bins=[len(gc_range),40], cmap=tmap,
-              range=[[np.min(gc_range),np.max(gc_range)],[-1,14]] ) #, vmax=100)
+              range=[[np.min(gc_range),np.max(gc_range)],[-1,14]] )  #, vmax=100)
     plt.colorbar(label="Number of regions")
     plt.grid()
     plt.ylabel(' Frequency in Hz')
@@ -169,7 +171,7 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
     # plot psp baseline
     plt.subplot(grid[0,1])
     plt.hist2d(x_coord, psp_baseline.flatten(), bins=[len(gc_range),40], cmap=tmap,
-              range=[[np.min(gc_range),np.max(gc_range)],[-1,40]])#, vmax=100)
+              range=[[np.min(gc_range),np.max(gc_range)],[-1,40]])  #, vmax=100)
     plt.colorbar(label="Number of regions")
     plt.grid()
     plt.ylabel(' PSP in mV')
@@ -178,7 +180,7 @@ def displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq):
     # plot eeg frequency
     plt.subplot(grid[0,2])
     plt.hist2d(x_coord_eeg, eeg_peak_freq.flatten(), bins=[len(gc_range),40], cmap=tmap,
-              range=[[np.min(gc_range),np.max(gc_range)],[-1,14]] )#, vmax=100)
+              range=[[np.min(gc_range),np.max(gc_range)],[-1,14]])  #, vmax=100)
     plt.colorbar(label="Number of regions")
     plt.grid()
     plt.ylabel(' Frequency in Hz')
@@ -197,14 +199,14 @@ if __name__ == '__main__':
     # Load individual Abeta PET SUVRs
     # ------------------------------------------------
     # select the subject you want to simulate
-    base_folder = "../Data_Raw/surrogate_AD"
-    DX = "MCI" # one of AD, MCI or HC
+    base_folder = "../../Data_Raw/surrogate_AD"
+    DX = "MCI"  # one of AD, MCI or HC
     modality = "Amyloid"
-    pet_path = base_folder+"/_"+DX
-    RH_pet = np.loadtxt(pet_path+"/"+DX+"_RH.txt")
-    LH_pet = np.loadtxt(pet_path+"/"+DX+"_LH.txt")
-    subcort_pet = np.loadtxt(pet_path+"/"+DX+"_subcortical.txt")
-    abeta_burden = np.concatenate((LH_pet,RH_pet,subcort_pet))
+    pet_path = base_folder + "/_"+DX
+    RH_pet = np.loadtxt(pet_path + "/"+DX+"_RH.txt")
+    LH_pet = np.loadtxt(pet_path + "/"+DX+"_LH.txt")
+    subcort_pet = np.loadtxt(pet_path + "/" + DX + "_subcortical.txt")
+    abeta_burden = np.concatenate((LH_pet, RH_pet, subcort_pet))
 
     if visualizeAll:
         n, bins, patches = plt.hist(abeta_burden, bins='auto', color='#0504aa',
@@ -218,8 +220,7 @@ if __name__ == '__main__':
     # Configure Simulator
     # ------------------------------------------------
     # load SC
-    sc_folder = "../Data_Raw/surrogate_AD"
-    SCnorm = np.loadtxt(sc_folder+"/avg_healthy_normSC_mod_379.txt")
+    SCnorm = np.loadtxt(base_folder + "/avg_healthy_normSC_mod_379.txt")
 
     if visualizeAll:
         # Plot Figure 4A in [StefanovskiEtAl2019]
@@ -233,16 +234,16 @@ if __name__ == '__main__':
     # load leadfield matrix
     lf_mat = sio.loadmat(base_folder+"/_"+DX+"/leadfield.mat")["lf_sum"]
 
+    configSim(abeta_burden, SCnorm)
+
     # Simulate!
     # --------------------------------------------------------------
     # define global coupling range to explore in simulation
     # in the original study a range from 0 to 600 with steps of 3 was explored
     # NOTE: Too many steps will take very long time when running the script on a local computer
-    gc_range = np.arange(0, 600, 30)  # 30
+    gc_range = np.arange(0, 600, 30)  # 30 / 100
 
-    configSim(abeta_burden)
-
-    psp_baseline, psp_peak_freq, eeg_peak_freq = simAllGC(gc_range, SCnorm, lf_mat)
+    psp_baseline, psp_peak_freq, eeg_peak_freq = simAllGC(gc_range, lf_mat)
 
     displayResults(gc_range, psp_baseline, psp_peak_freq, eeg_peak_freq)
 
