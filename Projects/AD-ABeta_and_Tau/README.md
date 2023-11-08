@@ -2,10 +2,9 @@
 
 Python code for the paper
 
-Whole-brain modeling of the differential influences of Amyloid-Beta and Tau in Alzheimer`s Disease
+Whole-brain modeling of the differential influences of Amyloid-Beta and Tau in Alzheimer`s Disease, by 
 Gustavo Patow, Leon Stefanovski, Petra Ritter, Gustavo Deco, Xenia Kobeleva and for the
-Alzheimer’s Disease Neuroimaging Initiative
-Accepted at Alzheimer's Research & Therapy, 2023
+Alzheimer’s Disease Neuroimaging Initiative. Accepted at Alzheimer's Research & Therapy, 2023
 
 This code is "broken research code", and thus the following disclaimer appllies:
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
