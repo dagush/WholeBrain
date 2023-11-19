@@ -141,7 +141,7 @@ C = GrCV[:, tcrange][tcrange, ]
 C = C/np.max(C)*0.2
 print(f'C shape is {C.shape}')
 neuronalModel.setParms({'SC': C})  # Set the neuronal model with the SC
-neuronalModel.couplingOp = Couplings.instantaneousDirectCoupling(C)
+# neuronalModel.couplingOp = Couplings.instantaneousDirectCoupling(C)
 
 print('loading DKatlas_noGSR_timeseries.mat')
 ts = sio.loadmat(baseInPath+'/DKatlas_noGSR_timeseries.mat')['ts']

@@ -31,7 +31,6 @@ def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     dfun.recompile()
-    coupling.recompile()
     pass
 
 # ==========================================================================
@@ -113,12 +112,13 @@ def getParm(parmName):
 # -----------------------------------------------------------------------------
 
 # ----------------- Coupling ----------------------
-coupling = Couplings.instantaneousDirectCoupling
+from WholeBrain.Models.Couplings import instantaneousDirectCoupling
+couplingOp = instantaneousDirectCoupling  # The only one who knows the coupling operation is the model itself!!!
 
 
 # ----------------- Model ----------------------
 @jit(nopython=True)
-def dfun(simVars, p):  # p is the stimulus...?
+def dfun(simVars, coupling, I_external):
     x = simVars[0]; y = simVars[1]
 
     # pC = p + 0j

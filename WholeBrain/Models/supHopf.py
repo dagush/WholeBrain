@@ -113,31 +113,37 @@ class instantaneousDifferenceCoupling:
     def couple(self, x):
         return np.dot(SCT, x) - ink * x
 
-coupling = None
+
+couplingOp = instantaneousDifferenceCoupling
 
 
 # ----------------- Model ----------------------
 @jit(nopython=True)
-def dfun(simVars, coupling, stimulus):  # p is the stimulus...?
+def dfun(simVars, coupling, stimulus):
     x = simVars[0]; y = simVars[1]
     pC = stimulus + 0j
     # --------------------- From Gus' original code:
     # First, we need to compute the term (in pseudo-LaTeX notation):
-    #               G Sum_i SC_ij (x_i - x_j) =
-    #               G (Sum_i SC_ij x_i + Sum_i SC_ij x_j) =
-    #               G ((Sum_i SC_ij x_i) + (Sum_i SC_ij) x_j)   <- adding some unnecessary parenthesis.
-    # This is implemented as:
-    # suma = wC*z - sumC.*z                 # this is sum(Cij*xi) - sum(Cij)*xj, all multiplied by G
-    #      = G * SC * z - sum(G*SC,2) * z   # Careful, component 2 in Matlab is component 1 in Python...
-    #      = G * (SC*z - sum(SC,2)*z)
+    #       G Sum_i SC_ij (x_i - x_j) =
+    #       G (Sum_i SC_ij x_i + Sum_i SC_ij x_j) =
+    #       G ((Sum_i SC_ij x_i) + (Sum_i SC_ij) x_j)   <- adding some unnecessary parenthesis.
+    # This is implemented in Gus' code as:
+    #       wC = we * Cnew;  # <- we is G in the paper, Cnew is SC -> wC = G * SC
+    #       sumC = repmat(sum(wC, 2), 1, 2);  # <- for sum Cij * xj == sum(G*SC,2)
+    # Thus, we have that:
+    #       suma = wC*z - sumC.*z                 # this is sum(Cij*xi) - sum(Cij)*xj, all multiplied by G
+    #            = G * SC * z - sum(G*SC,2) * z   # Careful, component 2 in Matlab is component 1 in Python...
+    #            = G * (SC*z - sum(SC,2)*z)
     # And now the rest of it...
-    # Remember that, in Gus' code, omega = repmat(2*pi*f_diff',1,2); omega(:,1) = -omega(:,1); so here I will
-    # call omega(1)=-omega, and the other component as + omega
-    # zz = z(:,end:-1:1)  # <- flipped z, because (x.*x + y.*y)     # Thus, this zz vector is (y,x)
-    # dz = a.*z + zz.*omega - z.*(z.*z+zz.*zz) + suma               # original formula in the code, using complex numbers z instead of x and y...
-    #    = zz * omega   +  z  * (a -  z.* z  - zz.* zz) + suma =    # I will be using vector notation here to simplify ASCII formulae... ;-)
-    #    = (y)*(-omega) + (x) * (a - (x)*(x) - (y)*(y)) + suma      # here, (x)*(x) should actually be (x) * (x,y)
-    #    =  x *(+omega)    y          y * y     x * x               #        y   y                     (y)
+    # Remember that, in Gus' code,
+    #       omega = repmat(2*pi*f_diff',1,2);
+    #       omega(:,1) = -omega(:,1);
+    # so here I will call omega(1)=-omega, and the other component as + omega
+    #       zz = z(:,end:-1:1)  # <- flipped z, because (x.*x + y.*y)     # Thus, this zz vector is (y,x)
+    #       dz = a.*z + zz.*omega - z.*(z.*z+zz.*zz) + suma               # original formula in the code, using complex numbers z instead of x and y...
+    #          = zz * omega   +  z  * (a -  z.* z  - zz.* zz) + suma =    # I will be using vector notation here to simplify ASCII formulae... ;-)
+    #          = (y)*(-omega) + (x) * (a - (x)*(x) - (y)*(y)) + suma      # here, (x)*(x) should actually be (x) * (x,y)
+    #          =  x *(+omega)    y          y * y     x * x               #        y   y                     (y)
     # ---------------------
     # Calculate the input to nodes due to couplings
     xcoup = coupling.couple(x)  # np.dot(SCT,x) - ink * x  # this is sum(Cij*xi) - sum(Cij)*xj

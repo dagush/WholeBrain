@@ -49,7 +49,6 @@ def configSim(abeta_burden, SCnormalized):
 
     # ---------- init JR model
     JR.setParms({'SC': SCnormalized})
-    JR.couplingOp = JR.instantaneousSigmoidalCoupling(SCnormalized)
 
     # In the original code we had:
     # mu = 0.1085

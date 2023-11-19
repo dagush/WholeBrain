@@ -21,7 +21,11 @@ import csv
 # load integrator and neuronal model
 # ============================================================================
 import simplifiedHopfNormalForm as neuronalModel
-import Integrators.Heun as integrator
+import Models.Couplings as Couplings
+import Integrators.Heun as scheme
+scheme.neuronalModel = neuronalModel
+import Integrators.Integrator as integrator
+integrator.integrationScheme = scheme
 integrator.neuronalModel = neuronalModel
 integrator.verbose = False
 import Utils.simulate_SimOnly as simulator
@@ -66,6 +70,7 @@ if __name__ == '__main__':
 
     setupSimulator(TR, dt)
     W_0, N = readSC(loadDataPath + 'CouplingMatrixInTime-000.csv')
+    neuronalModel.couplingOp = Couplings.instantaneousDirectCoupling(W_0)
 
     # randomize initial values
     # ============================================================================
@@ -98,11 +103,11 @@ if __name__ == '__main__':
 
     # Simulate!
     # ============================================================================
-    # simBOLD = simulator.simulateSingleSubject()
+    simBOLD = simulator.simulateSingleSubject()
 
     # Plot!
     # ============================================================================
-    # plt.plot(simBOLD)
+    plt.plot(simBOLD)
 
     # Check!
     # ============================================================================

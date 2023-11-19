@@ -128,7 +128,7 @@ print(f"Loading {inFilePath}/all_SC_FC_TC_76_90_116.mat")
 sc90 = sio.loadmat(inFilePath+'/all_SC_FC_TC_76_90_116.mat')['sc90']
 C = sc90/np.max(sc90[:])*0.2  # Normalization...
 serotonin2A.setParms({'SC': C})  # Set the model with the SC
-serotonin2A.couplingOp = Couplings.instantaneousDirectCoupling(C)
+# serotonin2A.couplingOp = Couplings.instantaneousDirectCoupling(C)
 
 # Load Regional Drug Receptor Map
 print(f'Loading {inFilePath}/mean5HT2A_bindingaal.mat')

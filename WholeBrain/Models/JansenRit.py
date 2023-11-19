@@ -152,10 +152,6 @@ def sigm(y):
     return 2.0 * e_0 / (1.0 + np.exp(r * (v0 - y)))
 
 
-# @jit(nopython=True)
-# def instantaneousSigmoidalCoupling(x):
-#     return SC @ sigm(x)      # coupling = SC @ sigm(v)
-
 @jitclass([('SC', double[:, :])])
 class instantaneousSigmoidalCoupling:
     def __init__(self, data):
@@ -165,7 +161,7 @@ class instantaneousSigmoidalCoupling:
         return SC @ sigm(x)
 
 
-couplingOp = None
+couplingOp = instantaneousSigmoidalCoupling  # The only one who knows the coupling operation is the model itself!!!
 
 
 # ----------------- Model ----------------------

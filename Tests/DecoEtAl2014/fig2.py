@@ -48,7 +48,7 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
     N = C.shape[0]
 
     DMF.setParms({'SC': C})
-    DMF.couplingOp = Couplings.instantaneousDirectCoupling(C)
+    # DMF.couplingOp = Couplings.instantaneousDirectCoupling(C)
 
     print("======================================")
     print("=    simulating E-E (no FIC)         =")

@@ -62,7 +62,6 @@ Tmaxneuronal = int((tmax+dt))
 N = 1
 Conn = np.zeros((N,N))
 JR.setParms({'SC': Conn})
-JR.couplingOp = JR.instantaneousSigmoidalCoupling(Conn)
 
 
 # Take the original values, so we can keep the ratio invariant later on...

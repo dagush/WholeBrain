@@ -85,7 +85,8 @@ def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
     # numSimVars = simVars.shape[0]
     N = simVars.shape[1]  # N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     curr_obsVars = initBookkeeping(N, Tmaxneuronal)
-    integrResult = integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars, neuronalModel.couplingOp)
+    coupling = neuronalModel.couplingOp(neuronalModel.getParm('SC'))  # asking the neuronalModel for SC is a convenience "temporal" measure...
+    integrResult = integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars, coupling)
     return integrResult
 
 

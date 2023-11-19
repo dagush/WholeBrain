@@ -9,8 +9,9 @@
 #  Execute before anything else!
 #
 #  Taken from the code (fgain_Neuro.m) from:
-#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L.
-#       Whole-brain multimodal neuroimaging model using serotonin receptor maps explain non-linear functional effects of LSD
+#  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L.,
+#       Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L., Whole-brain multimodal neuroimaging
+#       model using serotonin receptor maps explain non-linear functional effects of LSD
 #       (2018) Current Biology
 #       https://www.cell.com/current-biology/fulltext/S0960-9822(18)31045-5
 #

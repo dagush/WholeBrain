@@ -128,7 +128,7 @@ def plotMaxFreq(ax, wes, label, shuffle=False, averaging=False, fileName=None):
 
 def plotMaxFrecForAllWe(ax, C, wes):
     DMF.setParms({'SC': C})
-    DMF.couplingOp = Couplings.instantaneousDirectCoupling(C)
+    # DMF.couplingOp = Couplings.instantaneousDirectCoupling(C)
     N = C.shape[0]
     # DMF.lambda = 0.  # make sure no long-range feedforward inhibition (FFI) is computed
 

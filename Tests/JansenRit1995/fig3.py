@@ -42,8 +42,6 @@ Tmaxneuronal = int((tmax+dt))
 N = 1
 Conn = np.zeros((N,N), dtype=np.double)
 JR.setParms({'SC': Conn})
-JR.couplingOp = JR.instantaneousSigmoidalCoupling(Conn)
-
 
 plt.rcParams.update({'font.size': 16})
 fig, axs = plt.subplots(6, sharex=True)
