@@ -6,8 +6,11 @@ Whole-brain modeling of the differential influences of Amyloid-Beta and Tau in A
 Gustavo Patow, Leon Stefanovski, Petra Ritter, Gustavo Deco, Xenia Kobeleva and for the
 Alzheimer’s Disease Neuroimaging Initiative. Accepted at Alzheimer's Research & Therapy, 2023
 
-This code is "broken research code", and thus the following disclaimer appllies: 
+This code is "broken research code", and thus the following disclaimer applies: 
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+This code is unmaintained code, and its last working version belongs to the following release:
+https://github.com/dagush/WholeBrain/releases/tag/AD-ABeta_and_Tau
 
 ## Code usage
 1) setup.py is the main configuration file. It should be modified first. This file uses dataLoader.py to perform the actual loading of the files.
