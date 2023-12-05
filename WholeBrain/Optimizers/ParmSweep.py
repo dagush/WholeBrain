@@ -31,6 +31,7 @@ verbose = True
 # --------------------------------------------------------------------------
 integrator = None
 simulateBOLD = None
+sim_inf = 100
 # --------------------------------------------------------------------------
 #  End setup...
 # --------------------------------------------------------------------------
@@ -53,6 +54,9 @@ def distanceForOne_Parm(currValue, modelParms, NumSimSubjects,
     for nsub in range(NumSimSubjects):  # trials. Originally it was 20.
         print(f"   Simulating {label}={currValue} -> subject {nsub}/{NumSimSubjects}!!!")
         bds = simulateBOLD.simulateSingleSubject().T
+        while np.isnan(bds).any() or (np.abs(bds) > sim_inf).any():  # This is certainly dangerous, we can have an infinite loop... let's hope not! ;-)
+            print(f"      REPEATING simulation: NaN or inf ({sim_inf}) found!!!")
+            bds = simulateBOLD.simulateSingleSubject().T
         simulatedBOLDs[nsub] = bds
 
     dist = processBOLDSignals(simulatedBOLDs, distanceSettings)
