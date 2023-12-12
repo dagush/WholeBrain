@@ -58,7 +58,6 @@ r0 = 25  # (s)^-1 --> slope r0 of intravascular relaxation rate R_iv as a functi
          # saturation Y:  R_iv = r0*[(1-Y)-(1-Y0)]. This value of r0 from [Stephan et al. 2007]
 theta0 = 40.3  # (s)^-1, frequency offset at the outer surface of magnetized vessels
 
-# @vectorize([float64(float64, float64)])
 @jit(nopython=True)
 def BOLDModel(T, x):
     # The Hemodynamic model with one simplified neural activity
@@ -117,23 +116,22 @@ def BOLDModel(T, x):
         s[n+1] = s[n] + dt * (x[n] - kappa * s[n] - gamma * (f[n] - 1))
         # Equation (10) for f in [Stephan et al. 2007]. Now, changed to eq. A7 in [Stephan2008]
         # Changes in blood flow f :
-        if isclose(f[n], 0.):
-            # print("f[n] is close to 0")
-            f[n] = 1e-8
+        if f[n] < 1:
+            f[n] = 1.
         ftilde[n+1] = ftilde[n] + dt * (s[n]/f[n])
         # Equation (8)-1st for v in [Stephan et al. 2007]. Now, changed to eq. A8 in [Stephan2008]
         # Changes in venous blood volume v:
         fv = v[n]**ialpha  # outflow
-        if isclose(v[n], 0.):
-            # print("v[n] is close to 0")
-            v[n] = 1e-8
+        # if isclose(v[n], 0.):
+        #     # print("v[n] is close to 0")
+        #     v[n] = 1e-8
         vtilde[n+1] = vtilde[n] + dt * ( (f[n]-fv)/(tau*v[n]) )
         # Equation (8)-2nd for q in [Stephan et al. 2007]. Now, changed to eq. A9 in [Stephan2008]
         # Changes in deoxyhemoglobin content q:
         ff = (1-(1-Eo)**(1/f[n]))/Eo  # oxygen extraction
-        if isclose(q[n], 0.):
-            # print("q[n] is close to 0 !!!")
-            q[n] = 1e-8
+        # if isclose(q[n], 0.):
+        #     # print("q[n] is close to 0 !!!")
+        #     q[n] = 1e-8
         qtilde[n+1] = qtilde[n] + dt * ( (f[n] * ff - fv * q[n]/v[n])/(tau*q[n]) )
 
         # Now, exponentiate to get the "good" hemodynamic variables...
@@ -141,6 +139,11 @@ def BOLDModel(T, x):
         f[n+1] = np.exp(ftilde[n+1])
         v[n+1] = np.exp(vtilde[n+1])
         q[n+1] = np.exp(qtilde[n+1])
+        # ============== DEBUG CODE, enable only in non-Numba mode!
+        # if np.isnan([f,v,q]).any():
+        #     print(f'full NaN stop @ {n}!')
+        # if np.isinf([f,v,q]).any():
+        #     print(f'full inf stop @ {n}!')
 
     # Equation (12) in [Stephan et al. 2007]: simulated BOLD response to input
     k1 = 4.3*theta0*Eo*TE  # [Friston2019] uses 6.9 phi, which matches exactly 4.3*theta0/r0 = 6.9

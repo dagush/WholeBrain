@@ -94,6 +94,7 @@ def BOLDModel(T, r):
         x[n + 1, 3] = x[n, 3] + dt * itauo * (x[n, 1] * (1-(1 - Eo)**(1/x[n, 1]))/Eo - (x[n, 2]**ialpha) * x[n, 3]/x[n, 2])
 
     # The Balloon-Windkessel model, originally from Buxton et al. 1998:
+    # Non-linear BOLD model equations. Page 391. Eq. (13) top in [Stephan2007]
     # t = t[n_min:t.size]
     # s = x[n_min:n_t, 0]
     # fi = x[n_min:n_t, 1]
