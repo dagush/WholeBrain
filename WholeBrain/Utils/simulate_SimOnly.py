@@ -23,6 +23,7 @@ t_min = TR/dt      # Skip t_min first samples
 Tmax = 220.        # Number of (useful) time-points in each fMRI session
                    # each time-point is separated by TR seconds => Tmax * TR is the total length, in seconds
 Toffset = 10.      # Number of initial time-points to skip
+                   # Careful! There is 'some' overlap in the roles of Toffset and t_min, setup carefyully!
 # We simulate Tmax+Toffset time-points with the idea of extracting Tmax useful time-points.
 Tmaxneuronal = int((Tmax+Toffset)*(TR/dtt))  # Number of simulated time points
 def recomputeTmaxneuronal():  # if we need a different Tmax or TR or any other var, just use this function to rebuild Tmaxneuronal
@@ -38,7 +39,9 @@ def recomputeTmaxneuronal():  # if we need a different Tmax or TR or any other v
 # =======================================================================================
 warmUp = False
 warmUpFactor = 10.
+observationVarsMask = 1  # integer or array of integers e.g., [0,1]. Here, 1 = curr_rn
 def computeSubjectSimulation():
+    # integrator.recompileSignatures()
     # integrator.neuronalModel.SC = C
     # integrator.initBookkeeping(N, Tmaxneuronal)
     if warmUp:
@@ -46,7 +49,7 @@ def computeSubjectSimulation():
     else:
         currObsVars = integrator.simulate(dt, Tmaxneuronal)
     # currObsVars = integrator.returnBookkeeping()  # curr_xn, curr_rn
-    neuro_act = currObsVars[:,1,:]  # curr_rn
+    neuro_act = currObsVars[:,observationVarsMask,:]
     return neuro_act
 
 

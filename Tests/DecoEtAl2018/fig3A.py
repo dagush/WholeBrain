@@ -12,7 +12,7 @@
 #  - the optimal neuromodulator gain for fitting the LSD condition (wge=0.2)
 #
 #  Before this, needs the results computed in
-#   - prepro_fgain_Neuro.py
+#   - prepro.py
 #
 #  Taken from the code (Code_Figure3.m) from:
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C.,

@@ -118,7 +118,7 @@ def plotMaxFreq(ax, wes, label, shuffle=False, averaging=False, fileName=None):
         if averaging:
             balancedJ = np.average(balancedJ) * np.ones(C.shape[0])
         integrator.neuronalModel.setParms({'J': balancedJ})
-        integrator.recompileSignatures()
+        # integrator.recompileSignatures()
         v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
         maxRate[kk] = np.max(np.mean(v,0))
         print(f"MaxRate: {label} => {maxRate[kk]}")
@@ -128,6 +128,7 @@ def plotMaxFreq(ax, wes, label, shuffle=False, averaging=False, fileName=None):
 
 def plotMaxFrecForAllWe(ax, C, wes):
     DMF.setParms({'SC': C})
+    DMF.couplingOp.setParms(C)
     # DMF.couplingOp = Couplings.instantaneousDirectCoupling(C)
     N = C.shape[0]
     # DMF.lambda = 0.  # make sure no long-range feedforward inhibition (FFI) is computed

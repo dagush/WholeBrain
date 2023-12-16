@@ -33,21 +33,18 @@ neuronalModel = None  # To be able to choose the model externally...
 # Heun Integration
 # --------------------------------------------------------------------------
 # sigma = 0.01
-clamping = True
 @jit(nopython=True)
 def integrationStep(simVars, dt, coupling, stimulus):
-    dvars_obsVars = neuronalModel.dfun(simVars, coupling, stimulus=stimulus)
+    dvars_obsVars = neuronalModel.dfun(simVars, coupling, stimulus)
     dvars = dvars_obsVars[0]; obsVars = dvars_obsVars[1]  # cannot use unpacking in numba...
 
     inter = simVars + dt * dvars
-    inter = doClamping(inter)
 
-    dvars_obsVars = neuronalModel.dfun(inter, coupling, stimulus=stimulus)
+    dvars_obsVars = neuronalModel.dfun(inter, coupling, stimulus)
     dvars2 = dvars_obsVars[0]; obsVars = dvars_obsVars[1]  # cannot use unpacking in numba...
     dX = (dvars + dvars2) * dt / 2.0
 
     simVars = simVars + dX
-    simVars = doClamping(simVars)
 
     return simVars, obsVars
 

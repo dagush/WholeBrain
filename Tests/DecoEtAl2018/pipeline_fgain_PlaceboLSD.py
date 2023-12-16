@@ -7,7 +7,7 @@
 #  OPTIMIZATION GAIN
 #
 #  Before this, needs the result computed in
-#   - prepro_fgain_Neuro.py (i.e., G = we = 2.1)
+#   - prepro.py (i.e., G = we = 2.1)
 #
 #  Taken from the code (fgain_Placebo.m and fgain_LCD.m) from:
 #  [DecoEtAl_2018] Deco,G., Cruzat,J., Cabral, J., Knudsen,G.M., Carhart-Harris,R.L., Whybrow,P.C., Logothetis,N.K. & Kringelbach,M.L.
@@ -61,7 +61,7 @@ def fitting_ModelParms(tc_transf, suffix):
     basePath = outFilePath
 
     fitting = optim1D.distanceForAll_Parms(tc_transf, S_Es, serotoninParms, NumSimSubjects=NumSubjects,
-                                           distanceSettings=distanceSettings,
+                                           observablesToUse=distanceSettings,
                                            parmLabel='S_E',
                                            outFilePath=basePath,
                                            fileNameSuffix=suffix)

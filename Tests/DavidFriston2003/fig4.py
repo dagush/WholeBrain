@@ -24,7 +24,6 @@ import matplotlib.pyplot as plt
 import WholeBrain.Models.JansenRit as JR
 import Integrators.Euler as scheme
 scheme.neuronalModel = JR
-scheme.clamping = False
 import Integrators.Integrator as integrate
 integrate.integrationScheme = scheme
 integrate.neuronalModel = JR
@@ -47,11 +46,11 @@ stimuli.sigma = 22.
 integrate.stimuli = stimuli
 
 
-def recompileSignatures():
-    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
-    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    # print("\n\nRecompiling signatures!!!")
-    integrate.recompileSignatures()
+# def recompileSignatures():
+#     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+#     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+#     # print("\n\nRecompiling signatures!!!")
+#     integrate.recompileSignatures()
 
 
 # Integration parms...
@@ -62,7 +61,7 @@ Tmaxneuronal = int((tmax+dt))
 N = 1
 Conn = np.zeros((N,N))
 JR.setParms({'SC': Conn})
-
+JR.couplingOp.setParms(Conn)
 
 # Take the original values, so we can keep the ratio invariant later on...
 H_e_orig = 3.25         # JR.A [mV]
@@ -92,7 +91,7 @@ for idx_c, tau_e in enumerate(tau_es):
                      'a': 1./tau_e,
                      'b': 1./tau_i})
         integrate.initBookkeeping(N, tmax)
-        recompileSignatures()
+        # recompileSignatures()
         v = integrate.simulate(dt, Tmaxneuronal)
 
         lowCut = int(1./integrate.ds)  # Ignore the first steps for warm-up...

@@ -19,12 +19,16 @@ import numpy as np
 from numba import int32, double    # import the types
 from numba.experimental import jitclass
 
+
 # -----------------------------------------------------------------------------
 # ----------------- Instantaneous Direct Coupling -----------------------------
 # -----------------------------------------------------------------------------
 @jitclass([('SC', double[:, :])])
 class instantaneousDirectCoupling:
-    def __init__(self, SC):
+    def __init__(self):
+        self.SC = np.empty((1,1))
+
+    def setParms(self, SC):
         self.SC = SC
 
     def couple(self, x):
@@ -38,7 +42,7 @@ class instantaneousDirectCoupling:
 #
 # We cannot use and advanced kind of indexing in NUMBA because:
 #   NumbaTypeError: Multi-dimensional indices are not supported, but works well in regular numpy
-# So this code will NOT WORK:
+# So this code will work in Python, but in NUMBA it will NOT WORK:
 # result = np.zeros(N)
 # time_idx = (self.index - 1 - self.delays + self.horizon) % self.horizon
 # delayed = self.history[np.arange(N), time_idx]
@@ -72,7 +76,10 @@ class instantaneousDirectCoupling:
            ('horizon', int32),
            ])
 class delayedDirectCoupling:
-    def __init__(self, SC, timeDelays, dt):
+    def __init__(self):
+        self.SC = np.empty((1,1))
+
+    def setParms(self, SC, timeDelays, dt):
         self.SC = SC
         # Convert the time delays between regions in physical units into an array of linear
         # indices into the history attribute. Taken from:
@@ -82,6 +89,10 @@ class delayedDirectCoupling:
         # Now, create space for the history data...
         self.history = np.zeros((SC.shape[0], self.horizon), dtype=double)
         self.index = 0
+
+    def initConstantPast(self, prev_x):
+        for i in range(self.horizon):
+            self.history[:, i] = prev_x
 
     def couple(self, x):
         N = x.size

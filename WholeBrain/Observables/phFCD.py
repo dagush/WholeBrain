@@ -19,10 +19,19 @@ from scipy import signal, stats
 from numba import jit
 
 import WholeBrain.Observables.PhaseInteractionMatrix as PhaseInteractionMatrix
+import WholeBrain.Observables.measures as measures
 
 print("Going to use Phase Functional Connectivity Dynamics (phFCD)...")
 
 name = 'phFCD'
+defaultMeasure = measures.KolmogorovSmirnovStatistic()
+accumulator = measures.concatenatingAccumulator()
+# -------------------- Convenience definitions. Should be overriden if the classes above are changed.
+distance = defaultMeasure.distance  # FC similarity, convenience function
+findMinMax = defaultMeasure.findMinMax
+init = accumulator.init
+accumulate = accumulator.accumulate
+postprocess = accumulator.postprocess
 
 
 # ================================= convert the triangular and save if needed
@@ -151,42 +160,35 @@ def from_fMRI(ts, applyFilters=True, removeStrongArtefacts=True):  # Compute the
 # ==================================================================
 # Simple generalization WholeBrain to abstract distance measures
 # ==================================================================
-# This code is DEPRECATED (kept for backwards compatibility) - DO NOT USE !!!
-# ==================================================================
-ERROR_VALUE = 10
+# def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
+#     d, pvalue = stats.ks_2samp(FCD1.flatten(), FCD2.flatten())
+#     return d
+
 
 # From [Deco2019]: Comparing empirical and simulated FCD.
 # We measure KS distance between the upper triangular elements of the empirical and simulated FCD matrices
 # (accumulated over all participants).
 # ...
 # The KS distance quantifies the maximal difference between the cumulative distribution functions of the 2 samples.
-def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
-    d, pvalue = stats.ks_2samp(FCD1.flatten(), FCD2.flatten())
-    return d
+# FCD similarity, convenience function
+# distance = dist.distance  # KolmogorovSmirnovStatistic(FCD1, FCD2)
 
 
-def distance(FCD1, FCD2):  # FCD similarity, convenience function
-    if not (np.isnan(FCD1).any() or np.isnan(FCD2).any()):  # No problems, go ahead!!!
-        return KolmogorovSmirnovStatistic(FCD1, FCD2)
-    else:
-        return ERROR_VALUE
+# def init(S, N):
+#     return np.array([], dtype=np.float64)
+#
+#
+# def accumulate(FCDs, nsub, signal):
+#     FCDs = np.concatenate((FCDs, signal))  # Compute the FCD correlations
+#     return FCDs
+#
+#
+# def postprocess(FCDs):
+#     return FCDs  # nothing to do here
 
 
-def init(S, N):
-    return np.array([], dtype=np.float64)
-
-
-def accumulate(FCDs, nsub, signal):
-    FCDs = np.concatenate((FCDs, signal))  # Compute the FCD correlations
-    return FCDs
-
-
-def postprocess(FCDs):
-    return FCDs  # nothing to do here
-
-
-def findMinMax(arrayValues):
-    return np.min(arrayValues), np.argmin(arrayValues)
+# def findMinMax(arrayValues):
+#     return np.min(arrayValues), np.argmin(arrayValues)
 
 
 # --------------------------------------------------------------------------------------

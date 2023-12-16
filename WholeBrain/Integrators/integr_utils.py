@@ -21,11 +21,11 @@ else:
 
 # Clamping values
 # --------------------------------------------------------------------------
-clamping = True
+# clamping = True
 maxClamp = 1.
 minClamp = 0.
 @jit(nopython=True)
-def doClamping(simVariables):
+def doClamping(simVariables, clamping=True):
     if clamping:
         simVariables = np.where(simVariables > maxClamp, maxClamp, simVariables)  # clamp values to 0..1
         simVariables = np.where(simVariables < minClamp, minClamp, simVariables)

@@ -591,7 +591,7 @@ def plot_spectral_properties(t_stamps, bandpowers, freq_peaks, bands, wiggle, ti
         figs_peaks[b].axes[0].set_xlabel(f'$t_{{spread}}$')
         figs_peaks[b].axes[0].set_xlim([np.amin(wiggled) - wiggle, np.amax(wiggled) + wiggle])
         figs_peaks[b].axes[0].set_ylim([bands[b][0] - 0.5, bands[b][-1] + 0.5])
-        figs_peaks[b].axes[0].set_ylim([8, 11])
+        # figs_peaks[b].axes[0].set_ylim([8, 11])
 
         # legends
         figs_PSD[b].axes[0].legend()

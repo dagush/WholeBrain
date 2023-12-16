@@ -42,11 +42,11 @@ sim_inf = 100
 # ==========================================================================
 # ---- convenience method, to parallelize the code (someday)
 @loadOrCompute
-def distanceForOne_Parm(currValue, modelParms, NumSimSubjects,
-                        distanceSettings, label):  # distanceSettings is a dictionary of {name: (distance module, apply filters bool)}
+def evaluateForOneParm(currValue, modelParms, NumSimSubjects,
+                       observablesToUse, label):  # observablesToUse is a dictionary of {name: (observable module, apply filters bool)}
     integrator.neuronalModel.setParms(modelParms)
-    integrator.neuronalModel.recompileSignatures()  # just in case the integrator.neuronalModel != neuronalModel here... ;-)
-    integrator.recompileSignatures()
+    # integrator.neuronalModel.recompileSignatures()  # just in case the integrator.neuronalModel != neuronalModel here... ;-)
+    # integrator.recompileSignatures()
 
     print(f"   --- BEGIN TIME @ {label}={currValue} ---")
     simulatedBOLDs = {}
@@ -54,12 +54,15 @@ def distanceForOne_Parm(currValue, modelParms, NumSimSubjects,
     for nsub in range(NumSimSubjects):  # trials. Originally it was 20.
         print(f"   Simulating {label}={currValue} -> subject {nsub}/{NumSimSubjects}!!!")
         bds = simulateBOLD.simulateSingleSubject().T
+        repetitionsCounter = 0
         while np.isnan(bds).any() or (np.abs(bds) > sim_inf).any():  # This is certainly dangerous, we can have an infinite loop... let's hope not! ;-)
-            print(f"      REPEATING simulation: NaN or inf ({sim_inf}) found!!!")
+            repetitionsCounter += 1
+            print(f"      REPEATING simulation: NaN or inf ({sim_inf}) found!!! (trial: {repetitionsCounter})")
             bds = simulateBOLD.simulateSingleSubject().T
         simulatedBOLDs[nsub] = bds
 
-    dist = processBOLDSignals(simulatedBOLDs, distanceSettings)
+    dist = processBOLDSignals(simulatedBOLDs, observablesToUse)
+    # now, add {label: currValue} to the dist dictionary, so this info is in the saved file (if using the decorator @loadOrCompute)
     dist[label] = currValue
     print("   --- TOTAL TIME: {} seconds ---".format(time.perf_counter() - start_time))
     return dist
@@ -68,7 +71,8 @@ def distanceForOne_Parm(currValue, modelParms, NumSimSubjects,
 def distanceForAll_Parms(tc,
                          Parms,  # wStart=0.0, wEnd=6.0, wStep=0.05,
                          modelParms, NumSimSubjects,
-                         distanceSettings,  # This is a dictionary of {name: (distance module, apply filters bool)}
+                         observablesToUse,  # This is a dictionary of {name: (observable module, apply filters bool)}
+                         doPreprocessing=True,
                          parmLabel='',
                          outFilePath=None,
                          fileNameSuffix=''):
@@ -80,12 +84,15 @@ def distanceForAll_Parms(tc,
     N = tc[next(iter(tc))].shape[0]  # get the first key to retrieve the value of N = number of areas
     print('tc({} subjects): each entry has N={} regions'.format(NumSubjects, N))
 
-    outEmpFileName = outFilePath+'/fNeuro_emp'+fileNameSuffix+'.mat'
-    processed = processEmpiricalSubjects(tc, distanceSettings, outEmpFileName)
+    if doPreprocessing:
+        outEmpFileName = outFilePath + '/fNeuro_emp' + fileNameSuffix + '.mat'
+        processed = processEmpiricalSubjects(tc, observablesToUse, outEmpFileName)
+    else:
+        processed = tc
     numParms = len([a for a in np.nditer(Parms)])  # len(Parms)
 
     fitting = {}
-    for ds in distanceSettings:
+    for ds in observablesToUse:
         fitting[ds] = np.zeros((numParms))
 
     # Model Simulations
@@ -94,21 +101,21 @@ def distanceForAll_Parms(tc,
     for pos, parm in enumerate(np.nditer(Parms)):  # iteration over the values for G (we in this code)
         # ---- Perform the simulation of NumSimSubjects ----
         outFileNamePattern = outFilePath + '/fitting_'+parmLabel+'{}'+fileNameSuffix+'.mat'
-        simMeasures = distanceForOne_Parm(parm, modelParms[pos], NumSimSubjects,
-                                          distanceSettings, parmLabel,
-                                          outFileNamePattern.format(np.round(parm, decimals=3)))
+        simMeasures = evaluateForOneParm(parm, modelParms[pos], NumSimSubjects,
+                                         observablesToUse, parmLabel,
+                                         outFileNamePattern.format(np.round(parm, decimals=3)))
 
         # ---- and now compute the final FC, FCD, ... distances for this G (we)!!! ----
         print(f"#{pos}/{len(np.nditer(Parms))}:", end='', flush=True)
-        for ds in distanceSettings:
-            fitting[ds][pos] = distanceSettings[ds][0].distance(simMeasures[ds], processed[ds])
+        for ds in observablesToUse:
+            fitting[ds][pos] = observablesToUse[ds][0].distance(simMeasures[ds], processed[ds])
             print(f" {ds}: {fitting[ds][pos]};", end='', flush=True)
         print("\n")
 
     print("\n\n#####################################################################################################")
     print(f"# Results (in ({Parms[0]}, {Parms[-1]})):")
-    for ds in distanceSettings:
-        optimValDist = distanceSettings[ds][0].findMinMax(fitting[ds])
+    for ds in observablesToUse:
+        optimValDist = observablesToUse[ds][0].findMinMax(fitting[ds])
         parmPos = [a for a in np.nditer(Parms)][optimValDist[1]]
         print(f"# Optimal {ds} =     {optimValDist[0]} @ {np.round(parmPos, decimals=3)}")
     print("#####################################################################################################\n\n")

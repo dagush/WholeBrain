@@ -65,7 +65,7 @@ def Fitting():
     print("# Fitting (B,Z)")
     print("###################################################################\n")
     fitting = optim1D.distanceForAll_Parms(tc_transf, grid, gridParms, NumSimSubjects=NumTrials,
-                                           distanceSettings=distanceSettings,
+                                           observablesToUse=distanceSettings,
                                            parmLabel='BZ',
                                            outFilePath=baseOutPath)
 

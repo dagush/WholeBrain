@@ -10,6 +10,18 @@
 #
 # refactored by Gustavo Patow
 # --------------------------------------------------------------------------------------
+# load integrator and neuronal model
+# ============================================================================
+import simplifiedHopfNormalForm as neuronalModel
+import Models.Couplings as Couplings
+import WholeBrain.Integrators.Heun as scheme
+scheme.neuronalModel = neuronalModel
+import WholeBrain.Integrators.Integrator as integrator
+integrator.integrationScheme = scheme
+integrator.neuronalModel = neuronalModel
+integrator.verbose = False
+import WholeBrain.Utils.simulate_SimOnly as simulator
+simulator.integrator = integrator
 
 # --------------------------------------------------------------------------------------
 # File paths...

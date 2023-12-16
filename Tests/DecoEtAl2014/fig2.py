@@ -48,7 +48,7 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
     N = C.shape[0]
 
     DMF.setParms({'SC': C})
-    # DMF.couplingOp = Couplings.instantaneousDirectCoupling(C)
+    DMF.couplingOp.setParms(C)
 
     print("======================================")
     print("=    simulating E-E (no FIC)         =")
@@ -58,7 +58,7 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
     for kk, we in enumerate(wes):  # iterate over the weight range (G in the paper, we here)
         print("Processing: {}".format(we), end='')
         DMF.setParms({'we': we})
-        integrator.recompileSignatures()
+        # integrator.recompileSignatures()
         v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
         maxRateNoFIC[kk] = np.max(np.mean(v,0))
         print(" => {}".format(maxRateNoFIC[kk]))
@@ -78,7 +78,7 @@ def plotMaxFrecForAllWe(C, wStart=0, wEnd=6+0.001, wStep=0.05,
         DMF.setParms({'we': we})
         balancedJ = BalanceFIC.Balance_J9(we, C, fileName.format(np.round(we, decimals=2)))['J'].flatten()
         integrator.neuronalModel.setParms({'J': balancedJ})
-        integrator.recompileSignatures()
+        # integrator.recompileSignatures()
         v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
         maxRateFIC[kk] = np.max(np.mean(v,0))
         print("maxRateFIC => {}".format(maxRateFIC[kk]))

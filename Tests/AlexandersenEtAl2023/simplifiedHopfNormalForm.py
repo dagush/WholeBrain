@@ -37,7 +37,6 @@ def recompileSignatures():
 # Simplified Hopf normal form Constants
 # --------------------------------------------------------------------------
 # Values taken from [Alexandersen 2023]
-kappa = 1
 decay = None
 decay0 = 0
 decay1 = 1
@@ -49,9 +48,9 @@ h = None
 a = -0.5        # Local bifurcation parameter
 b = 0.5
 omega = 0.3     # Angular frequency [Hz]
-# G = 1.          # Coupling constant
-# SC = None       # Structural Connectivity (should be provided externally)
-# SCT = None      # Transposed Structural Connectivity (we initialize it at initSim(N))
+G = 1.          # Coupling constant, kappa in the original code
+SC = None       # Structural Connectivity (should be provided externally)
+delays = None   # Time delays
 y0 = None
 
 # --------------------------------------------------------------------------
@@ -71,7 +70,7 @@ def initSim(N):
     else:
         x = initialValueX * np.ones(N)  # Initialize x
         y = initialValueY * np.ones(N)  # Initialize y
-    return np.array([x, y])
+    return np.stack((x, y))
 
 
 # Variables of interest, needed for bookkeeping tasks...
@@ -83,12 +82,11 @@ def numObsVars():  # Returns the number of observation vars used, here xn and rn
 # --------------------------------------------------------------------------
 # Set the parameters for this model
 def setParms(modelParms):
-    global G, SC, a, b, omega, y0
+    global G, SC, a, b, omega, y0, delays
     if 'we' in modelParms:
         G = modelParms['we']
     if 'SC' in modelParms:
         SC = modelParms['SC']
-        initSim(SC.shape[0])
     if 'a' in modelParms:
         a = modelParms['a']
     if 'b' in modelParms:
@@ -97,6 +95,8 @@ def setParms(modelParms):
         omega = modelParms['omega']
     if 'y0' in modelParms:
         y0 = modelParms['y0']
+    if 'delays' in modelParms:
+        delays = modelParms['delays']
 
 
 def getParm(parmName):
@@ -104,6 +104,8 @@ def getParm(parmName):
         return G
     if 'SC' in parmName:
         return SC
+    if 'delays' in parmName:
+        return delays
     return None
 
 
@@ -112,8 +114,8 @@ def getParm(parmName):
 # -----------------------------------------------------------------------------
 
 # ----------------- Coupling ----------------------
-from WholeBrain.Models.Couplings import instantaneousDirectCoupling
-couplingOp = instantaneousDirectCoupling  # The only one who knows the coupling operation is the model itself!!!
+# from WholeBrain.Models.Couplings import instantaneousDirectCoupling  # The only one who knows the coupling operation is the model itself!!!
+couplingOp = None
 
 
 # ----------------- Model ----------------------
@@ -121,20 +123,7 @@ couplingOp = instantaneousDirectCoupling  # The only one who knows the coupling 
 def dfun(simVars, coupling, I_external):
     x = simVars[0]; y = simVars[1]
 
-    # pC = p + 0j
-    # # Calculate the input to nodes due to couplings
-    # xcoup = np.dot(SCT,x) - ink * x  # sum(Cij*xi) - sum(Cij)*xj
-    # ycoup = np.dot(SCT,y) - ink * y  #
-    # # Integration step
-    # dx = (a - x**2 - y**2) * x - omega * y + G * xcoup + pC.real
-    # dy = (a - x**2 - y**2) * y + omega * x + G * ycoup + pC.imag
-
-    # # define generator of rhs
-    # Int he code, 2*j+0 is x, 2*j+1 is y
-    # afferent_input = kappa * sum(inter_mat[j][k] * W[j][k] * y(2*j+0, t-delay_c*delays[j,k]) for j in range(N))
-    afferent_input = kappa * coupling.couple(x)  # np.dot(inter_mat * SCT, x)
-    # transform decays -> not used in the original implementation
-    # trDecay = decay1 * (decay - decay0)
+    afferent_input = G * coupling.couple(x)  # np.dot(inter_mat * SCT, x)
 
     # dynamics of node k
     dx = decay * x - omega * y * (a/b) - x * (x**2/a**2 + y**2/b**2) + h * np.tanh(afferent_input)

@@ -10,6 +10,7 @@ from WholeBrain.Utils import numTricks as iC
 from numba import jit
 
 
+import WholeBrain.Integrators.integr_utils as integr_utils
 verbose = False
 neuronalModel = None
 integrationScheme = None
@@ -20,6 +21,7 @@ def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     # # initBookkeeping.recompile()
+    integr_utils.doClamping.recompile()
     neuronalModel.recompileSignatures()
     recordBookkeeping.recompile()
     integrationScheme.integrationStep.recompile()
@@ -83,17 +85,19 @@ def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars, coup
 # # @jit(nopython=True)
 def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
     # numSimVars = simVars.shape[0]
+    recompileSignatures()
     N = simVars.shape[1]  # N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     curr_obsVars = initBookkeeping(N, Tmaxneuronal)
-    coupling = neuronalModel.couplingOp(neuronalModel.getParm('SC'))  # asking the neuronalModel for SC is a convenience "temporal" measure...
-    integrResult = integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars, coupling)
+    integrResult = integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars, neuronalModel.couplingOp)
     return integrResult
 
 
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================
-def simulate(dt, Tmaxneuronal):
+def simulate(dt,  # integration step, in milliseconds
+             Tmaxneuronal  # integration length, in milliseconds
+             ):
     if verbose:
         print("Simulating...", flush=True)
     N = neuronalModel.getParm('SC').shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
@@ -103,7 +107,10 @@ def simulate(dt, Tmaxneuronal):
     return obsVars
 
 
-def warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp=10000):
+def warmUpAndSimulate(dt,  # integration step, in milliseconds
+                      Tmaxneuronal,  # integration length, in milliseconds
+                      TWarmUp=10000  # Warmpup lenth, in milliseconds
+                      ):
     N = neuronalModel.getParm('SC').shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     simVars = neuronalModel.initSim(N)
     if verbose:

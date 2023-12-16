@@ -26,15 +26,15 @@ from numba import jit
 import WholeBrain.Models.Transcriptional as neuronalModel
 import Models.Couplings as Couplings
 # ----------------------------------------------
-import Integrators.EulerMaruyama as scheme
+import WholeBrain.Integrators.EulerMaruyama as scheme
 scheme.neuronalModel = neuronalModel
-import Integrators.Integrator as integrator
+import WholeBrain.Integrators.Integrator as integrator
 integrator.integrationScheme = scheme
 integrator.neuronalModel = neuronalModel
 integrator.verbose = False
 # ----------------------------------------------
-import Utils.BOLD.BOLDHemModel_Stephan2007 as Stephan2007
-import Utils.simulate_SimAndBOLD as simulateBOLD
+import WholeBrain.Utils.BOLD.BOLDHemModel_Stephan2007 as Stephan2007
+import WholeBrain.Utils.simulate_SimAndBOLD as simulateBOLD
 simulateBOLD.integrator = integrator
 simulateBOLD.BOLDModel = Stephan2007
 # import WholeBrain.simulateFCD as simulateFCD
@@ -42,15 +42,15 @@ simulateBOLD.BOLDModel = Stephan2007
 # simulateFCD.BOLDModel = Stephan2007
 # --------------------------------------------------------------------------
 # Import and setup FIC
-import Utils.FIC.BalanceFIC as BalanceFIC
+import WholeBrain.Utils.FIC.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
-import Utils.FIC.Balance_DecoEtAl2014 as Deco2014Mechanism
+import WholeBrain.Utils.FIC.Balance_DecoEtAl2014 as Deco2014Mechanism
 BalanceFIC.balancingMechanism = Deco2014Mechanism  # default behaviour for this project
 
 # --------------------------------------------------------------------------
 # Setup filters and import observables
 # ----- set BOLD filter settings
-import Observables.BOLDFilters as filters
+import WholeBrain.Observables.BOLDFilters as filters
 filters.k = 2       # 2nd order butterworth filter
 filters.flp = .008  # lowpass frequency of filter
 filters.fhi = .08   # highpass
@@ -72,12 +72,12 @@ def initRandom():
     np.random.seed(3)  # originally set to 13
 
 
-def recompileSignatures():
-    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
-    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    print("\n\nRecompiling signatures!!!")
-    # serotonin2A.recompileSignatures()
-    integrator.recompileSignatures()
+# def recompileSignatures():
+#     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+#     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+#     print("\n\nRecompiling signatures!!!")
+#     # serotonin2A.recompileSignatures()
+#     integrator.recompileSignatures()
 
 
 def transformEmpiricalSubjects(tc_aal, tcrange, NumSubjects):
@@ -94,7 +94,7 @@ def transformEmpiricalSubjects(tc_aal, tcrange, NumSubjects):
 # ==================================================================================
 initRandom()
 baseInPath = '../../Data_Raw/DecoEtAl2020'
-baseOutPath = '../../Data_Produced/DecoEtAl2020'
+baseOutPath = '../../Data_Produced/Tests/DecoEtAl2020'
 
 
 N = 68
@@ -141,7 +141,7 @@ C = GrCV[:, tcrange][tcrange, ]
 C = C/np.max(C)*0.2
 print(f'C shape is {C.shape}')
 neuronalModel.setParms({'SC': C})  # Set the neuronal model with the SC
-# neuronalModel.couplingOp = Couplings.instantaneousDirectCoupling(C)
+neuronalModel.couplingOp.setParms(C)
 
 print('loading DKatlas_noGSR_timeseries.mat')
 ts = sio.loadmat(baseInPath+'/DKatlas_noGSR_timeseries.mat')['ts']

@@ -27,14 +27,14 @@ import WholeBrain.Models.DynamicMeanField as DMF
 import WholeBrain.Models.serotonin2A as serotonin2A
 import WholeBrain.Models.Couplings as Couplings
 # ----------------------------------------------
-import Integrators.EulerMaruyama as scheme
+import WholeBrain.Integrators.EulerMaruyama as scheme
 scheme.neuronalModel = serotonin2A
-import Integrators.Integrator as integrator
+import WholeBrain.Integrators.Integrator as integrator
 integrator.integrationScheme = scheme
 integrator.neuronalModel = serotonin2A
 integrator.verbose = False
-import Utils.BOLD.BOLDHemModel_Stephan2007 as Stephan2007
-import Utils.simulate_SimAndBOLD as simulateBOLD
+import WholeBrain.Utils.BOLD.BOLDHemModel_Stephan2007 as Stephan2007
+import WholeBrain.Utils.simulate_SimAndBOLD as simulateBOLD
 simulateBOLD.integrator = integrator
 simulateBOLD.BOLDModel = Stephan2007
 
@@ -46,9 +46,9 @@ optim1D.integrator = integrator
 
 # --------------------------------------------------------------------------
 # chose a FIC mechanism
-import Utils.FIC.BalanceFIC as BalanceFIC
+import WholeBrain.Utils.FIC.BalanceFIC as BalanceFIC
 BalanceFIC.integrator = integrator
-import Utils.FIC.Balance_DecoEtAl2014 as Deco2014Mechanism
+import WholeBrain.Utils.FIC.Balance_DecoEtAl2014 as Deco2014Mechanism
 BalanceFIC.balancingMechanism = Deco2014Mechanism  # default behaviour for this project
 
 
@@ -56,7 +56,7 @@ BalanceFIC.balancingMechanism = Deco2014Mechanism  # default behaviour for this 
 # Filters and Observables
 # --------------------------------------------------------------------------
 # set BOLD filter settings
-import Observables.BOLDFilters as filters
+import WholeBrain.Observables.BOLDFilters as filters
 filters.k = 2                             # 2nd order butterworth filter
 filters.flp = .01                         # lowpass frequency of filter
 filters.fhi = .1                          # highpass
@@ -90,12 +90,12 @@ def initRandom():
     np.random.seed(3)  # originally set to 13
 
 
-def recompileSignatures():
-    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
-    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    print("\n\nRecompiling signatures!!!")
-    serotonin2A.recompileSignatures()
-    integrator.recompileSignatures()
+# def recompileSignatures():
+#     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+#     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+#     print("\n\nRecompiling signatures!!!")
+#     serotonin2A.recompileSignatures()
+#     integrator.recompileSignatures()
 
 
 def LR_version_symm(TC):
@@ -128,13 +128,13 @@ print(f"Loading {inFilePath}/all_SC_FC_TC_76_90_116.mat")
 sc90 = sio.loadmat(inFilePath+'/all_SC_FC_TC_76_90_116.mat')['sc90']
 C = sc90/np.max(sc90[:])*0.2  # Normalization...
 serotonin2A.setParms({'SC': C})  # Set the model with the SC
-# serotonin2A.couplingOp = Couplings.instantaneousDirectCoupling(C)
+serotonin2A.couplingOp.setParms(C)
 
 # Load Regional Drug Receptor Map
 print(f'Loading {inFilePath}/mean5HT2A_bindingaal.mat')
 mean5HT2A_aalsymm = sio.loadmat(inFilePath+'/mean5HT2A_bindingaal.mat')['mean5HT2A_aalsymm']
 serotonin2A.Receptor = (mean5HT2A_aalsymm[:,0]/np.max(mean5HT2A_aalsymm[:,0])).flatten()
-recompileSignatures()
+# recompileSignatures()
 
 #load fMRI data
 print(f"Loading {inFilePath}/LSDnew.mat")
@@ -150,7 +150,7 @@ print(f"Simulating {NumSubjects} subjects!")
 # Sets the wgaine and wgaini to 0, but using the standard protocol...
 # We initialize both to 0, so we have Placebo conditions.
 serotonin2A.setParms({'S_E':0., 'S_I':0.})
-recompileSignatures()
+# recompileSignatures()
 
 tc_transf_PLA = transformEmpiricalSubjects(tc_aal, PLACEBO_cond, NumSubjects)  # PLACEBO
 # FCemp_cotsampling_PLA = G_optim.processEmpiricalSubjects(tc_transf_PLA, distanceSettings, "Data_Produced/SC90/fNeuro_emp_PLA.mat")

@@ -23,15 +23,14 @@ ds = 1e-4
 Tmaxneuronal = int((tmax+dt))
 
 
-def recompileSignatures():
-    integrator.recompileSignatures()  # just in case...
+# def recompileSignatures():
+#     integrator.recompileSignatures()  # just in case...
 
 
 def configSim(abeta_burden, SCnormalized):
     global integrator, runSim
     import Integrators.Euler as scheme
     scheme.neuronalModel = JR
-    scheme.clamping = False
     import Integrators.Integrator as integrator
     integrator.integrationScheme = scheme
     integrator.neuronalModel = JR
@@ -49,6 +48,7 @@ def configSim(abeta_burden, SCnormalized):
 
     # ---------- init JR model
     JR.setParms({'SC': SCnormalized})
+    JR.couplingOp.setParms(SCnormalized)
 
     # In the original code we had:
     # mu = 0.1085
@@ -81,7 +81,7 @@ def run_sim(SCnorm, lf_mat):
 
     N = SCnorm.shape[0]
 
-    recompileSignatures()  # needed...
+    # recompileSignatures()  # needed...
     v = integrator.simulate(dt, Tmaxneuronal)
     # v = integrator.returnBookkeeping()
     PSP = v[400:,0,:]

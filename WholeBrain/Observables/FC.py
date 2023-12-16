@@ -9,10 +9,19 @@ import warnings
 import numpy as np
 # from numba import jit
 from WholeBrain.Observables import BOLDFilters
+import WholeBrain.Observables.measures as measures
 
 print("Going to use Functional Connectivity (FC)...")
 
 name = 'FC'
+defaultMeasure = measures.pearsonSimilarity()
+accumulator = measures.averagingAccumulator()
+# -------------------- Convenience definitions. Should be overriden if the classes above are changed.
+distance = defaultMeasure.distance  # FC similarity, convenience function
+findMinMax = defaultMeasure.findMinMax
+init = accumulator.init
+accumulate = accumulator.accumulate
+postprocess = accumulator.postprocess
 
 
 # @jit(nopython=True)
@@ -33,50 +42,41 @@ def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):
 
 # ==================================================================
 # Simple generalization WholeBrain to abstract distance measures
-# This code is DEPRECATED (kept for backwards compatibility)
 # ==================================================================
-ERROR_VALUE = 10
+# ERROR_VALUE = 10
 
-# @jit(nopython=True)
-def pearson_r(x, y):
-    """Compute Pearson correlation coefficient between two arrays."""
-    # Compute correlation matrix
-    corr_mat = np.corrcoef(x.flatten(), y.flatten())
-    # Return entry [0,1]
-    return corr_mat[0,1]
-
-
-# @jit(nopython=True)
-def FC_Similarity(FC1, FC2):  # FC Similarity
-    (N, N2) = FC1.shape  # should be N == N2
-    Isubdiag = np.tril_indices(N, k=-1)
-    ca = pearson_r(FC1[Isubdiag], FC2[Isubdiag])  # Correlation between both FC
-    return ca
+# # @jit(nopython=True)
+# def pearson_r(x, y):
+#     """Compute Pearson correlation coefficient between two arrays."""
+#     # Compute correlation matrix
+#     corr_mat = np.corrcoef(x.flatten(), y.flatten())
+#     # Return entry [0,1]
+#     return corr_mat[0,1]
 
 
-# @jit(nopython=True)
-def distance(FC1, FC2):  # FC similarity, convenience function
-    if not (np.isnan(FC1).any() or np.isnan(FC2).any()):  # No problems, go ahead!!!
-        return FC_Similarity(FC1, FC2)
-    else:
-        return ERROR_VALUE
+# # @jit(nopython=True)
+# def FC_Similarity(FC1, FC2):  # FC Similarity
+#     (N, N2) = FC1.shape  # should be N == N2
+#     Isubdiag = np.tril_indices(N, k=-1)
+#     ca = pearson_r(FC1[Isubdiag], FC2[Isubdiag])  # Correlation between both FC
+#     return ca
 
 
-def init(S, N):
-    return np.zeros((S, N, N))
+# def init(S, N):
+#     return np.zeros((S, N, N))
+#
+#
+# def accumulate(FCs, nsub, signal):
+#     FCs[nsub] = signal
+#     return FCs
+#
+#
+# def postprocess(FCs):
+#     return np.squeeze(np.mean(FCs, axis=0))
 
 
-def accumulate(FCs, nsub, signal):
-    FCs[nsub] = signal
-    return FCs
-
-
-def postprocess(FCs):
-    return np.squeeze(np.mean(FCs, axis=0))
-
-
-def findMinMax(arrayValues):
-    return np.max(arrayValues), np.argmax(arrayValues)
+# def findMinMax(arrayValues):
+#     return np.max(arrayValues), np.argmax(arrayValues)
 
 # ================================================================================================================
 # ================================================================================================================

@@ -58,7 +58,7 @@ def prepro():
     print("# Compute G_Optim")
     print("###################################################################\n")
     fitting = parmSweep.distanceForAll_Parms(tc_transf, WEs, modelParms, NumSimSubjects=NumTrials,
-                                             distanceSettings=distanceSettings,
+                                             observablesToUse=distanceSettings,
                                              parmLabel='we',
                                              outFilePath=baseOutPath)
 

@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import WholeBrain.Models.JansenRit as JR
 import Integrators.Euler as scheme
 scheme.neuronalModel = JR
-scheme.clamping = False
 import Integrators.Integrator as integrator
 integrator.integrationScheme = scheme
 integrator.neuronalModel = JR
@@ -27,11 +26,11 @@ stimuli.ampHi = 320.
 integrator.stimuli = stimuli
 
 
-def recompileSignatures():
-    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
-    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    # print("\n\nRecompiling signatures!!!")
-    integrator.recompileSignatures()
+# def recompileSignatures():
+#     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+#     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+#     # print("\n\nRecompiling signatures!!!")
+#     integrator.recompileSignatures()
 
 
 # Integration parms...
@@ -42,6 +41,7 @@ Tmaxneuronal = int((tmax+dt))
 N = 1
 Conn = np.zeros((N,N), dtype=np.double)
 JR.setParms({'SC': Conn})
+JR.couplingOp.setParms(Conn)
 
 plt.rcParams.update({'font.size': 16})
 fig, axs = plt.subplots(6, sharex=True)
@@ -52,7 +52,7 @@ for pos, C in enumerate([68., 128., 135., 270., 675., 1350.]):
     # Simulate for a given JR.C
     JR.setParms({'C':C})
     # JR.initBookkeeping(N, tmax)
-    recompileSignatures()
+    # recompileSignatures()
     v = integrator.simulate(dt, Tmaxneuronal)
     # v = JR.returnBookkeeping()
 

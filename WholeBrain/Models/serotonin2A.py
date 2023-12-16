@@ -119,7 +119,7 @@ def getParm(parmList):
 
 # ----------------- Call the Dynamic Mean Field (a.k.a., reducedWongWang) ----------------------
 from WholeBrain.Models.Couplings import instantaneousDirectCoupling
-couplingOp = instantaneousDirectCoupling  # The only one who knows the coupling operation is the model itself!!!
+couplingOp = instantaneousDirectCoupling()  # The only one who knows the coupling operation is the model itself!!!
 
 
 @jit(nopython=True)

@@ -6,17 +6,17 @@ import time
 
 
 verbose = True
-def processBOLDSignals(BOLDsignals, distanceSettings):
+def processBOLDSignals(BOLDsignals, observablesToUse):
     # Process the BOLD signals
     # BOLDSignals is a dictionary of subjects {subjectName: subjectBOLDSignal}
-    # distanceSettings is a dictionary of {distanceMeasureName: distanceMeasurePythonModule}
+    # observablesToUse is a dictionary of {observableName: observablePythonModule}
     NumSubjects = len(BOLDsignals)
     N = BOLDsignals[next(iter(BOLDsignals))].shape[0]  # get the first key to retrieve the value of N = number of areas
 
-    # First, let's create a data structure for the distance measurement operations...
+    # First, let's create a data structure for the observables operations...
     measureValues = {}
-    for ds in distanceSettings:  # Initialize data structs for each distance measure
-        measureValues[ds] = distanceSettings[ds][0].init(NumSubjects, N)
+    for ds in observablesToUse:  # Initialize data structs for each observable
+        measureValues[ds] = observablesToUse[ds][0].init(NumSubjects, N)
 
     # Loop over subjects
     for pos, s in enumerate(BOLDsignals):
@@ -24,16 +24,16 @@ def processBOLDSignals(BOLDsignals, distanceSettings):
         signal = BOLDsignals[s]  # LR_version_symm(tc[s])
         start_time = time.perf_counter()
 
-        for ds in distanceSettings:  # Now, let's compute each measure and store the results
-            measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
-            applyFilters = distanceSettings[ds][1]  # whether we apply filters or not...
+        for ds in observablesToUse:  # Now, let's compute each measure and store the results
+            measure = observablesToUse[ds][0]  # FC, swFCD, phFCD, ...
+            applyFilters = observablesToUse[ds][1]  # whether we apply filters or not...
             procSignal = measure.from_fMRI(signal, applyFilters=applyFilters)
             measureValues[ds] = measure.accumulate(measureValues[ds], pos, procSignal)
 
         if verbose: print(" -> computed in {} seconds".format(time.perf_counter() - start_time))
 
-    for ds in distanceSettings:  # finish computing each distance measure
-        measure = distanceSettings[ds][0]  # FC, swFCD, phFCD, ...
+    for ds in observablesToUse:  # finish computing each observable
+        measure = observablesToUse[ds][0]  # FC, swFCD, phFCD, ...
         measureValues[ds] = measure.postprocess(measureValues[ds])
 
     return measureValues
@@ -41,8 +41,8 @@ def processBOLDSignals(BOLDsignals, distanceSettings):
 
 # ============== a practical way to save recomputing necessary (but lengthy) results ==========
 @loadOrCompute
-def processEmpiricalSubjects(BOLDsignals, distanceSettings):
-    return processBOLDSignals(BOLDsignals, distanceSettings)
+def processEmpiricalSubjects(BOLDsignals, observablesToUse):
+    return processBOLDSignals(BOLDsignals, observablesToUse)
 
 # ================================================================================================================
 # ================================================================================================================

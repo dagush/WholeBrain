@@ -14,11 +14,11 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from scipy.spatial.distance import pdist, squareform
 
-from Utils.decorators import loadOrCompute
-from Utils.dunns import dunns
-import Observables.BOLDFilters as BOLDFilters
+from WholeBrain.Utils.decorators import loadOrCompute
+from WholeBrain.Utils.dunns import dunns
+import WholeBrain.Observables.BOLDFilters as BOLDFilters
 
-import Observables.LEigen as LEigen
+import WholeBrain.Observables.LEigen as LEigen
 
 print("Going to use LEiDA...")
 
@@ -107,6 +107,7 @@ def clusterEigenvectors(LEigenvect):
 
 # For every subject, calculate the probability of occurrence (or fractional occupancy) of each pattern c
 def calculateProbabilitiesOfOccurrence(clustering, LEigs, numClusters):
+    print('Calculating Probabilities Of Occurrence')
     P = {}
     labels = {}
     for s in LEigs:
@@ -147,6 +148,7 @@ def calculateSwitchingMatrix(labels, numClusters, subset=None):
 
 # Compute the mean lifetimes
 def calculateMeanLifetimes(labels, numClusters):
+    print('Calculating Mean Lifetimes')
     LT = {}
     for s in labels:
         LT[s] = np.zeros(numClusters)
@@ -176,6 +178,7 @@ def calculateMeanLifetimes(labels, numClusters):
 
 # Analyse the Clustering results
 def analyseClustering(clustering, LEigs):
+    print('Start analyseClustering!!!')
     numClusters = clustering['centers'].shape[0]
 
     # compute the labels and probabilities of occurrence of each pattern c

@@ -36,20 +36,19 @@ sigma = 0.01
 @jit(nopython=True)
 def integrationStep(simVars, dt, coupling, stimulus):
     numSimVars = simVars.shape[0]; N = simVars.shape[1]
-    dvars_obsVars = neuronalModel.dfun(simVars, coupling, stimulus=stimulus)
+    dvars_obsVars = neuronalModel.dfun(simVars, coupling, stimulus)
     dvars = dvars_obsVars[0]; obsVars = dvars_obsVars[1]  # cannot use unpacking in numba...
 
     noise = np.sqrt(dt) * sigma * randn(numSimVars,N)
 
     inter = simVars + dt * dvars + noise
-    inter = doClamping(inter)
+    inter = doClamping(inter, clamping)
 
-    dvars_obsVars = neuronalModel.dfun(inter, coupling, stimulus=stimulus)
+    dvars_obsVars = neuronalModel.dfun(inter, coupling, stimulus)
     dvars2 = dvars_obsVars[0]; obsVars = dvars_obsVars[1]  # cannot use unpacking in numba...
     dX = (dvars + dvars2) * dt / 2.0
 
     simVars = simVars + dX + noise
-    simVars = doClamping(simVars)
 
     return simVars, obsVars
 

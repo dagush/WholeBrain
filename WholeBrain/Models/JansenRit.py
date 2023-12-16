@@ -60,7 +60,6 @@ def recompileSignatures():
     # initSim.recompile()
     sigm.recompile()
     dfun.recompile()
-    # coupling.recompile()
     pass
 
 
@@ -154,14 +153,17 @@ def sigm(y):
 
 @jitclass([('SC', double[:, :])])
 class instantaneousSigmoidalCoupling:
-    def __init__(self, data):
-        self.SC = data
+    def __init__(self):
+        self.SC = np.empty((1,1))
+
+    def setParms(self, SC):
+        self.SC = SC
 
     def couple(self, x):
         return SC @ sigm(x)
 
 
-couplingOp = instantaneousSigmoidalCoupling  # The only one who knows the coupling operation is the model itself!!!
+couplingOp = instantaneousSigmoidalCoupling()  # The only one who knows the coupling operation is the model itself!!!
 
 
 # ----------------- Model ----------------------

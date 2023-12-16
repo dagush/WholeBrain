@@ -10,10 +10,19 @@ import numpy as np
 # from numba import jit
 from scipy import stats
 from WholeBrain.Observables import BOLDFilters
+import WholeBrain.Observables.measures as measures
 
 print("Going to use Sliding Windows Functional Connectivity Dynamics (swFCD)...")
 
 name = 'swFCD'
+defaultMeasure = measures.KolmogorovSmirnovStatistic()
+accumulator = measures.concatenatingAccumulator()
+# -------------------- Convenience definitions. Should be overriden if the classes above are changed.
+distance = defaultMeasure.distance  # FC similarity, convenience function
+findMinMax = defaultMeasure.findMinMax
+init = accumulator.init
+accumulate = accumulator.accumulate
+postprocess = accumulator.postprocess
 
 
 # def mean2(x):
@@ -104,39 +113,35 @@ def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):  # Compute
 
 # ==================================================================
 # Simple generalization WholeBrain to abstract distance measures
-# This code is DEPRECATED (kept for backwards compatibility)
 # ==================================================================
-ERROR_VALUE = 10
+# ERROR_VALUE = 10
 
-# @jit(nopython=True)
-def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
-    d, pvalue = stats.ks_2samp(FCD1.flatten(), FCD2.flatten())
-    return d
-
-
-# @jit(nopython=True)
-def distance(FCD1, FCD2):  # FCD similarity, convenience function
-    if not (np.isnan(FCD1).any() or np.isnan(FCD2).any()):  # No problems, go ahead!!!
-        return KolmogorovSmirnovStatistic(FCD1, FCD2)
-    else:
-        return ERROR_VALUE
+# # @jit(nopython=True)
+# def KolmogorovSmirnovStatistic(FCD1, FCD2):  # FCD similarity
+#     d, pvalue = stats.ks_2samp(FCD1.flatten(), FCD2.flatten())
+#     return d
 
 
-def init(S, N):
-    return np.array([], dtype=np.float64)
+
+# FCD similarity, convenience function
+# distance = dist.distance # KolmogorovSmirnovStatistic(FCD1, FCD2)
 
 
-def accumulate(FCDs, nsub, signal):
-    FCDs = np.concatenate((FCDs, signal))  # Compute the FCD correlations
-    return FCDs
+# def init(S, N):
+#     return np.array([], dtype=np.float64)
+#
+#
+# def accumulate(FCDs, nsub, signal):
+#     FCDs = np.concatenate((FCDs, signal))  # Compute the FCD correlations
+#     return FCDs
+#
+#
+# def postprocess(FCDs):
+#     return FCDs  # nothing to do here
 
 
-def postprocess(FCDs):
-    return FCDs  # nothing to do here
-
-
-def findMinMax(arrayValues):
-    return np.min(arrayValues), np.argmin(arrayValues)
+# def findMinMax(arrayValues):
+#     return np.min(arrayValues), np.argmin(arrayValues)
 
 
 # --------------------------------------------------------------------------------------

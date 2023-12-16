@@ -35,7 +35,7 @@ from setup import *
 # IMPORTANT: This function was created to reproduce Deco et al.'s 2018 code for Figure 3A.
 # Actually, this only performs the fitting which gives the value of we (we in the original
 # code, G in the paper) to use for further computations (e.g., plotting Figure 3A).
-# For the plotting, see the respective file (fig3A.py)
+# For the plotting, see the respective file (plotPrepro.py)
 def prepro_G_Optim():
     # %%%%%%%%%%%%%%% Set General Model Parameters
     J_fileNames = outFilePath + "J_Balance_we{}.mat"
@@ -58,7 +58,7 @@ def prepro_G_Optim():
     print("# Compute G_Optim")
     print("###################################################################\n")
     fitting = optim1D.distanceForAll_Parms(tc_transf_PLA, WEs, modelParms, NumSimSubjects=NumSubjects,
-                                           distanceSettings=distanceSettings,
+                                           observablesToUse=distanceSettings,
                                            parmLabel='we',
                                            outFilePath=outFilePath, fileNameSuffix='')
 

@@ -107,6 +107,10 @@ def getParm(parmList):
 # ----------------- Coupling ----------------------
 @jitclass([('SC', double[:, :])])
 class instantaneousDifferenceCoupling:
+    @staticmethod
+    def isDelayed():
+        return False
+
     def __init__(self, SC):
         self.SC = SC
 
@@ -119,9 +123,9 @@ couplingOp = instantaneousDifferenceCoupling
 
 # ----------------- Model ----------------------
 @jit(nopython=True)
-def dfun(simVars, coupling, stimulus):
+def dfun(simVars, coupling, I_external):
     x = simVars[0]; y = simVars[1]
-    pC = stimulus + 0j
+    pC = I_external + 0j
     # --------------------- From Gus' original code:
     # First, we need to compute the term (in pseudo-LaTeX notation):
     #       G Sum_i SC_ij (x_i - x_j) =
