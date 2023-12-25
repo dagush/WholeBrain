@@ -7,7 +7,7 @@ import nibabel as nib
 import numpy as np
 from matplotlib import cm
 
-import WholeBrain.Utils.plot3DBrain_Utils as plot
+import Utils.Plotting.plot3DBrain_Utils as plot
 
 from setup import *
 

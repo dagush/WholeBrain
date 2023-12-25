@@ -20,7 +20,6 @@ from setup import *
 import WholeBrain.Observables.FC as FC
 import WholeBrain.Observables.swFCD as swFCD
 import WholeBrain.Observables.phFCD as phFCD
-from WholeBrain.Utils.plotSC import plotSC
 
 
 # =====================================================================

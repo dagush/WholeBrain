@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------------------
 import scipy.io as sio
 import dataLoader
-import WholeBrain.Utils.plotSC as plotSC
+import Utils.Plotting.plotSC as plotSC
 
 base_folder = '../../Data_Produced/AD_ABeta_and_Tau'
 

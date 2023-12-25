@@ -40,7 +40,7 @@ print("Going to use the supercritical Hopf bifurcation neuronal model...")
 def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    dfun.recompile()
+    # dfun.recompile()
     pass
 
 # ==========================================================================
@@ -83,6 +83,8 @@ def setParms(modelParms):
     global G, SC, a, omega
     if 'we' in modelParms:
         G = modelParms['we']
+    if 'G' in modelParms:
+        G = modelParms['G']
     if 'SC' in modelParms:
         SC = modelParms['SC']
         initSim(SC.shape[0])
@@ -93,7 +95,7 @@ def setParms(modelParms):
 
 
 def getParm(parmList):
-    if 'we' in parmList:
+    if 'we' in parmList or 'G' in parmList:
         return G
     if 'SC' in parmList:
         return SC
@@ -105,20 +107,22 @@ def getParm(parmList):
 # -----------------------------------------------------------------------------
 
 # ----------------- Coupling ----------------------
-@jitclass([('SC', double[:, :])])
+@jitclass([('SCT', double[:, :]),
+           ('ink', double[:])])
 class instantaneousDifferenceCoupling:
-    @staticmethod
-    def isDelayed():
-        return False
+    def __init__(self):
+        self.SCT = np.empty((1,1))
+        self.ink = np.empty((1))
 
-    def __init__(self, SC):
-        self.SC = SC
+    def setParms(self, SC):
+        self.SCT = SC.T
+        self.ink = SCT.sum(axis=1)   # Careful: component 2 in Matlab is component 1 in Python
 
     def couple(self, x):
-        return np.dot(SCT, x) - ink * x
+        return np.dot(self.SCT, x) - self.ink * x
 
 
-couplingOp = instantaneousDifferenceCoupling
+couplingOp = instantaneousDifferenceCoupling()
 
 
 # ----------------- Model ----------------------

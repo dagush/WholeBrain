@@ -132,7 +132,7 @@ def evaluateAtDefault(subjectName):
     if plotObservableUsed:
         save_file = save_folder + "/"+observable.name+".mat"
         phIntMatr = sio.loadmat(save_file)
-        import WholeBrain.Utils.plotSC as plotSC
+        import Utils.Plotting.plotSC as plotSC
         plotSC.plotFancyMatrix(phIntMatr[observable.name], axisName="Time", matrixName="FC dynamics (FCD)", showAxis='off')
         # ============= Restore state at observable, do not keep saving anything!
         observable.saveMatrix = False

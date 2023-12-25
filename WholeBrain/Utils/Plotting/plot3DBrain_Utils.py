@@ -4,7 +4,7 @@
 # =================================================================
 # =================================================================
 import matplotlib as plt
-from Utils.plot3DBrain import *
+from Utils.Plotting.plot3DBrain import *
 
 
 # =================================================================
@@ -176,23 +176,22 @@ def plot_TopViewValuesForAllCohorts(burdens, cmap):
 # but all wiuth a common normalization and a common colorbar
 # =================================================================
 # This one plots a single multiview5 plot
-def plot_multiview5Values(obs, title, fileName, display, cmap, modality, norm):
+def plot_multiview5Values(obs, title, fileName, display, cmap, norm):
     crtx = setUpGlasser360()
     # =============== Plot!!! =============================
     data = {'func_L': obs, 'func_R': obs}
-    resultsPath = f'../../Results/AD-Meta/Plot {modality}/'
     multiview5(crtx, data, 360, cmap, suptitle=title, lightingBias=0.1, mode='flatWire', shadowed=True,
-               display=display, savePath=resultsPath+fileName+'.png', norm=norm)
+               display=display, savePath=fileName+'.png', norm=norm)
 
 
 # plots multiple multiview5 plots
-def plot_multiview5ValuesForEachChort(burdens, title, igniMetaName, display, cmap, modality):
+def plot_multiview5ValuesForEachChort(burdens, title, metaName, display, cmap, path):
     vmin = np.min([np.min(burdens[c]) for c in burdens])
     vmax = np.max([np.max(burdens[c]) for c in burdens])
     norm = Normalize(vmin=vmin, vmax=vmax)
-    for c in burdens:
-        fullFileName = c + igniMetaName
-        plot_multiview5Values(burdens[c], title, fullFileName, display, cmap, modality, norm)
+    for cohort in burdens:
+        fullFileName = path + cohort + metaName
+        plot_multiview5Values(burdens[cohort], title, fullFileName, display, cmap, norm)
 
 
 
@@ -200,20 +199,20 @@ def plot_multiview5ValuesForEachChort(burdens, title, igniMetaName, display, cma
 #  Convenience function for the Glasser parcellation, for debug purposes only...
 # ===========================
 def setUpGlasser360():
-    Glasser360_baseFolder = "../../Data_Raw/Parcellations"
+    Glasser360_baseFolder = "../../../Data_Raw/Parcellations/Glasser360/"
     # =============== Load the geometry ==================
-    glassers_L = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.L.mid.32k_fs_LR.surf.gii')
-    # glassers_L = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.L.inflated.32k_fs_LR.surf.gii')
-    # glassers_L = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.L.very_inflated.32k_fs_LR.surf.gii')
+    glassers_L = nib.load(Glasser360_baseFolder + 'Glasser360.L.mid.32k_fs_LR.surf.gii')
+    # glassers_L = nib.load(Glasser360_baseFolder + 'Glasser360.L.inflated.32k_fs_LR.surf.gii')
+    # glassers_L = nib.load(Glasser360_baseFolder + 'Glasser360.L.very_inflated.32k_fs_LR.surf.gii')
 
-    glassers_R = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.R.mid.32k_fs_LR.surf.gii')
-    # glassers_R = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.R.inflated.32k_fs_LR.surf.gii')
-    # glassers_R = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.R.very_inflated.32k_fs_LR.surf.gii')
+    glassers_R = nib.load(Glasser360_baseFolder + 'Glasser360.R.mid.32k_fs_LR.surf.gii')
+    # glassers_R = nib.load(Glasser360_baseFolder + 'Glasser360.R.inflated.32k_fs_LR.surf.gii')
+    # glassers_R = nib.load(Glasser360_baseFolder + 'Glasser360.R.very_inflated.32k_fs_LR.surf.gii')
 
-    flat_L = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.L.flat.32k_fs_LR.surf.gii')
-    flat_R = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'Glasser360.R.flat.32k_fs_LR.surf.gii')
-    mapL = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'fsaverage.L.glasser360_fs_LR.func.gii').agg_data()
-    mapR = nib.load(Glasser360_baseFolder + '/Glasser360/' + 'fsaverage.R.glasser360_fs_LR.func.gii').agg_data()
+    flat_L = nib.load(Glasser360_baseFolder + 'Glasser360.L.flat.32k_fs_LR.surf.gii')
+    flat_R = nib.load(Glasser360_baseFolder + 'Glasser360.R.flat.32k_fs_LR.surf.gii')
+    mapL = nib.load(Glasser360_baseFolder + 'fsaverage.L.glasser360_fs_LR.func.gii').agg_data()
+    mapR = nib.load(Glasser360_baseFolder + 'fsaverage.R.glasser360_fs_LR.func.gii').agg_data()
 
     cortex = {'model_L': glassers_L, 'model_R': glassers_R,
               'flat_L': flat_L, 'flat_R': flat_R,
@@ -236,3 +235,6 @@ if __name__ == '__main__':
 
     multiview5(crtx, data, 360, testColors, lightingBias=0.1, mode='flatWire', shadowed=True)
 
+# ======================================================
+# ======================================================
+# ======================================================EOF

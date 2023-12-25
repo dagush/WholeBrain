@@ -15,7 +15,7 @@
 # --------------------------------------------------------------------------------------
 import numpy as np
 
-import WholeBrain.Utils.plotFitting as plotFitting
+import Utils.Plotting.plotFitting as plotFitting
 import WholeBrain.Observables.FC as FC
 import WholeBrain.Observables.swFCD as swFCD
 import WholeBrain.Observables.phFCD as phFCD
@@ -31,7 +31,7 @@ distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True), 'phFCD': (phFCD, 
 outFilePath = save_folder + '/' + subjectName + '-temp'
 exageratedRange = np.arange(0.0, 10.001, 0.001)  # loadAndPlot will load and show only the existing files...
 
-plotFitting.loadAndPlot(outFilePath +'/fitting_we{}.mat', distanceSettings,
+plotFitting.loadAndPlot(outFilePath + '/fitting_we{}.mat', distanceSettings,
                         WEs=exageratedRange, weName='we',
                         empFilePath=outFilePath +'/fNeuro_emp.mat')
 

@@ -25,11 +25,9 @@
 #                                       CNT-UWSR.shape.gii
 #                                       -trilinear
 
-import numpy as np
 import nibabel as nib
 from matplotlib import cm
-import matplotlib.pyplot as plt
-import WholeBrain.Utils.plot3DBrain_Utils as plot
+import Utils.Plotting.plot3DBrain_Utils as plot
 
 base_folder = "../../Data_Raw/"
 parcellationsBaseFoler = base_folder + 'Parcellations/'
