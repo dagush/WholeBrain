@@ -1,7 +1,7 @@
 # ================================================================================================================
 # Function to preprocess empirical signals for an optimization stage
 # ================================================================================================================
-from WholeBrain.Utils.decorators import loadOrCompute
+import WholeBrain.Utils.decorators as decorators
 import time
 
 
@@ -40,7 +40,7 @@ def processBOLDSignals(BOLDsignals, observablesToUse):
 
 
 # ============== a practical way to save recomputing necessary (but lengthy) results ==========
-@loadOrCompute
+@decorators.loadOrCompute
 def processEmpiricalSubjects(BOLDsignals, observablesToUse):
     return processBOLDSignals(BOLDsignals, observablesToUse)
 

@@ -127,6 +127,18 @@ def numba_phFCD(phIntMatr_upTri, npattmax, size_kk3):
     return phfcd
 
 
+def computeMatrix(phIntMatr, N, Tmax):
+    npattmax = Tmax - (2 * discardOffset - 1)  # calculates the size of phfcd vector
+    size_kk3 = int((npattmax - 3) * (
+                npattmax - 2) / 2)  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
+    Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
+    phIntMatr_upTri = np.zeros((npattmax, int(N * (N - 1) / 2)))  # The int() is not needed, but... (see above)
+    for t in range(npattmax):
+        phIntMatr_upTri[t, :] = phIntMatr[t][Isubdiag]
+    phfcd = numba_phFCD(phIntMatr_upTri, npattmax, size_kk3)
+    return phfcd
+
+
 # ==================================================================
 # From [Deco2019]: Comparing empirical and simulated FCD.
 # For a single subject session where M time points were collected, the corresponding phase-coherence based
@@ -142,13 +154,7 @@ def from_fMRI(ts, applyFilters=True, removeStrongArtefacts=True):  # Compute the
                                                  removeStrongArtefacts=removeStrongArtefacts)  # Compute the Phase-Interaction Matrix
     if not np.isnan(phIntMatr).any():  # No problems, go ahead!!!
         (N, Tmax) = ts.shape
-        npattmax = Tmax - (2 * discardOffset - 1)  # calculates the size of phfcd vector
-        size_kk3 = int((npattmax - 3) * (npattmax - 2) / 2)  # The int() is not needed because N*(N-1) is always even, but "it will produce an error in the future"...
-        Isubdiag = tril_indices_column(N, k=-1)  # Indices of triangular lower part of matrix
-        phIntMatr_upTri = np.zeros((npattmax, int(N * (N - 1) / 2)))  # The int() is not needed, but... (see above)
-        for t in range(npattmax):
-            phIntMatr_upTri[t,:] = phIntMatr[t][Isubdiag]
-        phfcd = numba_phFCD(phIntMatr_upTri, npattmax, size_kk3,)
+        phfcd = computeMatrix(phIntMatr, N, Tmax)
     else:
         warnings.warn('############ Warning!!! phFCD.from_fMRI: NAN found ############')
         phfcd = np.array([np.nan])

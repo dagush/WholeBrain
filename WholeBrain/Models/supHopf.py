@@ -37,11 +37,13 @@ from numba.experimental import jitclass
 
 print("Going to use the supercritical Hopf bifurcation neuronal model...")
 
+
 def recompileSignatures():
     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    # dfun.recompile()
+    dfun.recompile()
     pass
+
 
 # ==========================================================================
 # supercritical Hopf bifurcation Constants
@@ -54,6 +56,7 @@ SC = None       # Structural Connectivity (should be provided externally)
 SCT = None      # Transposed Structural Connectivity (we initialize it at initSim(N))
 ink = None      # Convenience parameters: sum_i(Cij) = SCT.sum(axis=1) (we initialize it at initSim(N))
 conservative = True  # Select between Conservative and Non-conservative (remove the x_j - x_i dependence, i.e., ink=0)
+
 
 # --------------------------------------------------------------------------
 # Simulation variables

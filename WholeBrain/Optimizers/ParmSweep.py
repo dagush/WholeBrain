@@ -20,7 +20,7 @@ import numpy as np
 # import matplotlib.pyplot as plt
 # from pathlib import Path
 # from numba import jit
-from WholeBrain.Utils.decorators import loadOrCompute
+import WholeBrain.Utils.decorators as decorators
 import time
 
 from WholeBrain.Utils.preprocessSignal import processBOLDSignals, processEmpiricalSubjects
@@ -41,7 +41,7 @@ sim_inf = 100
 # ==========================================================================
 # ==========================================================================
 # ---- convenience method, to parallelize the code (someday)
-@loadOrCompute
+@decorators.loadOrCompute
 def evaluateForOneParm(currValue, modelParms, NumSimSubjects,
                        observablesToUse, label):  # observablesToUse is a dictionary of {name: (observable module, apply filters bool)}
     integrator.neuronalModel.setParms(modelParms)

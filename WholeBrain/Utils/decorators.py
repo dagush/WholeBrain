@@ -46,10 +46,11 @@ def cleanDict(resData):
 # dictionary of {name: value} pairs, so when the computation was done before and the file exists and is
 # loaded we could directly return the Matlab file contents directly. It uses the .mat file format for all
 # operations.
+forceCompute = False
 def loadOrCompute(func):
     @functools.wraps(func)
     def loading_decorator(*args, **kwargs):
-        if not Path(args[-1]).is_file():
+        if forceCompute or not Path(args[-1]).is_file():
             if verbose: print(f"Computing (@loadOrCompute): {args[-1]}", flush=True)
             value = tuple(a for a in list(args)[:-1])
             result = func(*value)

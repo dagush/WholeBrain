@@ -21,7 +21,6 @@ def recompileSignatures():
     phie.recompile()
     phii.recompile()
     dfun.recompile()
-    # coupling.recompile()
     pass
 
 

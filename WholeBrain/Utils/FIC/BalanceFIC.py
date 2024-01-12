@@ -17,8 +17,7 @@
 # --------------------------------------------------------------------------
 import numpy as np
 
-from WholeBrain.Utils.decorators import loadOrCompute
-
+import WholeBrain.Utils.decorators as decorators
 integrator = None  # in the original paper, Integrator_EulerMaruyama
 
 veryVerbose = False
@@ -34,7 +33,7 @@ balancingMechanism = Balance_DecoEtAl2014
 # =====================================
 # =====================================
 # Auxiliary WholeBrain to simplify work: if it was computed, load it. If not, compute (and save) it!
-@loadOrCompute
+@decorators.loadOrCompute
 def Balance_J9(we, N, warmUp=False): # Computes (and sets) the optimized J for Feedback Inhibition Control [DecoEtAl2014]
     print(f"Balancing for we={we}")
     integrator.neuronalModel.setParms({'we': we})
