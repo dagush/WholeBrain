@@ -30,7 +30,7 @@ bands = [[0.008,12]]  # frequency bands to analyze
 lobe_file = loadDataPath + 'LobeIndex.csv';
 xlimit = t_stamps[-1];
 wiggle = 0.1  # wiggles trials on same x tick
-plt.style.use('seaborn-muted')
+plt.style.use('seaborn-v0_8-muted')  # seaborn-muted
 colours = sns.color_palette('hls', len(lobe_names)+4)
 
 # --------------------------------------------------------------------------------------
@@ -39,9 +39,11 @@ colours = sns.color_palette('hls', len(lobe_names)+4)
 # --------------------------------------------------------------------------------------
 gamma = 0.0
 print('\nLoading solutions...')
-dyn_sols = pickle.load(open(dyn_save_path.format(f'gamme={gamma}'), "rb"))
-spread_sol = pickle.load(open(spread_save_path.format(f'gamme={gamma}'), "rb"))
-print('Done.')
+dyn_save_file = dyn_save_path.format(f'gamme={gamma}')
+dyn_sols = pickle.load(open(dyn_save_file, "rb"))
+spread_save_file = spread_save_path.format(f'gamme={gamma}')
+spread_sol = pickle.load(open(spread_save_file, "rb"))
+print(f"Done Loading:\n   {dyn_save_file}\n   {spread_save_file}).")
 
 # --------------------------------------------------------------------------------------
 # PLOT

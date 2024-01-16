@@ -24,7 +24,7 @@ def recompileSignatures():
     integr_utils.doClamping.recompile()
     neuronalModel.recompileSignatures()
     recordBookkeeping.recompile()
-    # integrationScheme.integrationStep.recompile()
+    integrationScheme.integrationStep.recompile()
     pass
 
 

@@ -38,8 +38,8 @@ def recompileSignatures():
 # --------------------------------------------------------------------------
 # Values taken from [Alexandersen 2023]
 decay = None
-decay0 = 0
-decay1 = 1
+# decay0 = 0
+# decay1 = 1
 baseDecay = -0.01
 # inter_mat = None  # set to np.ones((N,N)) at initSim(N)
 baseH = 5
@@ -82,7 +82,7 @@ def numObsVars():  # Returns the number of observation vars used, here xn and rn
 # --------------------------------------------------------------------------
 # Set the parameters for this model
 def setParms(modelParms):
-    global G, SC, a, b, omega, y0, delays
+    global G, SC, a, b, omega, y0, delays, baseDecay, baseH
     if 'we' in modelParms:
         G = modelParms['we']
     if 'SC' in modelParms:
@@ -97,6 +97,10 @@ def setParms(modelParms):
         y0 = modelParms['y0']
     if 'delays' in modelParms:
         delays = modelParms['delays']
+    if 'baseDecay' in modelParms:
+        baseDecay = modelParms['baseDecay']
+    if 'baseH' in modelParms:
+        baseH = modelParms['baseH']
 
 
 def getParm(parmName):
@@ -114,8 +118,8 @@ def getParm(parmName):
 # -----------------------------------------------------------------------------
 
 # ----------------- Coupling ----------------------
-# from WholeBrain.Models.Couplings import instantaneousDirectCoupling  # The only one who knows the coupling operation is the model itself!!!
-couplingOp = None
+from WholeBrain.Models.Couplings import instantaneousDirectCoupling  # The only one who knows the coupling operation is the model itself!!!
+couplingOp = instantaneousDirectCoupling()
 
 
 # ----------------- Model ----------------------
