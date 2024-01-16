@@ -24,7 +24,7 @@ def recompileSignatures():
     integr_utils.doClamping.recompile()
     neuronalModel.recompileSignatures()
     recordBookkeeping.recompile()
-    integrationScheme.integrationStep.recompile()
+    # integrationScheme.integrationStep.recompile()
     pass
 
 
@@ -84,7 +84,7 @@ def integrationLoop(dt, Tmaxneuronal, simVars, doBookkeeping, curr_obsVars, coup
 
 # # @jit(nopython=True)
 def integrate(dt, Tmaxneuronal, simVars, doBookkeeping = True):
-    # numSimVars = simVars.shape[0]
+    # integrationScheme.buildNoise()
     recompileSignatures()
     N = simVars.shape[1]  # N = neuronalModel.SC.shape[0]  # size(C,1) #N = CFile["Order"].shape[1]
     curr_obsVars = initBookkeeping(N, Tmaxneuronal)

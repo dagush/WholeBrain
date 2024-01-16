@@ -29,7 +29,7 @@ import WholeBrain.Models.Naskar as Naskar
 import WholeBrain.Models.Couplings as Couplings
 # ----------------------------------------------
 import Integrators.EulerMaruyama as scheme
-scheme.sigma = 0.001
+scheme.sigma = 0.001  # np.array([0.001, 0.001, 0.])
 scheme.neuronalModel = Naskar
 import Integrators.Integrator as integrator
 integrator.integrationScheme = scheme
