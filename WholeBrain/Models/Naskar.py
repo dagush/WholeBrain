@@ -40,6 +40,7 @@ def recompileSignatures():
     phie.recompile()
     phii.recompile()
     dfun.recompile()
+    pass
 
 
 # ==========================================================================
@@ -165,7 +166,7 @@ def dfun(simVars, coupling, I_external):
     re = He(Ie)  # Calls He(Ie). r^E = H^E(I^E) in the paper (7)
     ri = Hi(Ii)  # Calls Hi(Ii). r^I = H^I(I^I) in the paper (8)
     dSe = -Se*B_e + alfa_e * t_glu * (1.-Se) * re/1000.  # divide by 1000 because we need milliseconds!
-    dSi = -Si*B_i + alfa_i * t_gaba *(1.-Si) * ri/1000.
+    dSi = -Si*B_i + alfa_i * t_gaba * (1.-Si) * ri/1000.
     dJ = gamma * ri/1000. * (re-rho)/1000.  # local inhibitory plasticity
     return np.stack((dSe, dSi, dJ)), np.stack((Ie, re, J))
 

@@ -30,7 +30,7 @@ def buildNoise():
 # ==========================================================================
 # Euler-Maruyama Integration
 # --------------------------------------------------------------------------
-# @jit(nopython=True)
+@jit(nopython=True)
 def integrationStep(simVars, dt, coupling, stimulus):  #, curr_obsVars, doBookkeeping):
     numSimVars = simVars.shape[0]; N = simVars.shape[1]
     dvars_obsVars = neuronalModel.dfun(simVars, coupling, stimulus)

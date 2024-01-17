@@ -44,15 +44,19 @@ from setup import *
 # np.random.seed(42)  # Fix the seed for debug purposes...
 
 
-def plotMaxFrecForAllG(C, wStart=0, wEnd=6+0.001, wStep=0.05,
-                        extraTitle=''):
+def plotMaxFrecForAllG(SC):
     # Integration parms...
     dt = 0.1
-    tmax = 10000.
+    tmax = 9 * 60 * 1000.
     Tmaxneuronal = int((tmax+dt))
+    # ---------------------------- DEBUG
+    wStart = 0.
+    wEnd = 1.5
+    wStep = 0.1
+    # ---------------------------- END DEBUG
     # all tested global couplings (G in the paper):
     Gs = np.arange(wStart, wEnd, wStep)  # warning: the range of wes depends on the conectome.
-    N = C.shape[0]
+    # N = SC.shape[0]
 
     print("==========================================")
     print("=    simulating freq evaluation (Naskar) =")
@@ -89,9 +93,9 @@ def plotMaxFrecForAllG(C, wStart=0, wEnd=6+0.001, wStep=0.05,
     # fic, = plt.plot(wes, maxRateFIC)
     # fic.set_label("FIC")
 
-    for line, color in zip([1.47, 4.45], ['r','b']):
-        plt.axvline(x=line, label='line at x = {}'.format(line), c=color)
-    plt.title("Large-scale network (DMF)" + extraTitle)
+    # for line, color in zip([1.47, 4.45], ['r','b']):
+    #     plt.axvline(x=line, label='line at x = {}'.format(line), c=color)
+    plt.title("Large-scale network (DMF)")
     plt.ylabel("Maximum rate (Hz)")
     plt.xlabel("Global Coupling G")
     plt.legend()
@@ -103,6 +107,11 @@ def plotMaxFrecForAllG(C, wStart=0, wEnd=6+0.001, wStep=0.05,
 # ================================================================================================================
 if __name__ == '__main__':
     plt.rcParams.update({'font.size': 15})
+
+    # ============= For debug only! =============
+    import WholeBrain.Utils.decorators as decorators
+    decorators.forceCompute = True
+    # ===========================================
 
     # # Simple verification test, to check the info from the paper...
     # print(f"Simple test for verification: phie={DMF.phie(-0.026+DMF.be/DMF.ae)}")
