@@ -67,8 +67,8 @@ def plotMaxFrecForAllG(SC):
         print("Processing: {}".format(G), end='')
         Naskar.setParms({'G': G})
         # integrator.recompileSignatures()
-        v = integrator.simulate(dt, Tmaxneuronal)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
-        maxRateNoFIC[kk] = np.max(np.mean(v,0))
+        v = integrator.warmUpAndSimulate(dt, Tmaxneuronal, TWarmUp=60*1000)[:,1,:]  # [1] is the output from the excitatory pool, in Hz.
+        maxRateNoFIC[kk] = np.max(np.mean(v, axis=0))
         print(" => {}".format(maxRateNoFIC[kk]))
     ee, = plt.plot(Gs, maxRateNoFIC)
     ee.set_label("Naskar")
