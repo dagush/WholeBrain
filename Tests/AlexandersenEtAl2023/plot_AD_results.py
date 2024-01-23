@@ -9,7 +9,7 @@
 # https://doi.org/10.1098/rsif.2022.0607
 #
 # Requirements:
-#   To run this, first you need to perform the simulations with Original_AD_sim.py
+#   To run this, first you need to perform the simulations with alzheimer_simulation.py
 #
 # refactored by Gustavo Patow
 # --------------------------------------------------------------------------------------

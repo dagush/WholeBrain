@@ -32,19 +32,20 @@ class Alexandersen2023(base_progression):
     # spreading dynamics
     # -------------------------------------------------------------------------------
     def dfun(self, t, y):
-        # set up variables as lists indexed by node k
-        u = np.array([y[i] for i in range(self.N)])
-        up = np.array([y[i] for i in range(self.N, 2 * self.N)])
-        v = np.array([y[i] for i in range(2 * self.N, 3 * self.N)])
-        vp = np.array([y[i] for i in range(3 * self.N, 4 * self.N)])
-        qu = np.array([y[i] for i in range(4 * self.N, 5 * self.N)])
-        qv = np.array([y[i] for i in range(5 * self.N, 6 * self.N)])
-        a = np.array([y[i] for i in range(6 * self.N, 7 * self.N)])
-        b = np.array([y[i] for i in range(7 * self.N, 8 * self.N)])
-        c = np.array([y[i] for i in range(8 * self.N, 9 * self.N)])
-        w = np.array([y[i] for i in range(9 * self.N, 9 * self.N + self.M)])
+        y = np.array(y)
+        # ---- Unpack!!! (set up variables as lists indexed by node k)
+        u = y[:self.N]
+        up = y[self.N: 2 * self.N]
+        v = y[2 * self.N: 3 * self.N]
+        vp = y[3 * self.N: 4 * self.N]
+        qu = y[4 * self.N: 5 * self.N]
+        qv = y[5 * self.N: 6 * self.N]
+        a = y[6 * self.N: 7 * self.N]
+        b = y[7 * self.N: 8 * self.N]
+        c = y[8 * self.N: 9 * self.N]
+        w = y[9 * self.N: 9 * self.N + self.M]
 
-        # update laplacian from m weights
+        # ---- update laplacian from m weights
         L = np.zeros((self.N, self.N))
         for i in range(self.M):
             n, m = self.edges[i]
@@ -55,16 +56,16 @@ class Alexandersen2023(base_progression):
             L[n, n] += w[i]
             L[m, m] += w[i]
 
-        # check if l is defined correctly
+        # ---- check if l is defined correctly
         for i in range(self.N):
             if abs(sum(L[i, :])) > 10 ** -10:
                 print('L is ill-defined')
                 print(sum(L[i, :]))
 
-        # scale Laplacian by diffusion constant
+        # ---- scale Laplacian by diffusion constant
         L = self.rho * L
 
-        # nodal dynamics
+        # ---- nodal dynamics
         du, dup, dv, dvp, dqu, dqv, da, db, dc = [[] for _ in range(9)]
         neighbours = self.neighbours
         for k in range(self.N):
@@ -100,7 +101,7 @@ class Alexandersen2023(base_progression):
             db.append(dbk)
             dc.append(dck)
 
-        # connecctivity dynamics
+        # ---- connecctivity dynamics
         dw = []
         for i in range(self.M):
             # extract edge
@@ -111,7 +112,7 @@ class Alexandersen2023(base_progression):
             ## append
             dw.append(dwi)
 
-        # pack right-hand side
+        # ---- pack right-hand side
         rhs = [*du, *dup, *dv, *dvp, *dqu, *dqv, *da, *db, *dc, *dw]
         return rhs
 

@@ -8,19 +8,17 @@
 # J. R. Soc. Interface
 # https://doi.org/10.1098/rsif.2022.0607
 #
-# This is the first file in the sequence for the propagation simulation
+# This is the first file in the sequence for the propagation simulation, AFTER preparing setup.py...
 #
 # refactored by Gustavo Patow
 # --------------------------------------------------------------------------------------
 import numpy as np
-import matplotlib.pyplot as plt
-# import symengine as sym
 from math import pi
 import pickle
 import csv
 
 import Progression.progression_functions as AD_func
-import loadDelays
+# import loadDelays  # no delays in our implementation
 from setup import *
 
 
@@ -34,23 +32,14 @@ from setup import *
 # --------------------------- main -----------------
 # --------------------------------------------------
 if __name__ == '__main__':
-    # # --------------------------------------------------------------------------------------
-    # # Compile hopf model
-    # # --------------------------------------------------------------------------------------
-    # print('\nCompiling...')
-    # NeuroModelDE = AD_func.compile_hopf(N, a=a, b=b, delays=delays, t_span=dyn_tspan,
-    #                                      kappa=kappa, w=w, decay=decay, random_init=True,
-    #                                      h=h, control_pars=control_pars)
-    # print('Done.')
+    # --------------------------------------------------------------------------------------
+    # Setup modified Hopf model
+    # --------------------------------------------------------------------------------------
     AD_func.setupSimulator(neuronalModel, integrator, simulator, Couplings.instantaneousDirectCoupling)
 
-
-    # # --------------------------------------------------------------------------------------
-    # # dynamical (oscillator) settings
-    # # --------------------------------------------------------------------------------------
-    # dyn_step = 1/1250; dyn_atol = 10**-6; dyn_rtol = 10**-4
-    # dyn_tspan = (0,11)
-    # dyn_cutoff = 1  # time to cutoff for analysis
+    # --------------------------------------------------------------------------------------
+    # Overall simulation settings
+    # --------------------------------------------------------------------------------------
     t_years = np.linspace(0,35,11)
     trials = 10  # number of repetitions
 
@@ -59,8 +48,10 @@ if __name__ == '__main__':
     # --------------------------------------------------------------------------------------
     tau_nodes = [26, 67]  # left and right entorhinal cortex, toxic initialization
     beta_nodes = [0, 41, 3, 44, 13, 54, 14, 55, 19, 60, 33, 74]  # Mattson et. al (2019) stage I, toxic initialization
-    seed_amount = 0.01; spread_atol = 10**-6; spread_rtol = 10**-4
-    spread_tspan = (0,35); spread_y0 = False  # False gives default setting
+    seed_amount = 0.01
+    spread_tspan = (0,35)
+    spread_atol = 10**-6; spread_rtol = 10**-4
+    # spread_y0 = False  # False gives default setting
 
     # --------------------------------------------------------------------------------------
     # Read Budapest coupling matrix
@@ -72,20 +63,16 @@ if __name__ == '__main__':
     N = np.shape(W)[0]  # number of nodes
 
     # --------------------------------------------------------------------------------------
-    #  Load distances and compute delays...
+    #  Load distances and compute delays... NOT USED IN THIS IMPLEMENTATION!!!
     # --------------------------------------------------------------------------------------
-    transmission_speed = 130.0
-    delay_dim = 40  # discretization dimension of delay matrix
-    distances = loadDelays.loadDistances(loadDataPath + 'LengthFibers33.csv')
-    delays = loadDelays.build_delay_matrix(distances, transmission_speed, N, discretize=delay_dim)
+    # transmission_speed = 130.0
+    # delay_dim = 40  # discretization dimension of delay matrix
+    # distances = loadDelays.loadDistances(loadDataPath + 'LengthFibers33.csv')
+    # delays = loadDelays.build_delay_matrix(distances, transmission_speed, N, discretize=delay_dim)
 
     # --------------------------------------------------------------------------------------
     # HOPF PARAMETERS
-    # w = [sym.var(f'wf_{n}') for n in range(N)]  # natural frequency
-    # a = [sym.var(f'a_{n}') for n in range(N)]  # excitatory strength
-    # b = [sym.var(f'b_{n}') for n in range(N)]  # inhibitory strengh
     baseDecay = -0.01; baseH = 5; kappa = 1;  # kappa is the coupling constant, now called G
-    # control_pars = [*a, *b, *w]  # parameters to be overwriteable in C++ compilation
     freqss = np.random.normal(10,1, size=(N,trials))  # samples of frequencies
     freqss *= 2*pi
     # --------------------------------------------------------------------------------------
@@ -96,13 +83,6 @@ if __name__ == '__main__':
     R0 = np.random.uniform(0, 1, (trials, N))
     dyn_y0[:, ::2] = R0 * np.cos(theta0)  # dyn_y0 values are interleaved...
     dyn_y0[:, 1::2] = R0 * np.sin(theta0)
-
-    # **************************************************************************************
-    # ----------------- just some silly debug code
-    # plt.imshow(dyn_y0)
-    # plt.colorbar()
-    # plt.show()
-    # **************************************************************************************
 
     # # --------------------------------------------------------------------------------------
     # SPREADING PARAMETERS
@@ -127,12 +107,14 @@ if __name__ == '__main__':
     # --------------------------------------------------------------------------------------
     print('\nSolving alzheimer model...')
     spread_sol, dyn_sols = AD_func.alzheimer(
-        W, dyn_y0,
-        tau_seed=tau_nodes, beta_seed=beta_nodes,
-        seed_amount=seed_amount, trials=trials,
+        W,
+        # ---- Dynamic parms
+        dyn_y0,
+        trials=trials,
+        # ---- Spread initialization
         t_spread=t_years,
-        spread_tspan=spread_tspan,
-        spread_y0=spread_y0,  # ------------- The propagation model initial parms!
+        tau_seed=tau_nodes, beta_seed=beta_nodes, seed_amount=seed_amount, spread_tspan=spread_tspan,
+        # spread_y0=spread_y0,  # ------------- The propagation model initial parms!
         modelParms=spreadingParms,  # ------------- The propagation model parms!!!
         freqss=freqss, method='RK45',
         spread_atol=spread_atol, spread_rtol=spread_rtol,

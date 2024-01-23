@@ -20,107 +20,6 @@ import Progression.ProgrModels.Alexandersen2023 as progrModel
 # helper functions to simulate Alzheimers!
 # ----------------------------------------
 
-# # -----------------------------------------
-# # compile hopf normal form model into
-# # C++ wrapper
-# # INPUT:
-# #   Hopf normal form parameters (parameters to be changed must be symengine variables)
-# #   control_pars - list of symengine variables (parameters that can be changed)
-# # OUTPUT:
-# #   DDE - JiTCDDE object
-# #   y0 - numpy array (initial conditions)
-# # -----------------------------------------
-# def compile_hopf(N, a=False, b=False, delays=False, t_span=(0,10),
-#              kappa=10, h=1, w=False, decay=-0.01, inter_idx=[], inter_c=1,
-#              random_init=True, delay_c=1, max_delay=None,  #decay0=0, decay1=1,
-#              only_a=False, control_pars=()):
-#     # import must be within function (or else t will not be caught)
-#     from jitcdde import jitcdde, y, t
-#
-#
-#     # set default parameter values
-#     if delays is False:
-#         delays = np.zeros((N,N))
-#     if not a:
-#         a = 1
-#     if not b:
-#         b = 1
-#
-#     # construct adjacency matrix of symbols
-#     W = [[sym.var(f'W_{i}_{j}') for j in range(N)] for i in range(N)]
-#
-#     # interhemispheric coupling matrix (scales interhemispheric coupling by inter_c)
-#     inter_mat = [ [1 for _ in range(N)] for _ in range(N) ]
-#     for e1, e2 in inter_idx:  # in the current implementation, inter_idx=[], so inter_mat=np.ones((N,N))
-#         inter_mat[e1][e2] = inter_c
-#
-#     # if a or b not list then make list (list necessary for symengine variables)
-#     if not isinstance(a,list):
-#         a_val = a
-#         a = [a_val for _ in range(N)]
-#     if not isinstance(b,list):
-#         b_val = b
-#         b = [b_val for _ in range(N)]
-#     if not isinstance(decay,list):
-#         decay_val = decay
-#         decay = [decay_val for _ in range(N)]
-#     if not isinstance(h,list):
-#         h_val = h
-#         h = [h_val for _ in range(N)]
-#
-#     # TEST DISCARDING B SEMIAXIS
-#     if only_a:
-#         b = a
-#
-#     # define generator of rhs
-#     def neural_mass():
-#         for k in range(N):
-#             # define input to node: With delays
-#             afferent_input = kappa * sum(inter_mat[j][k] * W[j][k] * y(2*j+0, t-delay_c*delays[j,k]) for j in range(N))
-#             # define input to node: Without delays
-#             # afferent_input = kappa * sum(inter_mat[j][k] * W[j][k] * y(2 * j + 0) for j in range(N))
-#
-#             # transform decays
-#             # decay[k] = decay1*(decay[k]-decay0)
-#
-#             # dynamics of node k
-#             # Remember values are interleaved: x is at even positions
-#             yield decay[k]*y(2*k+0) - w[k]*(a[k]/b[k])*y(2*k+1) \
-#                      - y(2*k+0)*(y(2*k+0)**2/a[k]**2 + y(2*k+1)**2/b[k]**2) \
-#                          + h[k] * sym.tanh(afferent_input)
-#             # y is at odd positions
-#             yield decay[k]*y(2*k+1) + w[k]*(b[k]/a[k])*y(2*k+0)  \
-#                      - y(2*k+1)*(y(2*k)**2/a[k]**2 + y(2*k+1)**2/b[k]**2)
-#
-#     # set up initial conditions
-#     if random_init:
-#         theta0 = np.random.uniform(0, 2*3.14, N)
-#         R0 = np.random.uniform(0,1,N)
-#     else:
-#         R0 = np.full((N),1)
-#         theta0 = np.full((N),0)
-#     y0 = np.zeros((2*N))
-#     y0[::2] = R0 * np.cos(theta0)
-#     y0[1::2] = R0 * np.sin(theta0)
-#
-#     # flatten symbolic adjacency matrix as list
-#     flat_W = list(np.array(W).flatten())
-#
-#     # include symbolic adjacency matrix as implicit parameters
-#     # So, the final parms will be [flat_W, a, b, w] because the last three come from main...
-#     control_pars = [*flat_W, *control_pars]
-#
-#     # compile DDE, set integration parameters, and store number of nodes
-#     DDE = jitcdde(neural_mass, n=2*N, control_pars=control_pars, max_delay=max_delay)
-#     DDE.compile_C(do_cse=True, chunk_size=int(N*2))  # after vacation this is suddenly slow
-#
-#     # add number of nodes and initial conditions to DDE object
-#     DDE.N = N
-#     DDE.y0 = y0
-#
-#     return DDE
-
-
 dt = None
 neuronalModel=None
 simulator = None
@@ -148,38 +47,7 @@ def setupSimulator(nM, integrator, sim, coup):
 
 
 def testSingleTimePoint(SC, a, b, w, y0):
-    # randomize initial values
-    # ============================================================================
-    # dyn_x0 = np.zeros((trials, N))
-    # dyn_y0 = np.zeros((trials, N))
-    # theta0 = np.random.uniform(0, 2*3.14, (trials, N))
-    # R0 = np.random.uniform(0, 1, (trials, N))
-    # dyn_x0[:,:] = R0 * np.cos(theta0)
-    # dyn_y0[:,:] = R0 * np.sin(theta0)
-    # ---------------------------------------------------------------- DEBUG
-    # # dataSavePath = '../../Data_Produced/Progression/DynSim-Delays/'
-    # dataSavePath = '../../Data_Produced/Progression/DynSim-NoDelays/'
-    # # ---------- load pre- data
-    # path = dataSavePath + f"pre_{time:.1f}_{trial}.npz"
-    # with open(path, 'rb') as f:
-    #     npzfile = np.load(f, allow_pickle=True)
-    #     SC = npzfile['W']
-    #     y0 = npzfile['y0']
-    #     parameterss = npzfile['parameters'].flatten()
-    # a = parameterss[0:N].flatten()
-    # b = parameterss[N:2*N].flatten()
-    # w = parameterss[2*N:].flatten()
-    # ---------------------------------------------------------------- END DEBUG
-
-    # Set model parms
-    # ============================================================================
-    # Debug:
-    # N = 5
-    # SC = np.array([[0,1,2,3,4],[1,0,2,3,4],[1,2,0,3,4],[1,2,3,0,4],[1,2,3,4,0]])
-    # y0 = np.zeros(N)
-    # a = 1. * np.ones(N)
-    # b = 1. * np.ones(N)
-    # w = np.array([[50,50,50,50,50]])
+    # First, set model parms
     # ============================================================================
     neuronalModel.setParms({'SC': SC,
                             'y0': y0,
@@ -187,48 +55,9 @@ def testSingleTimePoint(SC, a, b, w, y0):
                             'b': b,
                             'omega': w})
     neuronalModel.couplingOp.setParms(SC)
-    # neuronalModel.couplingOp = Couplings.delayedDirectCoupling(SC, delays, dt)
-    # neuronalModel.couplingOp.initConstantPast(y0[0::2])
-
-    # Simulate!
+    # Now, simulate!
     # ============================================================================
     simBOLD = simulator.simulateSingleSubject().T
-
-    # ---------------------------------------------------------------- DEBUG
-    # # Plot solution!
-    # # ============================================================================
-    # if plot:
-    #     fig, axs = plt.subplots(1, 2, layout='constrained')
-    #     signal = simBOLD[:, ::10].T
-    #     t = np.linspace(0,10,signal.shape[0])
-    #     axs[0].plot(t, signal)
-    #     axs[0].set_title(f'WholeBrain (y:{time},t:{trial})')
-    #
-    # # ---------- load post- data
-    # path = dataSavePath + f"post_{time:.1f}_{trial}.npz"
-    # with open(path, 'rb') as f:
-    #     npzfile = np.load(f, allow_pickle=True)
-    #     sol = np.atleast_1d(npzfile['sol'])[0]
-    # x = sol['x']
-    # y = sol['y']
-    # t = sol['t']
-    #
-    # Plot Reference!
-    # ============================================================================
-    # if plot:
-    #     signal = x[:, ::10].T
-    #     t = np.linspace(0,10,signal.shape[0])
-    #     axs[1].plot(t, signal)
-    #     axs[1].set_title(f'Alexandersen sim (y:{time},t:{trial})')
-    #
-    #     plt.show()
-    #
-    # FC_sim = FC.from_fMRI(simBOLD, applyFilters=False)
-    # FC_read = FC.from_fMRI(x, applyFilters=False)
-    # res = dist.dist(FC_sim, FC_read)
-    # return res
-    # ---------------------------------------------------------------- END DEBUG
-
     return simBOLD
 
 
@@ -274,9 +103,6 @@ def computeMassModel(#DDE,  # Compiled DDE
     #     np.savez(f, y0=y0, W=W, parameters=parameterss, allow_pickle=True)
     # ---------------------------------------------------------------- END DEBUG
 
-    # import must be within function (or else t will not be caught)
-    # from jitcdde import jitcdde, y, t
-
     # ----------------------------------------------------------------
     # check if parameter array given
     if parameterss is False:
@@ -292,66 +118,13 @@ def computeMassModel(#DDE,  # Compiled DDE
     # sols = np.empty((parN), dtype='object')  # Here, parN == 1, so there will be a single empty cell
 
     # ----------------------------------------------------------------
-    # set number of nodes and flatten values of adjacency matrix
-    # N = DDE.N
-    # flat_num_W = list(W.flatten())  # flattened SC matrix (W), N*N
+    # set number of nodes
     N = W.shape[0]
-
-    # set integration parameters
-    # DDE.set_integration_parameters(rtol=rtol, atol=atol)
-    # DDE.set_integration_parameters(rtol=1e12,atol=1e12, first_step=10**-4, max_step=10**-4, min_step=10**-4)  # test fixed step size
 
     # start clock
     if display:
         start = timer.time()
 
-    # # loop over parameter sets (here, only 1)
-    # for i in range(parN):
-    #     # set past history as a fixed value (y0)
-    #     DDE.constant_past(y0, time=0.0)
-    #
-    #     # ----------------------------------------------------------------
-    #     # set model parameters
-    #     # The final parms will be [flat_W, a, b, w] because the last three come packed from main (3*N parms)...
-    #     # In total, this will be N^2+3N
-    #     # If we have N = 83 => 83*83 + 3*83 = 6889 + 249 = 7138 parms!
-    #     parameters = [*flat_num_W, *parameterss[i,:]]  # add numeric adj. matrix and add model parameters
-    #     try:
-    #         DDE.set_parameters(parameters)
-    #     except:
-    #         print(f'\nThe number of implicit parameters is {num_par}. Make sure that this is reflected in the JiTCDDE compilation.\n')
-    #         return None, None
-    #     # ----------------------------------------------------------------
-    #
-    #     # handle initial discontinuities
-    #     DDE.adjust_diff()
-    #
-    #     # solve
-    #     data = []
-    #     t = []
-    #     for time in np.arange(DDE.t, DDE.t+t_span[1],  step):  # t_span[1]/step = 11/0.0008 = 13750 timesteps
-    #         data.append(DDE.integrate(time))
-    #         t.append(time)
-    #
-    #     # organize data
-    #     data = np.array(data)  # data is a matrix of shape (timesteps, N*2)
-    #     data = np.transpose(data)  # (N*2, timesteps)
-    #     t = np.array(t)  # timesteps (13750)
-    #
-    #     # store solution as dictionary, potentially discard y and cut off transients
-    #     sol = {}
-    #     sol['x'] = data[0:2*N:2, t>cutoff]  # this is N * (t >= 1 @ 1250) -> 12500-1 timepoints
-    #     if discard_y:
-    #         sol['y'] = []
-    #     else:
-    #         sol['y'] = data[1:2*N:2, t>cutoff]  # same size: N * (t >= 1 @ 1250) -> 12500-1 timepoints
-    #     sol['t'] = t[t>cutoff]  # same size: (t >= 1 @ 1250) -> 12500-1 timepoints
-    #
-    #     # purge past history
-    #     DDE.purge_past()
-    #
-    #     # store solution in grid array
-    #     sols[i] = sol
     a = parameterss[0:N].flatten()
     b = parameterss[N:2*N].flatten()
     w = parameterss[2*N:].flatten()
@@ -412,6 +185,21 @@ def concatenateSol(spread_sol, sol, N, M, t):
     spread_sol['disc_t'].append(t)
     return spread_sol
 
+
+def constructSpreadInitialValues(N, w0, modelParms):
+    u = modelParms['a0'] / modelParms['ai'] * np.ones(N)  # healthy ABeta
+    up = np.zeros(N)                                      # toxic ABeta
+    v = modelParms['b0'] / modelParms['bi'] * np.ones(N)  # healthy tau
+    vp = np.zeros(N)                                      # toxic tau
+    qu = np.zeros(N)                                      # damage ABeta
+    qv = np.zeros(N)                                      # damage tau
+    a = modelParms['a_init'] * np.ones(N)
+    b = modelParms['b_init'] * np.ones(N)
+    c = modelParms['c_init'] * np.ones(N)
+    spread_y0 = [*u, *up, *v, *vp, *qu, *qv, *a, *b, *c, *w0]
+    return spread_y0, a , b
+
+
 # ----------------------------------------------------------------
 # solveDynModel: solve the dynamical model for each trial
 # INPUT:
@@ -421,7 +209,7 @@ def concatenateSol(spread_sol, sol, N, M, t):
 # ----------------------------------------------------------------
 def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
                   dyn_tspan, dyn_step, dyn_atol, dyn_rtol, dyn_cutoff,
-                  t0, t, normalize_row
+                  t0, t,
                   ):
     # SOLVE DYNAMICAL MODEL AT T0
     # initialize storage for trial simulations
@@ -432,7 +220,7 @@ def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
     # ------------------------------------------------------------------------------
     # solve dynamical model for each trial
     # ------------------------------------------------------------------------------
-    for l in range(trials):
+    for l in range(trials):  # ------- loop over trials
         # set initial values
         dyn_y0_l = dyn_y0[l, :]
 
@@ -443,26 +231,21 @@ def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
         else:
             dyn_pars = [[*a, *b]]
 
-        # if told, normalize adj. matrix
-        if normalize_row:
-            for n in range(N):
-                W_t[n, :] = W_t[n, :] / np.sum(W_t[n, :])
-
         # ------------------------------------------------------------------------------
         # solve dynamical model at time 0
         # ------------------------------------------------------------------------------
         print(f'\tSolving dynamical model at year {t0} (trial {l + 1} of {trials}) ...')
         # input to the computeMassModel functions, for each trial and for each t, are:
-        #   DE the compiled Delayed Equation
-        #   dyn_y0_l: a 2*N arrays with the initial values for the equation (x,y)
+        #    DE the compiled Delayed Equation
+        #    dyn_y0_l: a 2*N arrays with the initial values for the equation (x,y)
         #             remember that values are interleaved
-        #   W_t: the coupling matrix at time t of size N*N
-        #   dyn_pars: [a, b, w] each with N values
-        #   dyn_tspan: the simulation interval (0, 11) seconds?
-        #   dyn_step: the integration step: 0.0008 seconds?
-        #   dyn_atol and dyn_rtol: the tolerances (1e-6 and 0.0001)
-        #   dyn_cutoff: 1
-        #   Added by Gus: runID which is (time, trial)
+        #    W_t: the coupling matrix at time t of size N*N
+        #    dyn_pars: [a, b, w] each with N values
+        #    dyn_tspan: the simulation interval (0, 11) seconds?
+        #    dyn_step: the integration step: 0.0008 seconds?
+        #    dyn_atol and dyn_rtol: the tolerances (1e-6 and 0.0001)
+        #    dyn_cutoff: 1
+        #    Added by Gus: runID which is (time, trial)
         dyn_sol = computeMassModel(dyn_y0_l, W_t,
                                    parameterss=dyn_pars,
                                    t_span=dyn_tspan, step=dyn_step,
@@ -480,8 +263,8 @@ def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
         dyn_y_l = dyn_sol['y']
         dyn_x.append(dyn_x_l)
         dyn_y.append(dyn_y_l)
-    # ------------------------------------------------------------------------------
-    # ------------------------------------------------------------------------------
+        # ----------- End trials loop --------------------------------------------------
+        # ------------------------------------------------------------------------------
 
     # store all trials in a tuple and add to dyn_sols
     dyn_t = dyn_sol['t']  # This has length of timepoints (e.g., 12499)
@@ -507,7 +290,7 @@ def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
 #               at different time points
 # ----------------------------------------------------------------
 # ----------------------------------------------------------------
-def alzheimer(W0,  # DE,
+def alzheimer(W0,
               dyn_y0,
               tau_seed=False, beta_seed=False, seed_amount=0.1,
               t_spread=False,
@@ -517,7 +300,7 @@ def alzheimer(W0,  # DE,
               freqss=np.empty([1,1]), method='RK45', spread_max_step=0.125, as_dict=True,
               spread_atol=10**-6, spread_rtol=10**-3, dyn_atol=10**-6, dyn_rtol=10**-4,
               dyn_step=1/100, dyn_tspan=(0,10), display=False, trials=1,  # SDE=False,
-              normalize_row=False, dyn_cutoff=0, kf=1, # bii_max=2, feedback=False,
+              dyn_cutoff=0, kf=1, # bii_max=2, feedback=False,
               adaptive=False):
     # ------------- first, let's instantiate a progression model (i.e., the RHS of a diff eq)
     model = progrModel.Alexandersen2023()
@@ -536,8 +319,7 @@ def alzheimer(W0,  # DE,
     Ts_final = t_spread[-1]  # The final simulation time (in years). Here, 35
 
     # initialize dynamical solutions
-    #dyn_sols = np.empty((len(t_spread)), dtype='object')
-    dyn_sols = []  
+    dyn_sols = []
 
     # if only one initial condition given, repeat it for all trials
     if len(dyn_y0.shape) == 1:
@@ -564,16 +346,7 @@ def alzheimer(W0,  # DE,
 
     # construct spreading initial values, spread_y0
     if not spread_y0:
-        u = np.array([a0/ai for _ in range(N)])
-        up = np.array([0 for _ in range(N)])
-        v = np.array([b0/bi for _ in range(N)])
-        vp = np.array([0 for _ in range(N)])
-        qu = np.array([0 for _ in range(N)])
-        qv = np.array([0 for _ in range(N)])
-        a = np.array([a_init for _ in range(N)])
-        b = np.array([b_init for _ in range(N)])
-        c = np.array([c_init for _ in range(N)])
-        spread_y0 = [*u, *up, *v, *vp, *qu, *qv, *a, *b, *c, *w0]
+        spread_y0, a, b = constructSpreadInitialValues(N, w0, modelParms)
 
     # seed tau and beta
     if beta_seed:
@@ -631,7 +404,7 @@ def alzheimer(W0,  # DE,
     while t < Ts_final + 1:
         dyn_sol_tup, dyn_x_l, dyn_y_l = solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
                                                       dyn_tspan, dyn_step, dyn_atol, dyn_rtol, dyn_cutoff,
-                                                      t0, t, normalize_row)
+                                                      t0, t)
         dyn_sols.append(dyn_sol_tup)
 
         # ------------------------------------------------------------------------------
@@ -648,18 +421,6 @@ def alzheimer(W0,  # DE,
         # ------------------------------------------------------------------------------
         # set time interval to solve (if adaptive, analyze dynamics here)
         # ------------------------------------------------------------------------------
-        # if feedback:
-        #     mods = (dyn_x_l**2 + dyn_y_l**2)**(1/2)
-        #     avg_mod = np.mean(mods, axis=1)
-        #     if t0 == 0:
-        #         mod0 = np.mean(avg_mod)
-        #         pf_0 = pf - 1e-5
-        #     if adaptive:
-        #         eqs = kf*(-mod0+avg_mod-pf+pf_0)
-        #         funcs = 1 / (kf*(mod0 + pf - pf_0))
-        #         step_size = np.amin( funcs )
-        #         t = t + step_size
-        #         print(f'\t\tAdaptive step size = {step_size}')
         if not adaptive:
             t = t_spread[i+1]
         spread_tspan = (t0, t)
