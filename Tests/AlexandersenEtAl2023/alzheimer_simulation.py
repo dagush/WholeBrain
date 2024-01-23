@@ -51,7 +51,7 @@ if __name__ == '__main__':
     seed_amount = 0.01
     spread_tspan = (0,35)
     spread_atol = 10**-6; spread_rtol = 10**-4
-    # spread_y0 = False  # False gives default setting
+    spread_y0 = False  # Propagation model initial parms. False gives default setting -> initialized inside AD_func.alzheimer
 
     # --------------------------------------------------------------------------------------
     # Read Budapest coupling matrix
@@ -96,7 +96,7 @@ if __name__ == '__main__':
         # concentration-to-damage
         'k1': 1, 'k2': 1, 'k3': 0, 'gamma': gamma,
         # damage-to-NNM
-        'c1': 0.8, 'c2': 1.8, 'c3': 0.4, 'c_init': 0, 'c_min': 0,
+        'c1': 0.8, 'c2': 1.8, 'c3': 0.4,
         # NNM variable parameters
         'a_init': 1, 'b_init': 1, 'a_min': 0.05, 'a_max': 1.95, 'b_min': 0.05,
         'delta': False,
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         # ---- Spread initialization
         t_spread=t_years,
         tau_seed=tau_nodes, beta_seed=beta_nodes, seed_amount=seed_amount, spread_tspan=spread_tspan,
-        # spread_y0=spread_y0,  # ------------- The propagation model initial parms!
+        spread_y0=spread_y0,  # ------------- The propagation model initial parms!
         modelParms=spreadingParms,  # ------------- The propagation model parms!!!
         freqss=freqss, method='RK45',
         spread_atol=spread_atol, spread_rtol=spread_rtol,

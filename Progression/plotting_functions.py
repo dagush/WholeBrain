@@ -170,11 +170,10 @@ def frequency_peaks(data, sf, band=None, window_sec=None, tol=10**-3, modified=F
 # Input
 #   regions : list of lists, each list contains nodes to average over
 # --------------------------------------
-def plot_spreading(sol, colours, legends, xlimit=False, regions=[], averages=True, plot_c=False):
+def plot_spreading(sol, colours, legends, xlimit=False, regions=[], averages=True): #plot_c=False):
     # extract solution
     a = sol['a']
     b = sol['b']
-    c = sol['c']
     qu = sol['qu']
     qv = sol['qv']
     u = sol['u']
@@ -250,7 +249,6 @@ def plot_spreading(sol, colours, legends, xlimit=False, regions=[], averages=Tru
         region = regions[r]
         avg_region_a = []
         avg_region_b = []
-        avg_region_c = []
         avg_region_qu = []
         avg_region_qv = []
         avg_region_up = []
@@ -262,7 +260,7 @@ def plot_spreading(sol, colours, legends, xlimit=False, regions=[], averages=Tru
         for node in region:
             avg_region_a.append(a[node,:])
             avg_region_b.append(b[node,:])
-            avg_region_c.append(c[node,:])
+            # avg_region_c.append(c[node,:])
             avg_region_qu.append(qu[node,:])
             avg_region_qv.append(qv[node,:])
             avg_region_up.append(up[node,:])
@@ -273,7 +271,6 @@ def plot_spreading(sol, colours, legends, xlimit=False, regions=[], averages=Tru
         # convert lists to arrays
         avg_region_a = np.array(avg_region_a)
         avg_region_b = np.array(avg_region_b)
-        avg_region_c = np.array(avg_region_c)
         avg_region_qu = np.array(avg_region_qu)
         avg_region_qv = np.array(avg_region_qv)
         avg_region_up = np.array(avg_region_up)
@@ -284,8 +281,6 @@ def plot_spreading(sol, colours, legends, xlimit=False, regions=[], averages=Tru
         # plot a, b
         axs[0].plot(t, np.mean(avg_region_a, axis=0), c=colours[r], label=legends[r])
         axs[1].plot(t, np.mean(avg_region_b, axis=0), c=colours[r], label=legends[r])
-        if plot_c:
-            axs[1].plot(t, np.mean(avg_region_c, axis=0), c=colours[r], label=legends[r])
 
         # plot damage
         axs2[0].plot(t, np.mean(avg_region_qu, axis=0), c=colours[r], label=legends[r])
@@ -303,8 +298,6 @@ def plot_spreading(sol, colours, legends, xlimit=False, regions=[], averages=Tru
         # a and b
         axs[0].plot(t, np.mean(a, axis=0), c='black', label='average')
         axs[1].plot(t, np.mean(b, axis=0), c='black', label='average')
-        if plot_c:
-            axs[1].plot(t, np.mean(c, axis=0), c='black', label='average')
 
         # damage
         axs2[0].plot(t, np.mean(qu, axis=0), c='black', label='average')
@@ -320,7 +313,7 @@ def plot_spreading(sol, colours, legends, xlimit=False, regions=[], averages=Tru
 
 
     # plot average weights over time
-    axs4.plot(t, np.mean(w, axis=0), c='black')
+    axs4.plot(t, np.mean(w, axis=0), c='black')  # this gives an horizontal line(?)
     axs4.set_ylabel('Average link weight')
     axs4.set_xlabel('$t_{spread}$')
 
@@ -373,26 +366,6 @@ def spectral_properties(solutions, bands, fourier_cutoff, modified=False,  # fun
                 x_cut = xl[:, inds]
                 tot_t = t[-1] - t[0]
                 sf = len(x_cut[0]) / tot_t
-
-                # compute spectral connectivity
-                # if functional:
-                #     functional_connectivity = spectral_connectivity([x_cut], method=functional_methods, sfreq=sf,
-                #                                                     fmin=bands[b][0], fmax=bands[b][1], mode='fourier',
-                #                                                     faverage=True, verbose=False)
-                #     # get average link strength
-                #     for j in range(len(functional_methods)):
-                #         functional_matrix = functional_connectivity[0][j]  # lower triangular
-                #         n_rows, n_cols, _ = functional_matrix.shape
-                #
-                #         # compute average strength
-                #         average_strength = 0
-                #         for c in range(n_cols):
-                #             for r in range(c + 1, n_cols):
-                #                 average_strength += functional_matrix[r, c][0]
-                #         average_strength /= N * (N - 1) / 2
-                #
-                #         # append
-                #         average_strengths[b][j][i].append(average_strength)
 
                 # find PSD and peak
                 for j in range(N):

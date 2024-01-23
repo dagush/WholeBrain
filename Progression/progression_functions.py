@@ -166,8 +166,7 @@ def oneTimePointSpread(spread_sol, spread_y0, N, M):
     spread_sol['qv'] = np.concatenate((spread_sol['qv'], np.reshape(spread_y0[5 * N:6 * N], (N, 1))), axis=1)
     spread_sol['a'] = np.concatenate((spread_sol['a'], np.reshape(spread_y0[6 * N:7 * N], (N, 1))), axis=1)
     spread_sol['b'] = np.concatenate((spread_sol['b'], np.reshape(spread_y0[7 * N:8 * N], (N, 1))), axis=1)
-    spread_sol['c'] = np.concatenate((spread_sol['c'], np.reshape(spread_y0[8 * N:9 * N], (N, 1))), axis=1)
-    spread_sol['w'] = np.concatenate((spread_sol['w'], np.reshape(spread_y0[9 * N:9 * N + M], (M, 1))), axis=1)
+    spread_sol['w'] = np.concatenate((spread_sol['w'], np.reshape(spread_y0[8 * N:8 * N + M], (M, 1))), axis=1)
 
 
 def concatenateSol(spread_sol, sol, N, M, t):
@@ -180,8 +179,7 @@ def concatenateSol(spread_sol, sol, N, M, t):
     spread_sol['qv'] = np.concatenate((spread_sol['qv'], sol.y[5 * N:6 * N, :]), axis=1)
     spread_sol['a'] = np.concatenate((spread_sol['a'], sol.y[6 * N:7 * N, :]), axis=1)
     spread_sol['b'] = np.concatenate((spread_sol['b'], sol.y[7 * N:8 * N, :]), axis=1)
-    spread_sol['c'] = np.concatenate((spread_sol['c'], sol.y[8 * N:9 * N, :]), axis=1)
-    spread_sol['w'] = np.concatenate((spread_sol['w'], sol.y[9 * N:9 * N + M, :]), axis=1)
+    spread_sol['w'] = np.concatenate((spread_sol['w'], sol.y[8 * N:8 * N + M, :]), axis=1)
     spread_sol['disc_t'].append(t)
     return spread_sol
 
@@ -195,8 +193,7 @@ def constructSpreadInitialValues(N, w0, modelParms):
     qv = np.zeros(N)                                      # damage tau
     a = modelParms['a_init'] * np.ones(N)
     b = modelParms['b_init'] * np.ones(N)
-    c = modelParms['c_init'] * np.ones(N)
-    spread_y0 = [*u, *up, *v, *vp, *qu, *qv, *a, *b, *c, *w0]
+    spread_y0 = [*u, *up, *v, *vp, *qu, *qv, *a, *b, *w0]
     return spread_y0, a , b
 
 
@@ -304,9 +301,9 @@ def alzheimer(W0,
               adaptive=False):
     # ------------- first, let's instantiate a progression model (i.e., the RHS of a diff eq)
     model = progrModel.Alexandersen2023()
+
     # ------------- some needed parms
     a0 = modelParms['a0']; ai = modelParms['ai']; b0 = modelParms['b0']; bi = modelParms['bi']
-    a_init = modelParms['a_init']; b_init = modelParms['b_init']; c_init = modelParms['c_init']
     a_min = modelParms['a_min']; a_max = modelParms['a_max']; b_min = modelParms['b_min']
     delta = modelParms['delta']
 
@@ -383,8 +380,8 @@ def alzheimer(W0,
     empty_arraym = np.array([[] for _ in range(M)])
     spread_sol = {'t': np.array([]), 'u':empty_array, 'up':empty_array, 'v':empty_array,
                   'vp':empty_array, 'qu':empty_array, 'qv':empty_array, 'a':empty_array,
-                  'b':empty_array, 'c':empty_array, 'w':empty_arraym, 'w_map': edges,
-                  'rhythms':[(w0, [1 for _ in range(N)], [1 for _ in range(N)], t0)],
+                  'b': empty_array, 'w': empty_arraym, 'w_map': edges,
+                  'rhythms': [(w0, np.ones(N), np.ones(N), t0)],
                   'pf':np.transpose(np.array([pf])), 'disc_t':[0]}
 
     # ------------------------------------------------------------------------------
@@ -450,7 +447,7 @@ def alzheimer(W0,
         # extract the parameters for the dynamic model
         a = sol.y[6*N:7*N,-1]
         b = sol.y[7*N:8*N,-1]
-        w = sol.y[9*N:9*N+M,-1]
+        w = sol.y[8*N:8*N+M,-1]
 
         # construct adjacency matrix at time t
         W_t = np.zeros((N,N))

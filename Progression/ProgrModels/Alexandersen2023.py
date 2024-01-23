@@ -18,11 +18,13 @@ class Alexandersen2023(base_progression):
     N = None; M = None
     edges = None
     neighbours = None
+    pf = None
     a0 = 0.75; ai = 1; api = 1; aii = 1
-    b0 = 1; bi = 1; bii = 1; biii = 1
+    b0 = 1; bi = 1; bii = 1; biii = 1; bpi = 1
     gamma = 0; delta = 0.95
-    bpi = 1; c1 = 1; c2 = 1; c3 = 1; c_init = 0; c_min = 0
+    c1 = 1; c2 = 1; c3 = 1
     k1 = 1; k2 = 1; k3 = 1
+
     rho = 10 ** (-3); a_min = False; a_max = False; b_min = False
 
     def __init__(self):
@@ -42,8 +44,7 @@ class Alexandersen2023(base_progression):
         qv = y[5 * self.N: 6 * self.N]
         a = y[6 * self.N: 7 * self.N]
         b = y[7 * self.N: 8 * self.N]
-        c = y[8 * self.N: 9 * self.N]
-        w = y[9 * self.N: 9 * self.N + self.M]
+        w = y[8 * self.N: 8 * self.N + self.M]
 
         # ---- update laplacian from m weights
         L = np.zeros((self.N, self.N))
@@ -66,7 +67,7 @@ class Alexandersen2023(base_progression):
         L = self.rho * L
 
         # ---- nodal dynamics
-        du, dup, dv, dvp, dqu, dqv, da, db, dc = [[] for _ in range(9)]
+        du, dup, dv, dvp, dqu, dqv, da, db = [[] for _ in range(8)]
         neighbours = self.neighbours
         for k in range(self.N):
             # index list of node k and its neighbours
@@ -95,11 +96,10 @@ class Alexandersen2023(base_progression):
             # excitatory-inhibitory dynamics
             dak = self.c1 * qu[k] * (self.a_max - a[k]) * (a[k] - self.a_min) - self.c2 * qv[k] * (a[k] - self.a_min)
             dbk = -self.c3 * qu[k] * (b[k] - self.b_min)
-            dck = -self.c3 * qu[k] * (c[k] - self.c_min)
             ## append
             da.append(dak)
             db.append(dbk)
-            dc.append(dck)
+            # dc.append(dck)
 
         # ---- connecctivity dynamics
         dw = []
@@ -113,7 +113,7 @@ class Alexandersen2023(base_progression):
             dw.append(dwi)
 
         # ---- pack right-hand side
-        rhs = [*du, *dup, *dv, *dvp, *dqu, *dqv, *da, *db, *dc, *dw]
+        rhs = [*du, *dup, *dv, *dvp, *dqu, *dqv, *da, *db, *dw]
         return rhs
 
 
