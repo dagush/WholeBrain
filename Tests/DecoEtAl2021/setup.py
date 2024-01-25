@@ -93,8 +93,8 @@ def transformEmpiricalSubjects(tc_aal, tcrange, NumSubjects):
 # ==================================================================================
 # ==================================================================================
 initRandom()
-baseInPath = '../../Data_Raw/DecoEtAl2020'
-baseOutPath = '../../Data_Produced/Tests/DecoEtAl2020'
+baseInPath = '../../Data_Raw/DecoEtAl2021'
+baseOutPath = '../../Data_Produced/Tests/DecoEtAl2021'
 
 
 N = 68

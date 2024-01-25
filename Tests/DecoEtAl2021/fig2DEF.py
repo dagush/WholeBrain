@@ -39,7 +39,7 @@ def plotData(fig, DataFitt, title, pos, optim):
     # return ax
 
 
-# baseInPath = 'Data_Raw/DecoEtAl2020'
+# baseInPath = 'Data_Raw/DecoEtAl2021'
 filePath = baseOutPath + '/DecoEtAl2020_fittingBZ.mat'
 if not Path(filePath).is_file():
     import fitting_genes_balanced_gain as fitting

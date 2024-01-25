@@ -25,7 +25,7 @@ from pathlib import Path
 
 from setup import *
 
-# baseInPath = 'Data_Raw/DecoEtAl2020'
+# baseInPath = 'Data_Raw/DecoEtAl2021'
 filePath = baseOutPath + '/DecoEtAl2020_fneuro.mat'
 if not Path(filePath).is_file():
     import prepro_G_Optim as prepro
