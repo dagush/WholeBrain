@@ -11,8 +11,6 @@
 #  Translated to Python & refactoring by Gustavo Patow
 # ==========================================================================
 # ==========================================================================
-
-
 import numpy as np
 import scipy.io as sio
 from numba import jit
@@ -27,33 +25,33 @@ from numba import jit
 # import WholeBrain.Models.DynamicMeanField as DMF
 import WholeBrain.Models.Naskar as Naskar
 import WholeBrain.Models.Couplings as Couplings
-# ----------------------------------------------
-# import WholeBrain.Integrators.EulerMaruyama as scheme
-import WholeBrain.Integrators.Euler as scheme
-scheme.sigma = 0.001  # np.array([0.001, 0.001, 0.])
+# --------------------------------------------------------------------------
+import WholeBrain.Integrators.EulerMaruyama as scheme
+# import WholeBrain.Integrators.Euler as scheme
+scheme.sigma = 0.0001  # np.array([0.001, 0.001, 0.])  # 0.001
 scheme.neuronalModel = Naskar
 import WholeBrain.Integrators.Integrator as integrator
 integrator.integrationScheme = scheme
 integrator.neuronalModel = Naskar
 integrator.verbose = False
+# --------------------------------------------------------------------------
+# For the optimizations (prepro in this example)
+# --------------------------------------------------------------------------
 import WholeBrain.Utils.BOLD.BOLDHemModel_Stephan2008 as Stephan2008
 import WholeBrain.Utils.simulate_SimAndBOLD as simulateBOLD
 simulateBOLD.integrator = integrator
 simulateBOLD.BOLDModel = Stephan2008
-
 simulateBOLD.TR = 1.  # sampling interval
 simulateBOLD.dtt = 1e-3
 simulateBOLD.Toffset = 1*60.  # in seconds
 simulateBOLD.Tmax = 8*60.  # in seconds
 simulateBOLD.recomputeTmaxneuronal()
 simulateBOLD.warmUp = True
-
 # --------------------------------------------------------------------------
 # Import optimizer (ParmSweep)
 import WholeBrain.Optimizers.ParmSweep as optim1D
 optim1D.simulateBOLD = simulateBOLD
 optim1D.integrator = integrator
-
 # --------------------------------------------------------------------------
 # chose a FIC mechanism
 # import Utils.FIC.BalanceFIC as BalanceFIC

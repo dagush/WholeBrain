@@ -48,14 +48,14 @@ def recompileSignatures():
 # ==========================================================================
 # Dynamic Mean Field (DMF) Model Constants
 # --------------------------------------------------------------------------
-B_e = 0.0066    # ms^-1  backward rate constant for NMDA gating
-B_i = 0.18       # ms^-1  backward rate constant for GABA gating
 t_glu = 7.46    # concentration of glutamate
 t_gaba = 1.82   # concentration of GABA
 We = 1.0        # scaling of external input current to excitatory population
 Wi = 0.7        # scaling of external input current to inhibitory population
 alfa_e = 0.072  # forward rate constant for NMDA gating
 alfa_i = 0.53   # forward rate constant for GABA gating
+B_e = 0.0066    # ms^-1  backward rate constant for NMDA gating
+B_i = 0.18      # ms^-1  backward rate constant for GABA gating
 J_NMDA = 0.15   # [nA] NMDA current
 I0 = 0.382      #.397  # [nA] overall effective external input
 gamma = 1.      # Learning rate
