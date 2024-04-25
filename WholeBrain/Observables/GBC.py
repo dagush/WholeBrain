@@ -8,7 +8,7 @@
 #--------------------------------------------------------------------------
 import numpy as np
 # from numba import jit
-from Observables import BOLDFilters
+from WholeBrain.Observables import BOLDFilters
 import WholeBrain.Observables.FC as FC
 import WholeBrain.Observables.measures as measures
 
