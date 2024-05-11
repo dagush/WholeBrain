@@ -33,7 +33,7 @@ Tmaxneuronal = int(Tmax*(TR/dtt))  # Number of simulated time points (in millise
 def recomputeTmaxneuronal():  # if we need a different Tmax or TR or any other var, just use this function to rebuild Tmaxneuronal
     global Tmaxneuronal, TmaxOffset
     TmaxOffset = int(Toffset * (TR / dtt))
-    Tmaxneuronal = int(Tmax*(TR/dtt))
+    Tmaxneuronal = int(Tmax * (TR / dtt))
     print(f"New TmaxOffset={TmaxOffset}, Tmaxneuronal={Tmaxneuronal}")
 
 
@@ -50,7 +50,7 @@ def computeSubjectSimulation():
     else:
         currObsVars = integrator.simulate(dt, Tmaxneuronal)
     # currObsVars = integrator.returnBookkeeping()  # curr_xn, curr_rn
-    neuro_act = currObsVars[:,observationVarsMask,:]
+    neuro_act = currObsVars[:, observationVarsMask, :]
     return neuro_act
 
 
@@ -70,7 +70,7 @@ def computeSubjectBOLD(neuro_act, areasToSimulate=None):
         # print(f'current area: {area}')
         # if area == 6:
         #     print('area stop')
-        B = BOLDModel.BOLDModel(T,neuro_act[:,area])
+        B = BOLDModel.BOLDModel(T, neuro_act[:,area])
         BOLD_act[:,nnew] = B
         # if np.isnan(B).any():
         #     print('nan found!')
@@ -82,7 +82,6 @@ def computeSubjectBOLD(neuro_act, areasToSimulate=None):
 
 def simulateSingleSubject():
     # integrator.recompileSignatures()
-    # N=C.shape[0]
     neuro_act = computeSubjectSimulation()
     bds = computeSubjectBOLD(neuro_act)
     return bds

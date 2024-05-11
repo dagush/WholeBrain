@@ -25,7 +25,7 @@ def permutation_htest2_np(data1, data2, niter, htest='ttest2'):
     #              value in a network, etc. NaN values will be ignored.
     #    niter   - number of permutations (recommended 5000)
     #    htest   - hypothesis test used to compare populations. The script is
-    #              prepared to run the ttest2, kstest2, and ranksum tests.
+    #              prepared to run the ttest2 test.
     #
     # OUTPUT:
     #    result is a dict with the following subfields:
@@ -148,13 +148,12 @@ def test_np_pval(data1,data2,niter,tval):
 
     NCDF = 200
     if niter > 5000:
-        NCDF = np.int(np.round(200.*niter/5000))
+        NCDF = int(np.round(200.*niter/5000))
     # estimated cumulative distribution function
     # [fi xi]=ksdensity(outiter,'function','cdf','npoints',NCDF)
     kde = stats.gaussian_kde(outiter)
     xi = np.linspace(outiter.min(), outiter.max(), NCDF)
     fi = kde(xi)
-
 
     # trick to avoid NaNs, we approximate the domain of the CDF between
     # -Inf and Inf using the atanh function and the eps matlab precision variable

@@ -1,6 +1,7 @@
 import numpy as np
 from numba import jit
 
+
 @jit(nopython=True)
 def isClose(a, b, rtol=1e-05, atol=1e-08,):
     result = np.absolute(a - b) <= (atol + rtol * np.absolute(b))

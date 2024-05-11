@@ -27,7 +27,7 @@
 
 import nibabel as nib
 from matplotlib import cm
-import Utils.Plotting.plot3DBrain_Utils as plot
+import WholeBrain.Utils.Plotting.plot3DBrain_Utils as plot
 
 base_folder = "../../Data_Raw/"
 parcellationsBaseFoler = base_folder + 'Parcellations/'

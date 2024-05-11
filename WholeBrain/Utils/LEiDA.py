@@ -13,16 +13,59 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from scipy.spatial.distance import pdist, squareform
+import sklearn.metrics as metrics
 
-from WholeBrain.Utils.decorators import loadOrCompute
-from WholeBrain.Utils.dunns import dunns
+import WholeBrain.Utils.decorators as decorators
 import WholeBrain.Observables.BOLDFilters as BOLDFilters
-
 import WholeBrain.Observables.LEigen as LEigen
+
+import WholeBrain.Utils.dunns as dunns
+
 
 print("Going to use LEiDA...")
 
 save_folder = None
+
+# --------------------------------------------------------------------------------------
+#  Definitions
+# --------------------------------------------------------------------------------------
+# Set maximum/minimum number of clusters
+# There is no fixed number of states the brain can display
+# Extending depending on the hypothesis of each work
+maxk = None  # set by the application
+mink = None  # set by the application
+# ------------ diferent sorting criterions...
+scoringCriterions = {}
+scoringCriterions['Dunn (fast) score'] = dunns.dunn_fast
+scoringCriterions['Silhouette score'] = metrics.silhouette_score
+scoringCriterions['Davies-Bouldin score'] = metrics.davies_bouldin_score
+scoringCriterions['Calinski-Harabasz score'] = metrics.calinski_harabasz_score
+# selectedCriteriorn = 'Dunn (fast) score'
+
+
+
+# --------------------------------------------------------------------------------------
+#  Score-plotting function...
+# --------------------------------------------------------------------------------------
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
+def plotPerformances(clussteringResults):
+    numCols = int(np.ceil(len(scoringCriterions)/2))
+    fig, axs = plt.subplots(numCols, 2, sharex=True)
+    axis = axs.flat
+    for pos, crit in enumerate(scoringCriterions):
+        score = [clussteringResults[k]['scores'][crit] for k in clussteringResults]
+        # ------ just report some results...
+        ind_max = np.argmax(score) + mink
+        print(f'Best clustering solution: {ind_max} clusters with {crit}')
+        # ------ and plot them!
+        axis[pos].plot(range(mink, maxk), score)
+        axis[pos].set_title(crit)
+        axis[pos].xaxis.set_major_locator(MaxNLocator(integer=True))
+    for pos in range(numCols, len(scoringCriterions)):
+        axis[pos].set_xlabel('Cluster #')
+    plt.show()
+
 
 
 # --------------------------------------------------------------------------------------
@@ -56,7 +99,7 @@ def averageProbabilities(probs, numClusters, subset=None):
 # --------------------------------------------------------------------------------------
 # LEiDA processing functions
 # --------------------------------------------------------------------------------------
-@loadOrCompute
+@decorators.loadOrCompute
 def computeLEigens(BOLDsignal):
     Vs = LEigen.from_fMRI(BOLDsignal, applyFilters=True, removeStrongArtefacts=True)
     return {'Vs': Vs}
@@ -77,12 +120,7 @@ def computeEigenvectors(BOLDsignals):
     return LEigs
 
 
-# Set maximum/minimum number of clusters
-# There is no fixed number of states the brain can display
-# Extending depending on the hypothesis of each work
-maxk = 11  # up to 10
-mink = 3
-# Cluster the Leading Eigenvectors
+# ------------ Cluster the Leading Eigenvectors
 def clusterEigenvectors(LEigenvect):
     print('Clustering Eigenvectors')
     LEigs = packEigenvectors(LEigenvect)
@@ -92,17 +130,21 @@ def clusterEigenvectors(LEigenvect):
         Kmeans_results[k]['clusterer'] = kmeans
         Kmeans_results[k]['labels'] = kmeans.labels_
         Kmeans_results[k]['centers'] = kmeans.cluster_centers_
+    return LEigs, Kmeans_results
 
+
+# ------------ Score the clusters
+def scoreClusters(LEigs, Kmeans_results):
     # Now, let's evaluate each cluster performance and keep the best
-    distM_fcd = squareform(pdist(LEigs.T, metric='euclidean'))
-    dunn_score = np.zeros(maxk-mink)
-    for k in range(mink,maxk):
-        dunn_score[k-mink] = dunns(k, distM_fcd, Kmeans_results[k]['labels'])
-        print(f'Performance for {k} clusters ({dunn_score[k-mink]})')
-    ind_max = np.argmax(dunn_score) + mink
-    print(f'Best clustering solution: {ind_max} clusters')
+    # distM_fcd = squareform(pdist(LEigs.T, metric='euclidean'))
+    for k in Kmeans_results:
+        Kmeans_results[k]['scores'] = {}
+        for crit in scoringCriterions:
+            score = scoringCriterions[crit](LEigs.T, Kmeans_results[k]['labels'])
+            Kmeans_results[k]['scores'][crit] = score
+            print(f'Performance for {k} clusters with {crit} is {score}')
 
-    return ind_max, Kmeans_results[ind_max]
+    return Kmeans_results
 
 
 # For every subject, calculate the probability of occurrence (or fractional occupancy) of each pattern c
@@ -116,10 +158,6 @@ def calculateProbabilitiesOfOccurrence(clustering, LEigs, numClusters):
         P[s] = np.array(subjP, dtype=float)
         P[s] /= np.sum(P[s])  # normalize probabilities (Sum == 1)
     return labels, P
-
-
-# def calculateSwitchingStates(labels, numClusters, subset=None):
-#     pass
 
 
 def normalizeTransitionMatrix(a):
@@ -177,20 +215,27 @@ def calculateMeanLifetimes(labels, numClusters):
 
 
 # Analyse the Clustering results
-def analyseClustering(clustering, LEigs):
+def analyseClustering(clusterings, LEigs):
     print('Start analyseClustering!!!')
-    numClusters = clustering['centers'].shape[0]
+    for clusterID in clusterings:
+        print(f'   Analysing cluster {clusterID}')
+        clustering = clusterings[clusterID]
+        numClusters = clustering['centers'].shape[0]
 
-    # compute the labels and probabilities of occurrence of each pattern c
-    labels, P = calculateProbabilitiesOfOccurrence(clustering, LEigs, numClusters)
+        # compute the labels and probabilities of occurrence of each pattern c
+        labels, P = calculateProbabilitiesOfOccurrence(clustering, LEigs, numClusters)
 
-    # Calculate the GLOBAL switching matrix
-    # PTransition = calculateSwitchingMatrix(labels, numClusters)
+        # Calculate the GLOBAL switching matrix
+        # PTransition = calculateSwitchingMatrix(labels, numClusters)
 
-    # Compute the mean lifetimes
-    LT = calculateMeanLifetimes(labels, numClusters)
+        # Compute the mean lifetimes
+        LT = calculateMeanLifetimes(labels, numClusters)
+
+        clusterings[clusterID]['labels'] = labels
+        clusterings[clusterID]['Probabilities'] = P
+        clusterings[clusterID]['Lifetimes'] = LT
     print('Done analyseClustering!!!')
-    return P, LT, labels  #, PTransition
+    return clusterings
 
 
 # --------------------------------------------------------------------------------------
@@ -204,16 +249,17 @@ def processBOLDSignals(BOLDsignals):
     # N = BOLDsignals[next(iter(BOLDsignals))].shape[0]  # get the first key to retrieve the value of N = number of areas
 
     # 1 - Compute the Leading Eigenvectors from the BOLD datasets
-    LEigenvalues = computeEigenvectors(BOLDsignals)
+    LEigenvectors = computeEigenvectors(BOLDsignals)
 
     # 2 - Cluster the Leading Eigenvectors
-    ind_max, Kmeans_results = clusterEigenvectors(LEigenvalues)
+    LEigs, KMeansResults_Initial = clusterEigenvectors(LEigenvectors)
+    KMeansResult_PlusScores = scoreClusters(LEigs, KMeansResults_Initial)
 
     # 3 - Analyse the Clustering results
-    P, LT, labels = analyseClustering(Kmeans_results, LEigenvalues)
+    KMeansResults = analyseClustering(KMeansResult_PlusScores, LEigenvectors)
 
     print('Done processBOLDSignals')
-    return ind_max, Kmeans_results, P, LT, labels  #, PTransition
+    return KMeansResults
 
 
 # ============== a practical way to save recomputing necessary (but lengthy) results ==========

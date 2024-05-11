@@ -172,7 +172,7 @@ class L1(distMeasure):
         return "L1"
 
     def check(self, M1, M2):  # Method to verify the matrices satisfy the dist requirements
-        return True
+        return M1.shape == M2.shape
 
     def _dist(self, M1, M2):
         # The default value of the ord parameter in numpy.linalg.norm is 2, so change it to 1.
@@ -186,7 +186,7 @@ class L2(distMeasure):
         return "L2"
 
     def check(self, M1, M2):  # Method to verify the matrices satisfy the dist requirements
-        return True
+        return M1.shape == M2.shape
 
     def _dist(self, M1, M2):
         # This works because the Euclidean distance is the l2 norm, and the default value of

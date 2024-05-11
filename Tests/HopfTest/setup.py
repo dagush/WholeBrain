@@ -137,14 +137,17 @@ selectedObservable = 'phFCD'
 distanceSettings = {'phFCD': (phFCD, True)}
 
 simulateBOLD.TR = BOLDFilters.TR   # Recording interval: 1 sample every X seconds
+# ------------------------------------------------
+# The Hopf model works in seconds, not in milliseconds, so
+# all integration parms should be adjusted accordingly...
 simulateBOLD.dt = 0.1 * simulateBOLD.TR / 2.
 simulateBOLD.Tmax = Tmax  # This is the length, in seconds
-simulateBOLD.dtt = simulateBOLD.TR  # We are not using milliseconds
+simulateBOLD.dtt = simulateBOLD.TR  # We are NOT using milliseconds
 simulateBOLD.t_min = 10 * simulateBOLD.TR
 # simulateBOLD.recomputeTmaxneuronal() <- do not update Tmaxneuronal this way!
 # simulateBOLD.warmUpFactor = 6.
 simulateBOLD.Tmaxneuronal = (Tmax-1) * simulateBOLD.TR + 30
-integrator.ds = simulateBOLD.TR  # record every TR millisecond
+integrator.ds = simulateBOLD.TR  # record every TR seconds
 
 base_a_value = -0.02
 Hopf.setParms({'a': base_a_value})

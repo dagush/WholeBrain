@@ -1,13 +1,17 @@
 # --------------------------------------------------------------------------------------
 # Implements Dunn's Index
 # https://en.wikipedia.org/wiki/Dunn_index
-#
+# --------------------------------------------------------------------------------------
+import numpy as np
+from sklearn.metrics.pairwise import cosine_distances
+from scipy.spatial.distance import pdist, squareform
+
+
+# --------------------------------------------------------------------------------------
 # Translated from Joana Cabral's code:
 # https://github.com/juanitacabral/LEiDA
 # Translation by Gustavo Patow
 # --------------------------------------------------------------------------------------
-import numpy as np
-
 def dunns(clusters_number, distM, ind):
     # Dunn's index for clustering compactness and separation measurement
     # dunns(clusters_number,distM,ind)
@@ -38,3 +42,56 @@ def dunns(clusters_number, distM, ind):
 
     DI = min_delta / max_Delta
     return DI
+
+
+def dunns_orig(points, labels):
+    k = len(np.unique(labels))
+    distM_fcd = squareform(pdist(points, metric='euclidean'))
+    dunn_score = dunns(k, distM_fcd, labels)
+    return dunn_score
+
+
+# --------------------------------------------------------------------------------------
+# dunn_fast
+# From https://github.com/PSYMARKER/leida-python/blob/master/pyleida/clustering/_clustering.py
+# --------------------------------------------------------------------------------------
+def dunn_fast(points, labels):
+    """
+    Compute the Dunn index.
+
+    Params:
+    ----------
+    points : ndarray with shape (N_samples,N_features).
+        Observations/samples.
+
+    labels : ndarray with shape (N_samples).
+        Labels of each observation in 'points'.
+    """
+    def _delta_fast(ck, cl, distances):
+        values = distances[np.where(ck)][:, np.where(cl)]
+        values = values[np.nonzero(values)]
+
+        return np.min(values)
+
+    def _big_delta_fast(ci, distances):
+        values = distances[np.where(ci)][:, np.where(ci)]
+        # values = values[np.nonzero(values)]
+
+        return np.max(values)
+
+    distances = cosine_distances(points)
+    ks = np.sort(np.unique(labels))
+
+    deltas = np.ones([len(ks), len(ks)]) * 1_000_000
+    big_deltas = np.zeros([len(ks), 1])
+
+    l_range = list(range(0, len(ks)))
+
+    for k in l_range:
+        for l in (l_range[0:k] + l_range[k + 1:]):
+            deltas[k, l] = _delta_fast((labels == ks[k]), (labels == ks[l]), distances)
+
+        big_deltas[k] = _big_delta_fast((labels == ks[k]), distances)
+
+    di = np.min(deltas) / np.max(big_deltas)
+    return di

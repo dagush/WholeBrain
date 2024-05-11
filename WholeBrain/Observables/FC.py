@@ -16,7 +16,7 @@ print("Going to use Functional Connectivity (FC)...")
 name = 'FC'
 defaultMeasure = measures.pearsonSimilarity()
 accumulator = measures.averagingAccumulator()
-# -------------------- Convenience definitions. Should be overriden if the classes above are changed.
+# -------------------- Convenience definitions. Should be overridden if the classes above are changed.
 distance = defaultMeasure.distance  # FC similarity, convenience function
 findMinMax = defaultMeasure.findMinMax
 init = accumulator.init
