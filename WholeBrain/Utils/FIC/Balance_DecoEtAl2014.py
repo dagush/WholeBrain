@@ -65,11 +65,11 @@ def updateJ(N, tmax, delta, curr, J):  # This is the original method by Gus, fro
     return flag
 
 
-def recompileSignatures():
-    # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
-    # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
-    # print("\n\nRecompiling signatures!!!")
-    integrator.recompileSignatures()
+# def recompileSignatures():
+#     # Recompile all existing signatures. Since compiling isn’t cheap, handle with care...
+#     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
+#     # print("\n\nRecompiling signatures!!!")
+#     integrator.recompileSignatures()
 
 
 min_largest_distance = np.inf
@@ -154,7 +154,7 @@ def JOptim(N, warmUp = False):
         # integrator.resetBookkeeping()
         Tmaxneuronal = int((tmax+dt))  # (tmax+dt)/dt, but with steps of 1 unit...
         integrator.neuronalModel.setParms({'J': currJ})
-        recompileSignatures()
+        # recompileSignatures()
         if warmUp:
             curr_xn = integrator.warmUpAndSimulate(dt, Tmaxneuronal)[:,0,:]  # take the xn component of the observation variables...
         else:

@@ -42,7 +42,7 @@ def computeFirstOrderHeuristic():  # heuristic values
     SC = integrator.neuronalModel.getParm({'SC'})
     J = alpha * G * np.sum(SC, axis=0) + 1
     integrator.neuronalModel.setParms({'J': J})
-    integrator.recompileSignatures()
+    # integrator.recompileSignatures()
     return J
 
 
