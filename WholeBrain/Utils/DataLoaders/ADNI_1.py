@@ -1,8 +1,10 @@
 # =====================================================================================
 # Methods to input AD data
 # =====================================================================================
+import os
 import numpy as np
 import os, csv
+from WholeBrain.Utils.DataLoaders.baseDataLoader import DataLoader
 
 
 # ==========================================================================
@@ -45,8 +47,10 @@ def getClassifications():
     # They can be one of:
     # Healthy Controls (HC), Mild Cognitive Impairment (MCI), Alzheimer Disease (AD) or Significant Memory Concern (SMC)
     # ============================================================================
-    input_classification = csv.reader(open(base_folder+"/subjects.csv", 'r'))
-    classification = dict(filter(None, input_classification))
+    classification = {}
+    input_classification = csv.reader(open(base_folder+"subjects.csv", 'r'))
+    for row in input_classification:
+        classification[row[0]] = row[1]
     return classification
 
 
@@ -87,8 +91,8 @@ def computeAvgSC_HC_Matrix(classification, baseFolder):
 
 # ===================== Load one specific subject data
 def loadSubjectData(subject, correcSCMatrix=True, normalizeBurden=True):
-    sc_folder = base_folder + '/connectomes/'+subject+"/DWI_processing"
-    SC = np.loadtxt(sc_folder + "/connectome_weights.csv")
+    sc_folder = base_folder + 'connectomes/'+subject+"/DWI_processing/"
+    SC = np.loadtxt(sc_folder + "connectome_weights.csv")
     if correcSCMatrix:
         SCnorm = correctSC(SC)
     else:
@@ -97,9 +101,9 @@ def loadSubjectData(subject, correcSCMatrix=True, normalizeBurden=True):
     abeta_burden = loadBurden(subject, "Amyloid", base_folder, normalize=normalizeBurden)
     tau_burden = loadBurden(subject, "Tau", base_folder, normalize=normalizeBurden)
 
-    fMRI_path = base_folder+"/fMRI/"+subject+"/MNINonLinear/Results/Restingstate"
-    series = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean.ptseries.txt")
-    subcSeries = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean_subcort.ptseries.txt")
+    fMRI_path = base_folder+"fMRI/"+subject+"/MNINonLinear/Results/Restingstate/"
+    series = np.loadtxt(fMRI_path+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean.ptseries.txt")
+    subcSeries = np.loadtxt(fMRI_path+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean_subcort.ptseries.txt")
     fullSeries = np.concatenate((series,subcSeries))
 
     return SCnorm, abeta_burden, tau_burden, fullSeries
@@ -112,8 +116,8 @@ def load_fullCohort_fMRI(classification, baseFolder, cohort='HC'):
     for subject in cohortSet:
         print(f"fMRI {cohort}: {subject}")
         fMRI_path = baseFolder + "/fMRI/" + subject + "/MNINonLinear/Results/Restingstate"
-        series = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean.ptseries.txt")
-        subcSeries = np.loadtxt(fMRI_path+"/"+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean_subcort.ptseries.txt")
+        series = np.loadtxt(fMRI_path+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean.ptseries.txt")
+        subcSeries = np.loadtxt(fMRI_path+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean_subcort.ptseries.txt")
         fullSeries = np.concatenate((series, subcSeries))
         all_fMRI[subject] = fullSeries
     return all_fMRI
@@ -182,9 +186,64 @@ print(f"We have {len(HCSubjects)} HC, {len(MCISubjects)} MCI and {len(ADSubjects
 # print("HCSubjects:", HCSubjects)
 # print("ADSubjects", ADSubjects)
 # print("MCISubjects", MCISubjects)
-allStudySubjects = HCSubjects + MCISubjects + ADSubjects
+# allStudySubjects = HCSubjects + MCISubjects + ADSubjects
 
 dataSetLabels = ['HC', 'MCI', 'AD']
+
+
+# ================================================================================================================
+# ================================================================================================================
+# Loading generalization layer:
+# These methods are used for the sole purpose of homogenizing data loading across projects
+# ================================================================================================================
+# ================================================================================================================
+class ADNI(DataLoader):
+    def set_basePath(self, path):
+        global WholeBrainFolder, base_folder
+        WholeBrainFolder = path
+        base_folder = WholeBrainFolder + "Data_Raw/from_Ritter/"
+
+    def get_SubjectData(self, subjectID, correcSCMatrix=True, normalizeBurden=True):
+        # 1st load
+        SCnorm, abeta_burden, tau_burden, timeseries = loadSubjectData(subjectID,
+                                                                       correcSCMatrix=correcSCMatrix,
+                                                                       normalizeBurden=normalizeBurden)
+        # 2nd cut
+        timeseries = cutTimeSeriesIfNeeded(timeseries)
+        return {subjectID:
+                    {'timeseries': timeseries,
+                     'ABeta': abeta_burden,
+                     'Tau': tau_burden,
+                     'SC': SCnorm
+                     }}
+
+    # get_fullGroup_fMRI: convenience method to load all fMRIs for a given subject group
+    def get_fullGroup_fMRI(self, group):
+        return load_fullCohort_fMRI(classification, base_folder, cohort=group)
+
+
+    def get_AvgSC_ctrl(self, normalized=True):
+        avgMatrix = computeAvgSC_HC_Matrix(classification, base_folder+"connectomes/")
+        if normalized:
+            return correctSC(avgMatrix)
+        else:
+            return avgMatrix
+
+
+    def get_groupSubjects(self, group):
+        return getCohortSubjects(group)
+
+
+    def get_groupLabels(self):
+        return dataSetLabels
+
+
+    def get_classification(self):
+        return classification
+
+
+# ================================================================================================================
+print('Data loading done!')
 # ================================================================================================================
 # ================================================================================================================
 # ================================================================================================================EOF
