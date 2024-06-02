@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 # from numba import jit
 import WholeBrain.Observables.BOLDFilters as BOLDFilters
+import WholeBrain.Utils.MatlabTricks as tricks
 
 
 NLAG = 6  # Number of taus (lag values) to compute
@@ -33,14 +34,6 @@ def calculate_Tauwinner(DL, FowRev):
     return int(Tauwinner)
 
 
-# ================================================================================================================
-# Matlab's corr function
-# from https://stackoverflow.com/questions/61624985/python-use-of-corrcoeff-to-achieve-matlabs-corr-function
-def corr(A, B):
-    A = (A - A.mean(axis=0)) / A.std(axis=0)
-    B = (B - B.mean(axis=0)) / B.std(axis=0)
-    correlation = (np.dot(B.T, A) / B.shape[0]).T
-    return correlation
 
 
 def InsideOUT(ts):
@@ -54,12 +47,12 @@ def InsideOUT(ts):
         # Compute forward correlation
         ts_1 = ts[:, 0:Tm-Tau]
         ts_2 = ts[:, Tau:Tm]
-        FCtau_foward = corr(ts_1.T, ts_2.T)
+        FCtau_foward = tricks.corr(ts_1.T, ts_2.T)
 
         # Compute backwards correlation
         ts_11 = ts[:, Tm-1: Tau - 1: -1].T
         ts_22 = ts[:, Tm - Tau -1:: -1].T
-        FCtau_reversal = corr(ts_11, ts_22)
+        FCtau_reversal = tricks.corr(ts_11, ts_22)
 
         # Squeeze to remove unneeded extra dimensions -> not really necessary!
         FCtf = np.squeeze(FCtau_foward)

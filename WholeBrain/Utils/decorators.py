@@ -46,7 +46,7 @@ def cleanDict(resData):
 # dictionary of {name: value} pairs, so when the computation was done before and the file exists and is
 # loaded we could directly return the Matlab file contents directly. It uses the .mat file format for all
 # operations.
-forceCompute = False
+forceCompute = False  # Global mechanism to force all the computations to be done!
 def loadOrCompute(func):
     @functools.wraps(func)
     def loading_decorator(*args, **kwargs):

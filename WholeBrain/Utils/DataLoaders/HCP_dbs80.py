@@ -27,6 +27,7 @@ base_folder = WholeBrainFolder + "Data_Raw/HCP/DataHCP80/"
 
 maxSubjects = 1003
 tasks = ['REST1', 'EMOTION', 'GAMBLING', 'LANGUAGE', 'MOTOR', 'RELATIONAL', 'SOCIAL', 'WM']
+minLength = 175
 
 
 # --------------------------------------------------------------------------
@@ -66,6 +67,8 @@ def read_matlab_h5py(filename, task, selectedIDs):
             group = h5File[subj[0]]
             try:
                 dbs80ts = np.array(group['dbs80ts'])
+                if dbs80ts.shape[0] < minLength:  # Some individuals have too short time series
+                    print(f'should ignore register {subj} at {(pos,task)}: length {dbs80ts.shape[0]}')
                 all_fMRI[(pos,task)] = dbs80ts.T
             except:
                 print(f'ignoring register {subj} at {pos}')
@@ -160,7 +163,7 @@ def loadFilteredData(chosenDatasets=tasks, forceUniqueSet=False):
 # ================================================================================================================
 # ================================================================================================================
 class HCP(DataLoader):
-    def __init__(self, path=None, chosenDatasets=tasks, forceUniqueSet=False, numSampleSubjects=None):
+    def __init__(self, path=None, chosenDatasets=tasks, forceUniqueSet=False, numSampleSubjects=None, correcSCMatrix=True):
         if path is not None:
             self.set_basePath(self, path)
         loadFilteredData(chosenDatasets=chosenDatasets, forceUniqueSet=forceUniqueSet)
@@ -169,13 +172,14 @@ class HCP(DataLoader):
             for task in chosenDatasets:
                 listRejectedIDs = set([s for s in range(maxSubjects)]) - set(selected)
                 filterSubjectsData(task, listRejectedIDs)
+        self.correcSCMatrix = correcSCMatrix
 
     def set_basePath(self, path):
         global WholeBrainFolder, base_folder
         WholeBrainFolder = path
         base_folder = WholeBrainFolder + "Data_Raw/HCP/DataHCP80/"
 
-    def get_SubjectData(self, subjectID, correcSCMatrix=True, normalizeBurden=True):
+    def get_SubjectData(self, subjectID):
         ts = timeseries[subjectID[1]][subjectID]
         return {subjectID: {'timeseries': ts}}
 
@@ -207,6 +211,8 @@ class HCP(DataLoader):
                 classi[subj] = subj[1]
         return classi
 
+    def discardSubject(self, subjectID):
+        timeseries[subjectID[1]].pop(subjectID)
 
 
 

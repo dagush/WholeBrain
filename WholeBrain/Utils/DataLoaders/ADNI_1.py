@@ -11,6 +11,7 @@ from WholeBrain.Utils.DataLoaders.baseDataLoader import DataLoader
 # Important config options: filenames
 # ==========================================================================
 WholeBrainFolder = "/Users/dagush/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
+# WholeBrainFolder = "L:/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
 base_folder = WholeBrainFolder + "Data_Raw/from_Ritter/"
 # ==========================================================================
 # ==========================================================================
@@ -115,7 +116,7 @@ def load_fullCohort_fMRI(classification, baseFolder, cohort='HC'):
     all_fMRI = {}
     for subject in cohortSet:
         print(f"fMRI {cohort}: {subject}")
-        fMRI_path = baseFolder + "/fMRI/" + subject + "/MNINonLinear/Results/Restingstate"
+        fMRI_path = baseFolder + "/fMRI/" + subject + "/MNINonLinear/Results/Restingstate/"
         series = np.loadtxt(fMRI_path+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean.ptseries.txt")
         subcSeries = np.loadtxt(fMRI_path+subject+"_Restingstate_Atlas_MSMAll_hp2000_clean_subcort.ptseries.txt")
         fullSeries = np.concatenate((series, subcSeries))
@@ -198,16 +199,22 @@ dataSetLabels = ['HC', 'MCI', 'AD']
 # ================================================================================================================
 # ================================================================================================================
 class ADNI(DataLoader):
+    def __init__(self, correcSCMatrix=True, normalizeBurden=True, cutTimeSeries=True):
+        self.correcSCMatrix = correcSCMatrix
+        self.normalizeBurden = normalizeBurden
+        global force_Tmax
+        force_Tmax = cutTimeSeries
+
     def set_basePath(self, path):
         global WholeBrainFolder, base_folder
         WholeBrainFolder = path
         base_folder = WholeBrainFolder + "Data_Raw/from_Ritter/"
 
-    def get_SubjectData(self, subjectID, correcSCMatrix=True, normalizeBurden=True):
+    def get_SubjectData(self, subjectID):
         # 1st load
         SCnorm, abeta_burden, tau_burden, timeseries = loadSubjectData(subjectID,
-                                                                       correcSCMatrix=correcSCMatrix,
-                                                                       normalizeBurden=normalizeBurden)
+                                                                       correcSCMatrix=self.correcSCMatrix,
+                                                                       normalizeBurden=self.normalizeBurden)
         # 2nd cut
         timeseries = cutTimeSeriesIfNeeded(timeseries)
         return {subjectID:
@@ -219,7 +226,10 @@ class ADNI(DataLoader):
 
     # get_fullGroup_fMRI: convenience method to load all fMRIs for a given subject group
     def get_fullGroup_fMRI(self, group):
-        return load_fullCohort_fMRI(classification, base_folder, cohort=group)
+        groupFMRI = load_fullCohort_fMRI(classification, base_folder, cohort=group)
+        for s in groupFMRI:
+            groupFMRI[s] = cutTimeSeriesIfNeeded(groupFMRI[s])
+        return groupFMRI
 
 
     def get_AvgSC_ctrl(self, normalized=True):

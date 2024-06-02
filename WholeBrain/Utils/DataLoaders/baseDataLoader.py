@@ -14,7 +14,7 @@ class DataLoader():
     def get_classification(self):
         raise Exception('This should have been implemented by a subclass')
 
-    def get_SubjectData(self, subjectID, correcSCMatrix=True, normalizeBurden=True):
+    def get_SubjectData(self, subjectID):
         raise Exception('This should have been implemented by a subclass')
 
     def get_AvgSC_ctrl(self, normalized=True):
@@ -34,6 +34,8 @@ class DataLoader():
             allStudySubjects += self.get_groupSubjects(label)
         return allStudySubjects
 
+    def discardSubject(self, subjectID):
+        raise Exception('This should have been implemented by a subclass')
 
 # ================================================================================================================
 # ================================================================================================================
