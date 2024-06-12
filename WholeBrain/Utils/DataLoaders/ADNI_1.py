@@ -210,6 +210,35 @@ class ADNI(DataLoader):
         WholeBrainFolder = path
         base_folder = WholeBrainFolder + "Data_Raw/from_Ritter/"
 
+    def TR(self):
+        return 3.
+
+    def N(self):
+        return 379 # 360 cortical + 19 subcortical regions
+
+    # get_fullGroup_fMRI: convenience method to load all fMRIs for a given subject group
+    def get_fullGroup_fMRI(self, group):
+        groupFMRI = load_fullCohort_fMRI(classification, base_folder, cohort=group)
+        for s in groupFMRI:
+            groupFMRI[s] = cutTimeSeriesIfNeeded(groupFMRI[s])
+        return groupFMRI
+
+    def get_AvgSC_ctrl(self, normalized=True):
+        avgMatrix = computeAvgSC_HC_Matrix(classification, base_folder+"connectomes/")
+        if normalized:
+            return correctSC(avgMatrix)
+        else:
+            return avgMatrix
+
+    def get_groupSubjects(self, group):
+        return getCohortSubjects(group)
+
+    def get_groupLabels(self):
+        return dataSetLabels
+
+    def get_classification(self):
+        return classification
+
     def get_SubjectData(self, subjectID):
         # 1st load
         SCnorm, abeta_burden, tau_burden, timeseries = loadSubjectData(subjectID,
@@ -224,32 +253,9 @@ class ADNI(DataLoader):
                      'SC': SCnorm
                      }}
 
-    # get_fullGroup_fMRI: convenience method to load all fMRIs for a given subject group
-    def get_fullGroup_fMRI(self, group):
-        groupFMRI = load_fullCohort_fMRI(classification, base_folder, cohort=group)
-        for s in groupFMRI:
-            groupFMRI[s] = cutTimeSeriesIfNeeded(groupFMRI[s])
-        return groupFMRI
-
-
-    def get_AvgSC_ctrl(self, normalized=True):
-        avgMatrix = computeAvgSC_HC_Matrix(classification, base_folder+"connectomes/")
-        if normalized:
-            return correctSC(avgMatrix)
-        else:
-            return avgMatrix
-
-
-    def get_groupSubjects(self, group):
-        return getCohortSubjects(group)
-
-
-    def get_groupLabels(self):
-        return dataSetLabels
-
-
-    def get_classification(self):
-        return classification
+    def get_GlobalData(self):
+        cog = np.loadtxt(WholeBrainFolder + 'Data_Raw/Parcellations/Glasser360/glasser_coords.txt')
+        return {'coords': cog}
 
 
 # ================================================================================================================

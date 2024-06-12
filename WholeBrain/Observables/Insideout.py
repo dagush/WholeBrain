@@ -5,13 +5,19 @@
 # dynamics in brain states. Commun Biol 5, 572 (2022).
 # https://doi.org/10.1038/s42003-022-03505-7
 #
+# Part of the Thermodynamics of Mind framework:
+# Kringelbach, M. L., Sanz Perl, Y., & Deco, G. (2024). The Thermodynamics of Mind.
+# In Trends in Cognitive Sciences (Vol. 28, Issue 6, pp. 568–581). Elsevier BV.
+# https://doi.org/10.1016/j.tics.2024.03.009
+#
 # By Gustavo Deco,
 # Translated by Marc Gregoris
 # =======================================================================
-import warnings
+# import warnings
 import numpy as np
 # from numba import jit
-import WholeBrain.Observables.BOLDFilters as BOLDFilters
+# import WholeBrain.Observables.BOLDFilters as BOLDFilters
+from WholeBrain.Observables.observable import Observable
 import WholeBrain.Utils.MatlabTricks as tricks
 
 
@@ -32,8 +38,6 @@ def calculate_Tauwinner(DL, FowRev):
         max_means.append(np.argmax(np.mean(FowRevMatr,1)))
     Tauwinner = np.round(np.mean(max_means))
     return int(Tauwinner)
-
-
 
 
 def InsideOUT(ts):
@@ -68,24 +72,17 @@ def InsideOUT(ts):
         AsymFow[Tau-1] = np.mean(np.abs(Itauf - Itauf.T))
         AsymRev[Tau-1] = np.mean(np.abs(Itaur - Itaur.T))
 
-    return FowRev, AsymRev, AsymFow
+    return {"FowRev": FowRev, "AsymRev": AsymRev, "AsymFow": AsymFow}
 
 
-# @jit(nopython=True)
-def from_fMRI(signal, applyFilters=True, removeStrongArtefacts=True):
-    if not np.isnan(signal).any():  # No problems, go ahead!!!
-        if applyFilters:
-            signal_filt = BOLDFilters.BandPassFilter(signal, removeStrongArtefacts=removeStrongArtefacts)
-            sfiltT = signal_filt
-        else:
-            sfiltT = signal
-        cc = InsideOUT(sfiltT)  # InsideOUT
+# ================================================================================================================
+# Main Insideout class.
+# ================================================================================================================
+class Insideout(Observable):
+    def _compute_from_fMRI(self, fMRI):
+        cc = InsideOUT(fMRI.T)
         return cc
 
-    else:
-        warnings.warn('############ Warning!!! INSIDEOUT.from_fMRI: NAN found ############')
-        # n = signal.shape[0]
-        return np.nan
 
 # ================================================================================================================
 # ================================================================================================================

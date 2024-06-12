@@ -19,25 +19,27 @@ from WholeBrain.Utils.DataLoaders.baseDataLoader import DataLoader
 # ==========================================================================
 # Important config options: filenames
 # ==========================================================================
-WholeBrainFolder = "/Users/dagush/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
-base_folder = WholeBrainFolder + "Data_Raw/HCP/DataHCP80/"
+WholeBrainFolder = "L:/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
+# WholeBrainFolder = "/Users/dagush/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
+base_folder = WholeBrainFolder + "Data_Raw/HCP/"
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================
 
 maxSubjects = 1003
-tasks = ['REST1', 'EMOTION', 'GAMBLING', 'LANGUAGE', 'MOTOR', 'RELATIONAL', 'SOCIAL', 'WM']
+tasks = ['REST1']  # ['REST1', 'EMOTION', 'GAMBLING', 'LANGUAGE', 'MOTOR', 'RELATIONAL', 'SOCIAL', 'WM']
 minLength = 175
 
 
 # --------------------------------------------------------------------------
 # functions to select which subjects to process
 # --------------------------------------------------------------------------
-_numSampleSubjects = 20  # 20 for exploring the data
-save_path = WholeBrainFolder + 'WIP/HCP-LEiDA/Data_Produced/'
-selectedSubjectsFile = save_path + f'selected_{_numSampleSubjects}.txt'
-fMRI_path = base_folder + 'hcp1003_{}_LR_dbs80.mat'
-SC_path = base_folder + 'SC_dbs80HARDIFULL.mat'
+# _numSampleSubjects = 20  # 20 for exploring the data
+# save_path = WholeBrainFolder + 'WIP/HCP-LEiDA/Data_Produced/'
+# selectedSubjectsFile = save_path + f'selected_{_numSampleSubjects}.txt'
+fMRI_path = base_folder + 'hcp_{}_LR_schaefer1000.mat'
+# SC_path = base_folder + 'SC_dbs80HARDIFULL.mat'
+schaeferCOG = base_folder + 'schaefercog.mat'
 
 
 # --------------------------------------------------------------------------
@@ -66,7 +68,7 @@ def read_matlab_h5py(filename, task, selectedIDs):
             # print(f'reading subject {pos}')
             group = h5File[subj[0]]
             try:
-                dbs80ts = np.array(group['dbs80ts'])
+                dbs80ts = np.array(group['schaeferts'])
                 if dbs80ts.shape[0] < minLength:  # Some individuals have too short time series
                     print(f'should ignore register {subj} at {(pos,task)}: length {dbs80ts.shape[0]}')
                 all_fMRI[(pos,task)] = dbs80ts.T
@@ -104,20 +106,20 @@ def saveSelectedSubjects(path, subj):
             writer.writerow([s])
 
 
-# fix subset of subjects to sample
-def selectSubjectSubset(selectedSubjectsF, numSampleSubj, forceRecompute=False):
-    if not os.path.isfile(selectedSubjectsF) or forceRecompute:  # if we did not already select a list...
-        allExcl = set()
-        for task in tasks:
-            allExcl |= set(excluded[task])
-        listIDs = random.sample(range(0, maxSubjects), numSampleSubj)
-        while allExcl & set(listIDs):
-            listIDs = random.sample(range(0, maxSubjects), numSampleSubj)
-        saveSelectedSubjects(selectedSubjectsF, listIDs)
-    else:  # if we did, load it!
-        listIDs = loadSubjectList(selectedSubjectsF)
-    # ---------------- OK, let's proceed
-    return listIDs
+# # fix subset of subjects to sample
+# def selectSubjectSubset(selectedSubjectsF, numSampleSubj, forceRecompute=False):
+#     if not os.path.isfile(selectedSubjectsF) or forceRecompute:  # if we did not already select a list...
+#         allExcl = set()
+#         for task in tasks:
+#             allExcl |= set(excluded[task])
+#         listIDs = random.sample(range(0, maxSubjects), numSampleSubj)
+#         while allExcl & set(listIDs):
+#             listIDs = random.sample(range(0, maxSubjects), numSampleSubj)
+#         saveSelectedSubjects(selectedSubjectsF, listIDs)
+#     else:  # if we did, load it!
+#         listIDs = loadSubjectList(selectedSubjectsF)
+#     # ---------------- OK, let's proceed
+#     return listIDs
 
 
 
@@ -128,15 +130,16 @@ timeseries = {}
 excluded = {}
 
 
-def filterSubjectsData(task, listRejectedIDs):
-    global timeseries
-    for i in listRejectedIDs:
-        id = (i, task)
-        if id in timeseries[task]:
-            timeseries[task].pop(id)
+# def filterSubjectsData(task, listRejectedIDs):
+#     global timeseries
+#     for i in listRejectedIDs:
+#         id = (i, task)
+#         if id in timeseries[task]:
+#             timeseries[task].pop(id)
 
 
-def loadFilteredData(chosenDatasets=tasks, forceUniqueSet=False):
+def loadFilteredData(chosenDatasets=tasks,  # forceUniqueSet=False
+                     ):
     global timeseries, excluded
     allSubj = set([s for s in range(maxSubjects)])
 
@@ -146,14 +149,14 @@ def loadFilteredData(chosenDatasets=tasks, forceUniqueSet=False):
         timeseries[task], excluded[task] = loadSubjectsData(fMRI_task_path, task, allSubj)
         print(f'------ Excluded: {len(excluded)} for {task}------')
 
-    if forceUniqueSet:  # force same subjects across all the selected datasets
-        # firstm, let;'s unify the excluded sets, which will result in 971 subjects out of the 1003 originals
-        allExcl = set()
-        for task in chosenDatasets:
-            allExcl |= set(excluded[task])
-        # now we have all excluded subjects selected, let's apply the filtering...
-        for task in chosenDatasets:
-            filterSubjectsData(task, allExcl)
+    # if forceUniqueSet:  # force same subjects across all the selected datasets
+    #     # firstm, let;'s unify the excluded sets, which will result in 971 subjects out of the 1003 originals
+    #     allExcl = set()
+    #     for task in chosenDatasets:
+    #         allExcl |= set(excluded[task])
+    #     # now we have all excluded subjects selected, let's apply the filtering...
+    #     for task in chosenDatasets:
+    #         filterSubjectsData(task, allExcl)
 
 
 # ================================================================================================================
@@ -163,36 +166,36 @@ def loadFilteredData(chosenDatasets=tasks, forceUniqueSet=False):
 # ================================================================================================================
 # ================================================================================================================
 class HCP(DataLoader):
-    def __init__(self, path=None, chosenDatasets=tasks, forceUniqueSet=False, numSampleSubjects=None, correcSCMatrix=True):
+    def __init__(self, path=None, # chosenDatasets=tasks, forceUniqueSet=False, numSampleSubjects=None, correcSCMatrix=True
+                 ):
         if path is not None:
             self.set_basePath(self, path)
-        loadFilteredData(chosenDatasets=chosenDatasets, forceUniqueSet=forceUniqueSet)
-        if numSampleSubjects is not None:
-            selected = selectSubjectSubset(selectedSubjectsFile, numSampleSubjects)
-            for task in chosenDatasets:
-                listRejectedIDs = set([s for s in range(maxSubjects)]) - set(selected)
-                filterSubjectsData(task, listRejectedIDs)
-        self.correcSCMatrix = correcSCMatrix
+        loadFilteredData()  # chosenDatasets=chosenDatasets, forceUniqueSet=forceUniqueSet)
+        # if numSampleSubjects is not None:
+        #     selected = selectSubjectSubset(selectedSubjectsFile, numSampleSubjects)
+        #     for task in chosenDatasets:
+        #         listRejectedIDs = set([s for s in range(maxSubjects)]) - set(selected)
+        #         filterSubjectsData(task, listRejectedIDs)
+        # self.correcSCMatrix = correcSCMatrix
 
     def set_basePath(self, path):
         global WholeBrainFolder, base_folder
         WholeBrainFolder = path
-        base_folder = WholeBrainFolder + "Data_Raw/HCP/DataHCP80/"
+        base_folder = WholeBrainFolder + "Data_Raw/HCP/"
 
     def TR(self):
         return 0.72  # Repetition Time (seconds)
 
     def N(self):
-        return 80
+        return 1000
 
     # get_fullGroup_fMRI: convenience method to load all fMRIs for a given subject group
     def get_fullGroup_fMRI(self, group):
         return timeseries[group]
 
     def get_AvgSC_ctrl(self, normalized=True):
-        filename = base_folder + 'SC_dbs80HARDIFULL.mat'
-        SC = sio.loadmat(filename)['SC_dbs80FULL']
-        return SC
+        # I do not have this information...
+        raise Exception("I do not have the SC for this dataset")
 
     def get_groupSubjects(self, group):
         test = timeseries[group].keys()
@@ -215,6 +218,10 @@ class HCP(DataLoader):
     def get_SubjectData(self, subjectID):
         ts = timeseries[subjectID[1]][subjectID]
         return {subjectID: {'timeseries': ts}}
+
+    def get_GlobalData(self):
+        cog = sio.loadmat(base_folder + 'schaefercog.mat')['SchaeferCOG']
+        return {'coords': cog}
 
 
 # ================================================================================================================

@@ -8,15 +8,15 @@
 # By Gustavo Deco,
 # Translated by Marc Gregoris and Gustavo Patow
 # =======================================================================
-import numpy as np
 from WholeBrain.Observables import Insideout
+InOut = Insideout.Insideout(applyFilters=False, removeStrongArtefacts=False)
 
 # =============== Load HCP data
 import WholeBrain.Utils.DataLoaders.HCP_dbs80 as HCP
 DL = HCP.HCP()
 
 import WholeBrain.Observables.BOLDFilters as BOLDFilters
-BOLDFilters.TR = 3
+BOLDFilters.TR = DL.TR()
 BOLDFilters.flp = 0.01
 BOLDFilters.fhi = 0.09
 import WholeBrain.Utils.p_values as p_values
@@ -27,15 +27,13 @@ NLAG = 6  # Number of taus (lag values) to compute
 
 # ================================================================================================================
 def processSubjects():
-    # diccionari per guardar fowrev de cada subjecte
+    # Dict to store fowrev for each subject
     Fr = {}
-    subject_list = []
-    index2 = []
 
     for subject in DL.get_allStudySubjects():
-        subjData = DL.get_SubjectData(subject, correcSCMatrix=True, normalizeBurden=True)
-        FowRev, AsymRev, AsymFow = Insideout.from_fMRI(subjData[subject]['timeseries'], applyFilters=False, removeStrongArtefacts=False)
-        Fr[subject] = FowRev
+        subjData = DL.get_SubjectData(subject)
+        resuInOut = InOut.from_fMRI(subjData[subject]['timeseries'])
+        Fr[subject] = resuInOut['FowRev']
 
     Tauwinner = Insideout.calculate_Tauwinner(DL, Fr)
 
