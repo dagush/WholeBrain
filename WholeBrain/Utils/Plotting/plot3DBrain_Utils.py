@@ -3,8 +3,10 @@
 # Utility WholeBrain to compute multi-views of the cortex data
 # =================================================================
 # =================================================================
+import numpy as np
 import matplotlib as plt
-from Utils.Plotting.plot3DBrain import *
+from WholeBrain.Utils.Plotting.plot3DBrain import *
+import nibabel as nib
 
 
 # =================================================================
@@ -199,7 +201,7 @@ def plot_multiview5ValuesForEachChort(burdens, title, metaName, display, cmap, p
 #  Convenience function for the Glasser parcellation, for debug purposes only...
 # ===========================
 def setUpGlasser360():
-    Glasser360_baseFolder = "../../../Data_Raw/Parcellations/Glasser360/"
+    Glasser360_baseFolder = "../../Data_Raw/Parcellations/Glasser360/"
     # =============== Load the geometry ==================
     glassers_L = nib.load(Glasser360_baseFolder + 'Glasser360.L.mid.32k_fs_LR.surf.gii')
     # glassers_L = nib.load(Glasser360_baseFolder + 'Glasser360.L.inflated.32k_fs_LR.surf.gii')

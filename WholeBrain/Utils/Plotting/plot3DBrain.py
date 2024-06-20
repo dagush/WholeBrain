@@ -13,8 +13,6 @@ from matplotlib.collections import TriMesh, PolyCollection
 # Import lighting object for shading surface plots.
 from matplotlib.colors import LightSource, Normalize
 
-import nibabel as nib
-
 
 def normalize_v3(arr):
     ''' Normalize a numpy array of 3 component vectors shape=(n,3) '''

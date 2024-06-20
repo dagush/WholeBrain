@@ -8,7 +8,7 @@
 # J. R. Soc. Interface
 # https://doi.org/10.1098/rsif.2022.0607
 #
-# This is the first file in the sequence for the propagation simulation, AFTER preparing setup.py...
+# This is the first file in the sequence for the propagation simulation, AFTER preparing setup_Chen_Campbell.py...
 #
 # refactored by Gustavo Patow
 # --------------------------------------------------------------------------------------
@@ -52,6 +52,23 @@ if __name__ == '__main__':
     spread_tspan = (0,35)
     spread_atol = 10**-6; spread_rtol = 10**-4
     spread_y0 = False  # Propagation model initial parms. False gives default setting -> initialized inside AD_func.alzheimer
+    # # --------------------------------------------------------------------------------------
+    # SPREADING PARAMETERS
+    gamma = 0.0
+    spreadingParms = {  # SPREADING PARAMETERS
+        'rho': 1 * 10**(-3),
+        # Amyloid-beta
+        'a0': 1 * 2, 'ai': 1 * 2, 'api': 0.75 * 2, 'aii': 1 * 2,
+        # tau
+        'b0': 1 * 2, 'bi': 1 * 2, 'bii': 1 * 2, 'biii': 6 * 2, 'bpi': 1.33 * 2,
+        # concentration-to-damage
+        'k1': 1, 'k2': 1, 'k3': 0, 'gamma': gamma,
+        # damage-to-NNM
+        'c1': 0.8, 'c2': 1.8, 'c3': 0.4,
+        # NNM variable parameters
+        'a_init': 1, 'b_init': 1, 'a_min': 0.05, 'a_max': 1.95, 'b_min': 0.05,
+        'delta': False,
+    }
 
     # --------------------------------------------------------------------------------------
     # Read Budapest coupling matrix
@@ -72,6 +89,7 @@ if __name__ == '__main__':
 
     # --------------------------------------------------------------------------------------
     # HOPF PARAMETERS
+    # --------------------------------------------------------------------------------------
     baseDecay = -0.01; baseH = 5; kappa = 1;  # kappa is the coupling constant, now called G
     freqss = np.random.normal(10,1, size=(N,trials))  # samples of frequencies
     freqss *= 2*pi
@@ -84,23 +102,6 @@ if __name__ == '__main__':
     dyn_y0[:, ::2] = R0 * np.cos(theta0)  # dyn_y0 values are interleaved...
     dyn_y0[:, 1::2] = R0 * np.sin(theta0)
 
-    # # --------------------------------------------------------------------------------------
-    # SPREADING PARAMETERS
-    gamma = 0.0
-    spreadingParms = {  # SPREADING PARAMETERS
-        'rho': 1 * 10**(-3),
-        # Amyloid-beta
-        'a0': 1 * 2, 'ai': 1 * 2, 'api': 0.75 * 2, 'aii': 1 * 2,
-        # tau
-        'b0': 1 * 2, 'bi': 1 * 2, 'bii': 1 * 2, 'biii': 6 * 2, 'bpi': 1.33 * 2,
-        # concentration-to-damage
-        'k1': 1, 'k2': 1, 'k3': 0, 'gamma': gamma,
-        # damage-to-NNM
-        'c1': 0.8, 'c2': 1.8, 'c3': 0.4,
-        # NNM variable parameters
-        'a_init': 1, 'b_init': 1, 'a_min': 0.05, 'a_max': 1.95, 'b_min': 0.05,
-        'delta': False,
-    }
     # --------------------------------------------------------------------------------------
     # SOLVE
     # simulate alzheimer's progression

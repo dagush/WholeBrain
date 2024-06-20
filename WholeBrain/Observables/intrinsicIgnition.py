@@ -68,7 +68,7 @@ def adif(a,b):
     return c
 
 
-def dmperm(A):
+def dmperm(A):  # Dulmage-Mendelsohn decomposition
     (useless1,p,useless2,r) = eng.dmperm(eng.double(A), nargout=4)  # Apply MATLABs dmperm
     outp = np.asarray(p).flatten()
     outr = np.asarray(r).flatten()

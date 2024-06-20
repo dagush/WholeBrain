@@ -51,8 +51,6 @@ def initSim(N):
     return np.stack((Se, Si))
 
 
-
-
 # --------------------------------------------------------------------------
 # Variables of interest, needed for bookkeeping tasks...
 # Se, excitatory synaptic activity
@@ -94,7 +92,7 @@ def getParm(parmName):
 # ----------------- Dynamic Mean Field (a.k.a., reducedWongWang) --------------
 # -----------------------------------------------------------------------------
 
-# ----------------- Coumpling ----------------------
+# ----------------- Coupling ----------------------
 from WholeBrain.Models.Couplings import instantaneousDirectCoupling
 couplingOp = instantaneousDirectCoupling()  # The only one who knows the coupling operation is the model itself!!!
 

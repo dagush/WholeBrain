@@ -2,7 +2,7 @@
 #  Hopf code: Pre-processing (finding G)
 #  By gustavo Patow
 #
-# Execute this FIRST to get the optimal value of G, but do not forget to configure setup.py
+# Execute this FIRST to get the optimal value of G, but do not forget to configure setup_Progression.py
 # --------------------------------------------------------------------------------------
 import matplotlib.pyplot as plt
 import sys

@@ -59,6 +59,7 @@ def computeSubjectSimulation():
 # =======================================================================================
 def simulateSingleSubject():
     # N=C.shape[0]
+    # integrator.recompileSignatures()
     BOLD_act = computeSubjectSimulation()
     # now, (sub)sample the BOLD signal to obtain the final fMRI signal
     n_min = int(np.round(t_min / dtt))

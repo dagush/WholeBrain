@@ -8,7 +8,7 @@
 import warnings
 import numpy as np
 from scipy.signal import butter, detrend, filtfilt
-from WholeBrain.Observables import demean
+import WholeBrain.Observables.demean as demean
 from scipy import signal
 # from numba import jit
 
@@ -45,8 +45,8 @@ def BandPassFilter(boldSignal, removeStrongArtefacts=True):
             if finalDetrend:  # Only for compatibility reasons. By default, don't!
                 signal_filt[seed,:] = detrend(signal_filt[seed,:])
         else:  # We've found problems, mark this region as "problematic", to say the least...
+            signal_filt[seed, :] = boldSignal[seed, :]
             warnings.warn(f'############ Warning!!! BandPassFilter: NAN found at region {seed} ############')
-            signal_filt[seed,0] = np.nan
     return signal_filt
 
 
