@@ -19,10 +19,10 @@ def printAveragesAndStd(dataset):
     print("\nAverages and Std Dev:")
     if isinstance(dataset, dict):
         for setToPlot in dataset:
-            print(f'{setToPlot}: avg={np.average(dataset[setToPlot])}, stdev={np.std(dataset[setToPlot])}, len={len(dataset[setToPlot])}')
+            print(f'{setToPlot}: avg={np.nanmean(dataset[setToPlot])}, stdev={np.nanstd(dataset[setToPlot])}, len={len(dataset[setToPlot])}')
     else:
         for pos, setToPlot in enumerate(dataset.T):
-            print(f'{pos}: avg={np.average(setToPlot)}, stdev={np.std(setToPlot)}')
+            print(f'{pos}: avg={np.nanmean(setToPlot)}, stdev={np.nanstd(setToPlot)}')
     print()
 
 
