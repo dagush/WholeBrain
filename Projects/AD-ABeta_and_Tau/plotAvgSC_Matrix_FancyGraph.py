@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------------------
-import scipy.io as sio
+import hdf5storage as sio
 import dataLoader
 import Utils.Plotting.plotSC as plotSC
 

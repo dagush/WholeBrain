@@ -4,7 +4,7 @@
 # By Gustavo Patow
 # ==================================================
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 from pathlib import Path
 import functools
 import time

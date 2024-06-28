@@ -40,7 +40,7 @@ postprocess = accumulator.postprocess
 #
 #
 # def buildMatrixToSave(linear_phfcd, size):
-#     import scipy.io as sio
+#     import hdf5storage as sio
 #     tri = np.zeros((size, size))
 #     i_lower = tril_indices_column(size, k=-1)
 #     # i_lower = np.tril_indices(size, -1)
@@ -201,7 +201,7 @@ def from_fMRI(ts, applyFilters=True, removeStrongArtefacts=True):  # Compute the
 # Test code
 # --------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    import scipy.io as sio
+    import hdf5storage as sio
     import matplotlib.pyplot as plt
 
     from Observables import BOLDFilters

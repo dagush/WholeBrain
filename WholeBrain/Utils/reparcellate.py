@@ -10,7 +10,7 @@ import sys
 import siibra
 from nilearn import plotting
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 from nibabel import Nifti1Image
 import nibabel.processing
 

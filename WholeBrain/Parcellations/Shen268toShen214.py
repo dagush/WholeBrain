@@ -13,7 +13,7 @@
 # Note: this code is in earlier stage, and would need some generalization... ;-)
 # ------------------------------------------------------------
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 import csv
 
 Add = 0

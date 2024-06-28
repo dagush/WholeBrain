@@ -10,7 +10,7 @@
 #
 # --------------------------------------------------------------------------------------
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 import matplotlib.pyplot as plt
 import Abeta_Model as Abeta
 from WholeBrain.Models import JansenRit as JR

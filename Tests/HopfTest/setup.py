@@ -7,7 +7,7 @@
 import random
 import os, csv
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 import h5py
 
 

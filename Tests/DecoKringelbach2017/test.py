@@ -9,7 +9,7 @@
 # Adapted to python by Gustavo Patow
 # --------------------------------------------------------------------------------------
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 import matplotlib.pyplot as plt
 
 
