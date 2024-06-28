@@ -14,7 +14,7 @@
 
 
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 from numba import jit
 
 

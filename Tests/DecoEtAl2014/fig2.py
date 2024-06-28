@@ -11,7 +11,7 @@
 # By Gustavo Patow
 # ================================================================================================================
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 # import os, csv
 # from pathlib import Path
 import matplotlib.pyplot as plt

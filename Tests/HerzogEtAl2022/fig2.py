@@ -24,7 +24,7 @@ import os, re
 
 import numpy as np
 from scipy import stats
-import scipy.io as sio
+import hdf5storage as sio
 import matplotlib.pyplot as plt
 
 # ============== chose a model

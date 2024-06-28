@@ -16,7 +16,7 @@
 # --------------------------------------------------------------------------------------
 
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import WholeBrain.Utils.decorators as decorators

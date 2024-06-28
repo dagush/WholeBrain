@@ -13,7 +13,7 @@
 
 
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 from numba import jit
 
 
@@ -63,8 +63,8 @@ filters.fhi = .1                          # highpass
 filters.TR = 2.                           # TR
 
 # import observables
-import Observables.FC as FC
-import Observables.swFCD as swFCD
+import WholeBrain.Observables.FC as FC
+import WholeBrain.Observables.swFCD as swFCD
 
 # --------------------------------------------------------------------------
 # setp up IDs...

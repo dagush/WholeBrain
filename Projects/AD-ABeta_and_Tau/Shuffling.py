@@ -10,7 +10,7 @@
 # --------------------------------------------------------------------------------------
 import numpy as np
 # from scipy import signal, stats
-import scipy.io as sio
+import hdf5storage as sio
 import os
 from pathlib import Path
 import matplotlib.pyplot as plt

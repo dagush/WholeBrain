@@ -97,7 +97,7 @@ def from_fMRI(ts, applyFilters=True, removeStrongArtefacts=True):  # Compute the
         PhIntMatr = np.array([np.nan])
     # ======== sometimes we need to plot the matrix. To simplify the code, we save it here if needed...
     if saveMatrix:
-        import scipy.io as sio
+        import hdf5storage as sio
         sio.savemat(save_file + '.mat', {name: PhIntMatr})
     return PhIntMatr
 
