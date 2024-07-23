@@ -1,7 +1,7 @@
 # =====================================================================================
 # Methods to plot a few properties FCD matrices
 # =====================================================================================
-import scipy.io as sio
+import hdf5storage as sio
 import WholeBrain.Observables.phFCD as phFCD
 from Observables import BOLDFilters
 

@@ -18,7 +18,7 @@
 # --------------------------------------------------------------------------
 
 import numpy as np
-import scipy.io as sio
+import hdf5storage as sio
 from pathlib import Path
 from scipy import signal
 import matplotlib.pyplot as plt
