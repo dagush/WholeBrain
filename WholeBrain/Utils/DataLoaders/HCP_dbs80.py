@@ -1,10 +1,8 @@
 # --------------------------------------------------------------------------------------
-# Full pipeline for applying Leading Eigenvector Dynamics Analysis (LEiDA) to AD data
-# using pyLEiDA: https://github.com/PSYMARKER/leida-python
+# Full pipeline for loadin HCP data in the dbs80 parcellation
 #
 # By Gustavo Patow
 #
-# note: start by configuring this!!!
 # --------------------------------------------------------------------------------------
 import os
 import csv
@@ -19,7 +17,7 @@ from WholeBrain.Utils.DataLoaders.baseDataLoader import DataLoader
 # ==========================================================================
 # Important config options: filenames
 # ==========================================================================
-WholeBrainFolder = "/Users/dagush/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
+from WholeBrain.Utils.DataLoaders.WholeBrainFolder import *
 base_folder = WholeBrainFolder + "Data_Raw/HCP/DataHCP80/"
 # ==========================================================================
 # ==========================================================================
@@ -33,9 +31,6 @@ minLength = 175
 # --------------------------------------------------------------------------
 # functions to select which subjects to process
 # --------------------------------------------------------------------------
-_numSampleSubjects = 20  # 20 for exploring the data
-save_path = WholeBrainFolder + 'WIP/HCP-LEiDA/Data_Produced/'
-selectedSubjectsFile = save_path + f'selected_{_numSampleSubjects}.txt'
 fMRI_path = base_folder + 'hcp1003_{}_LR_dbs80.mat'
 SC_path = base_folder + 'SC_dbs80HARDIFULL.mat'
 
@@ -97,7 +92,7 @@ def loadSubjectList(path):
 
 # save a freshly created list
 def saveSelectedSubjects(path, subj):
-    with open(path, 'w', newline='') as csvfile:
+    with open(path, 'w+', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter=' ',
                             quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for s in subj:
@@ -163,21 +158,26 @@ def loadFilteredData(chosenDatasets=tasks, forceUniqueSet=False):
 # ================================================================================================================
 # ================================================================================================================
 class HCP(DataLoader):
-    def __init__(self, path=None, chosenDatasets=tasks, forceUniqueSet=False, numSampleSubjects=None, correcSCMatrix=True):
-        if path is not None:
-            self.set_basePath(self, path)
+    def __init__(self, dataSavePath=None, chosenDatasets=tasks, forceUniqueSet=False, numSampleSubjects=None, correcSCMatrix=True):
+        if dataSavePath is not None:
+            self.set_basePath(dataSavePath)
+        elif numSampleSubjects is not None:
+            raise Exception('Path should be provided if we are going to use only a subset of the subjects')
         loadFilteredData(chosenDatasets=chosenDatasets, forceUniqueSet=forceUniqueSet)
         if numSampleSubjects is not None:
+            selectedSubjectsFile = dataSavePath + f'selected_{numSampleSubjects}.txt'
             selected = selectSubjectSubset(selectedSubjectsFile, numSampleSubjects)
             for task in chosenDatasets:
                 listRejectedIDs = set([s for s in range(maxSubjects)]) - set(selected)
                 filterSubjectsData(task, listRejectedIDs)
         self.correcSCMatrix = correcSCMatrix
 
-    def set_basePath(self, path):
-        global WholeBrainFolder, base_folder
-        WholeBrainFolder = path
-        base_folder = WholeBrainFolder + "Data_Raw/HCP/DataHCP80/"
+    def name(self):
+        return 'HCP_dbs80'
+
+    def set_basePath(self, dataSavePath):
+        global base_folder
+        base_folder = dataSavePath
 
     def TR(self):
         return 0.72  # Repetition Time (seconds)

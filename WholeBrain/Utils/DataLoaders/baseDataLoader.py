@@ -5,6 +5,9 @@
 # ================================================================================================================
 # ================================================================================================================
 class DataLoader():
+    def name(self):
+        raise NotImplementedError('This should have been implemented by a subclass')
+
     def set_basePath(self, path):
         raise NotImplementedError('This should have been implemented by a subclass')
 
@@ -32,10 +35,12 @@ class DataLoader():
         raise NotImplementedError('This should have been implemented by a subclass')
 
     def get_GlobalData(self):
-        raise NotImplementedError('This should have been implemented by a subclass')
+        return {
+            'SC': self.get_AvgSC_ctrl()
+        }
 
     # -------------------------- Convenience methods -----------------------------------
-    # get_fullGroup_fMRI: convenience method to load all fMRIs for a given subject group
+    # get_fullGroup_fMRI: convenience method to load all fMRIs for a given group
     def get_fullGroup_fMRI(self, group):
         raise NotImplementedError('This should have been implemented by a subclass')
 

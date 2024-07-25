@@ -24,7 +24,7 @@ neuronalModel = None  # To be able to choose the model externally...
 # Euler Integration
 # --------------------------------------------------------------------------
 # sigma = 0.01
-@jit(nopython=True)
+# @jit(nopython=True)
 def integrationStep(simVars, dt, coupling, stimulus):
     # numSimVars = simVars.shape[0]; N = simVars.shape[1]
     dvars_obsVars = neuronalModel.dfun(simVars, coupling, stimulus)

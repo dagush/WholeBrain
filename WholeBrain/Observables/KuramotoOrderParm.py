@@ -25,14 +25,14 @@ def from_fMRI(fMRI_signal, applyFilters=True, removeStrongArtefacts=True):
 
         (N, Tmax) = fMRI_signal.shape
         # Data structures we are going to need...
-        phases_emp = np.zeros([N, Tmax])
+        phases = np.zeros([N, Tmax])
         # Time-series of the phases
         for n in range(N):
             Xanalytic = signal.hilbert(signal.detrend(signal_filt[n, :]))  # demean.demean
-            phases_emp[n, :] = np.angle(Xanalytic)
+            phases[n, :] = np.angle(Xanalytic)
 
         # Compute the temporal evolution of the order parameter
-        orderparam = (np.exp(1j * phases_emp)).mean(axis=0)
+        orderparam = (np.exp(1j * phases)).mean(axis=0)
 
         return orderparam
     else:

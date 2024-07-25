@@ -47,10 +47,10 @@ acftime_su_lista = data['acftime_su']
 
 
 # --------------------------------------------------------------------------------------------
-# BOXPLOT RSPATIME
+# BOXPLOT RSPATIME (Fig 2A)
 # --------------------------------------------------------------------------------------------
-BOXRSPA={'Rspatime':rspatime_lista, 'Rspatime_su': rspatime_su_lista}
-pValues.plotComparisonAcrossLabels2(BOXRSPA,graphLabel='amplitude turbulence')
+BOXRSPA={'Empirical Data': rspatime_lista, 'Surrogate Data': rspatime_su_lista}
+pValues.plotComparisonAcrossLabels2(BOXRSPA, graphLabel='amplitude turbulence (D)')
 
 
 # --------------------------------------------------------------------------------------------
@@ -106,12 +106,12 @@ plt.figure(3)
 plt.plot(np.arange(0, 101), mean_acfspa, '-r')
 plt.fill_between(np.arange(0, 101), mean_acfspa - std_acfspa, mean_acfspa + std_acfspa,
                  color='r', alpha=0.7)
-plt.plot(np.arange(0, 101), mean_acfspa_su, '-k')
-plt.fill_between(np.arange(0, 101), mean_acfspa_su - std_acfspa_su, mean_acfspa_su + std_acfspa_su,
-                 color='k', alpha=0.7)
-plt.xlabel('Index')
-plt.ylabel('acfspa')
-plt.title('acfspa')
+# plt.plot(np.arange(0, 101), mean_acfspa_su, '-k')
+# plt.fill_between(np.arange(0, 101), mean_acfspa_su - std_acfspa_su, mean_acfspa_su + std_acfspa_su,
+#                  color='k', alpha=0.7)
+plt.xlabel('Space (mm)')
+plt.ylabel('Autocorrelation (of R)')
+plt.title('Autocorrelation Space')
 plt.show()
 
 
@@ -126,12 +126,12 @@ plt.figure(4)
 plt.plot(np.arange(0, 101), mean_acftime, '-r')
 plt.fill_between(np.arange(0, 101), mean_acftime - std_acftime, mean_acftime + std_acftime,
                  color='r', alpha=0.7)
-plt.plot(np.arange(0, 101), mean_acftime_su, '-k')
-plt.fill_between(np.arange(0, 101), mean_acftime_su - std_acftime_su, mean_acftime_su + std_acftime_su,
-                 color='k', alpha=0.7)
-plt.xlabel('Index')
-plt.ylabel('acftime')
-plt.title('acftime')
+# plt.plot(np.arange(0, 101), mean_acftime_su, '-k')
+# plt.fill_between(np.arange(0, 101), mean_acftime_su - std_acftime_su, mean_acftime_su + std_acftime_su,
+#                  color='k', alpha=0.7)
+plt.xlabel('Time (TR)')
+plt.ylabel('Autocorrelation (of R)')
+plt.title('Autocorrelation Time')
 plt.show()
 
 print("done")

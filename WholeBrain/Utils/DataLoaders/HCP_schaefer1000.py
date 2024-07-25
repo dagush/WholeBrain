@@ -1,10 +1,7 @@
 # --------------------------------------------------------------------------------------
-# Full pipeline for applying Leading Eigenvector Dynamics Analysis (LEiDA) to AD data
-# using pyLEiDA: https://github.com/PSYMARKER/leida-python
+# Full pipeline for loading the HCB data in the Schaefer parcellation 1000
 #
 # By Gustavo Patow
-#
-# note: start by configuring this!!!
 # --------------------------------------------------------------------------------------
 import os
 import csv
@@ -19,9 +16,10 @@ from WholeBrain.Utils.DataLoaders.baseDataLoader import DataLoader
 # ==========================================================================
 # Important config options: filenames
 # ==========================================================================
-WholeBrainFolder = "L:/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
-# WholeBrainFolder = "/Users/dagush/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
-base_folder = WholeBrainFolder + "Data_Raw/HCP/"
+from WholeBrain.Utils.DataLoaders.WholeBrainFolder import *
+base_folder = WholeBrainFolder + "Data_Raw/HCP/Schaefer1000/"
+fMRI_path = base_folder + 'hcp_{}_LR_schaefer1000.mat'
+parcellations_folder = WholeBrainFolder + "Data_Raw/Paercellations/Schaefer1000/"
 # ==========================================================================
 # ==========================================================================
 # ==========================================================================
@@ -29,17 +27,6 @@ base_folder = WholeBrainFolder + "Data_Raw/HCP/"
 maxSubjects = 1003
 tasks = ['REST1']  # ['REST1', 'EMOTION', 'GAMBLING', 'LANGUAGE', 'MOTOR', 'RELATIONAL', 'SOCIAL', 'WM']
 minLength = 175
-
-
-# --------------------------------------------------------------------------
-# functions to select which subjects to process
-# --------------------------------------------------------------------------
-# _numSampleSubjects = 20  # 20 for exploring the data
-# save_path = WholeBrainFolder + 'WIP/HCP-LEiDA/Data_Produced/'
-# selectedSubjectsFile = save_path + f'selected_{_numSampleSubjects}.txt'
-fMRI_path = base_folder + 'hcp_{}_LR_schaefer1000.mat'
-# SC_path = base_folder + 'SC_dbs80HARDIFULL.mat'
-schaeferCOG = base_folder + 'schaefercog.mat'
 
 
 # --------------------------------------------------------------------------
@@ -178,6 +165,9 @@ class HCP(DataLoader):
         #         filterSubjectsData(task, listRejectedIDs)
         # self.correcSCMatrix = correcSCMatrix
 
+    def name(self):
+        return 'HCP_schaefer1000'
+
     def set_basePath(self, path):
         global WholeBrainFolder, base_folder
         WholeBrainFolder = path
@@ -193,9 +183,15 @@ class HCP(DataLoader):
     def get_fullGroup_fMRI(self, group):
         return timeseries[group]
 
+    def _correctSC(self, SC):
+        return SC/np.max(SC)
+
     def get_AvgSC_ctrl(self, normalized=True):
-        # I do not have this information...
-        raise Exception("I do not have the SC for this dataset")
+        SC = sio.loadmat(base_folder + 'sc_schaefer_MK.mat')['sc_schaefer']
+        if normalized:
+            return self._correctSC(SC)
+        else:
+            return SC
 
     def get_groupSubjects(self, group):
         test = timeseries[group].keys()
@@ -220,8 +216,10 @@ class HCP(DataLoader):
         return {subjectID: {'timeseries': ts}}
 
     def get_GlobalData(self):
-        cog = sio.loadmat(base_folder + 'schaefercog.mat')['SchaeferCOG']
-        return {'coords': cog}
+        cog = sio.loadmat(parcellations_folder + 'schaefercog.mat')['SchaeferCOG']
+        nodeInfo = np.genfromtxt(parcellations_folder + "Schaefer2018_1000Parcels_7Networks_order_FSLMNI152_1mm.Centroid_RAS.csv", delimiter=',')
+        return {'coords': cog,
+                'region_labels': nodeInfo} | super().get_GlobalData()
 
 
 # ================================================================================================================

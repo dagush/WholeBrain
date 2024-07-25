@@ -1,17 +1,17 @@
 # =====================================================================================
 # Methods to input AD data
 # =====================================================================================
-import os
+from sys import platform
 import numpy as np
 import os, csv
+
 from WholeBrain.Utils.DataLoaders.baseDataLoader import DataLoader
 
 
 # ==========================================================================
 # Important config options: filenames
 # ==========================================================================
-WholeBrainFolder = "/Users/dagush/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
-# WholeBrainFolder = "L:/Dpt. IMAE Dropbox/Gustavo Patow/SRC/WholeBrain/"
+from WholeBrain.Utils.DataLoaders.WholeBrainFolder import *
 base_folder = WholeBrainFolder + "Data_Raw/from_Ritter/"
 # ==========================================================================
 # ==========================================================================
@@ -205,6 +205,9 @@ class ADNI(DataLoader):
         global force_Tmax
         force_Tmax = cutTimeSeries
 
+    def name(self):
+        return 'ADNI_1'
+
     def set_basePath(self, path):
         global WholeBrainFolder, base_folder
         WholeBrainFolder = path
@@ -254,8 +257,11 @@ class ADNI(DataLoader):
                      }}
 
     def get_GlobalData(self):
-        cog = np.loadtxt(WholeBrainFolder + 'Data_Raw/Parcellations/Glasser360/glasser_coords.txt')
-        return {'coords': cog}
+        cog = np.loadtxt(WholeBrainFolder + 'Data_Raw/Parcellations/Glasser360/Glasser360_coords.txt')
+        with open(WholeBrainFolder + 'Data_Raw/Parcellations/Glasser360/glasser379NodeNames.txt', 'r') as file:
+            node_names = [line.strip() for line in file]
+        return {'coords': cog,
+                'region_labels': node_names} | super().get_GlobalData()
 
 
 # ================================================================================================================

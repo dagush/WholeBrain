@@ -72,15 +72,13 @@ def testSingleTimePoint(SC, a, b, w, y0):
 # OUTPUT:
 #   sols: (#runs) array with solutions stored as dictionaries
 # ----------------------------------------------------------------
-def computeMassModel(#DDE,  # Compiled DDE
-                     y0,  # Initial values, of size N*2 because we have 2 integration vars
-                     W,  # Coupling Matrix (N*N)
+def computeMassModel(y0,  # Initial values, of size N*2 because we have 2 integration vars
+                     W,   # Coupling Matrix (N*N)
                      parameterss=False,  # Here we should receive the model params
                      t_span=(0,10), step=10**-4, atol=10**-6, rtol=10**-4,
                      display=False, discard_y=False, cutoff=0,
                      runID=False):
     # input to the computeMassModel functions, for each trial and for each t, are:
-    #   DDE the compiled Delayed Equation
     #   y0: a 2*N arrays with the initial values for the equation (x,y)
     #       remember that values are interleaved
     #   W: the coupling matrix at time t of size N*N
@@ -129,6 +127,7 @@ def computeMassModel(#DDE,  # Compiled DDE
     b = parameterss[N:2*N].flatten()
     w = parameterss[2*N:].flatten()
 
+    # ----------------------------------------------------------------
     sol = testSingleTimePoint(W, a, b, w, y0)
 
     # ----------------------------------------------------------------
