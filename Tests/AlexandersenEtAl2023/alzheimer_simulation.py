@@ -48,10 +48,16 @@ if __name__ == '__main__':
     # --------------------------------------------------------------------------------------
     tau_nodes = [26, 67]  # left and right entorhinal cortex, toxic initialization
     beta_nodes = [0, 41, 3, 44, 13, 54, 14, 55, 19, 60, 33, 74]  # Mattson et. al (2019) stage I, toxic initialization
-    seed_amount = 0.01
-    spread_tspan = (0,35)
-    spread_atol = 10**-6; spread_rtol = 10**-4
-    spread_y0 = False  # Propagation model initial parms. False gives default setting -> initialized inside AD_func.alzheimer
+    spreadingInitialParms = {
+        'tau_seed': tau_nodes,
+        'beta_seed': beta_nodes,
+        'seed_amount': 0.01,
+        'spread_tspan': (0, 35),  # years
+        'spread_atol': 10**-6,
+        'spread_rtol': 10**-4,
+        'spread_max_step': 0.125,
+        'spread_y0': False,  # Propagation model initial parms. False gives default setting -> initialized inside AD_func.alzheimer
+    }
     # # --------------------------------------------------------------------------------------
     # SPREADING PARAMETERS
     gamma = 0.0
@@ -90,17 +96,21 @@ if __name__ == '__main__':
     # --------------------------------------------------------------------------------------
     # HOPF PARAMETERS
     # --------------------------------------------------------------------------------------
-    baseDecay = -0.01; baseH = 5; kappa = 1;  # kappa is the coupling constant, now called G
-    freqss = np.random.normal(10,1, size=(N,trials))  # samples of frequencies
-    freqss *= 2*pi
+    # _baseDecay = -0.01; _baseH = 5; _kappa = 1;  # kappa is the coupling constant, now called G
+    _freqss = np.random.normal(10,1, size=(N,trials))  # samples of frequencies
+    _freqss *= 2*pi
     # --------------------------------------------------------------------------------------
     # randomize initial values
     # dyn_y0 is trials (10) * 2*N (2*83)
-    dyn_y0 = np.zeros((trials, 2*N))
-    theta0 = np.random.uniform(0, 2*3.14, (trials, N))
-    R0 = np.random.uniform(0, 1, (trials, N))
-    dyn_y0[:, ::2] = R0 * np.cos(theta0)  # dyn_y0 values are interleaved...
-    dyn_y0[:, 1::2] = R0 * np.sin(theta0)
+    _dyn_y0 = np.zeros((trials, 2*N))
+    _theta0 = np.random.uniform(0, 2*3.14, (trials, N))
+    _R0 = np.random.uniform(0, 1, (trials, N))
+    _dyn_y0[:, ::2] = _R0 * np.cos(_theta0)  # dyn_y0 values are interleaved...
+    _dyn_y0[:, 1::2] = _R0 * np.sin(_theta0)
+    massModelParms = {
+        'freqs': _freqss,
+        'dyn_y0': _dyn_y0,
+    }
 
     # --------------------------------------------------------------------------------------
     # SOLVE
@@ -108,19 +118,20 @@ if __name__ == '__main__':
     # --------------------------------------------------------------------------------------
     print('\nSolving alzheimer model...')
     spread_sol, dyn_sols = AD_func.alzheimer(
+        # ---- Structural Connectivity
         W,
         # ---- Dynamic parms
-        dyn_y0,
-        trials=trials,
-        # ---- Spread initialization
-        t_spread=t_years,
-        tau_seed=tau_nodes, beta_seed=beta_nodes, seed_amount=seed_amount, spread_tspan=spread_tspan,
-        spread_y0=spread_y0,  # ------------- The propagation model initial parms!
+        massModelParms=massModelParms,
+        # ---- Spread initialization and parms
+        spreadingInitialParms=spreadingInitialParms,  # ------------- The propagation model initial parms!
         modelParms=spreadingParms,  # ------------- The propagation model parms!!!
-        freqss=freqss, method='RK45',
-        spread_atol=spread_atol, spread_rtol=spread_rtol,
+        # ---- more configuration setup
+        trials=trials,
+        t_spread=t_years,
+        method='RK45',
         display=True
         )
+
     print('\nSaving solutions...')
     dynSaveFile = dyn_save_path.format(f'gamme={gamma}')
     pickle.dump(dyn_sols, open(dynSaveFile, "wb"))

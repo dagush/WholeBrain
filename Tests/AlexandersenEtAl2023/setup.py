@@ -13,7 +13,7 @@
 # load integrator and neuronal model
 # ============================================================================
 import simplifiedHopfNormalForm as neuronalModel
-import Models.Couplings as Couplings
+import WholeBrain.Models.Couplings as Couplings
 import WholeBrain.Integrators.Heun as scheme
 scheme.neuronalModel = neuronalModel
 import WholeBrain.Integrators.Integrator as integrator
@@ -27,8 +27,8 @@ simulator.integrator = integrator
 # File paths...
 # --------------------------------------------------------------------------------------
 loadDataPath = './data/'
-dataSavePath = '../../Data_Produced/Progression/'
-plotsPath = '../../Results/Progression/'
+dataSavePath = './Data_Produced/'
+plotsPath = './Results/'
 
 # file paths, where to save dynamics (oscillations) and spreading (heterodimer model) solutions
 file_name = 'alzheimers_default'

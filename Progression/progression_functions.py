@@ -47,16 +47,16 @@ def setupSimulator(nM, integrator, sim, coup):
 
 
 def testSingleTimePoint(SC, a, b, w, y0):
-    # First, set model parms
     # ============================================================================
+    # First, set model parms
     neuronalModel.setParms({'SC': SC,
                             'y0': y0,
                             'a': a,
                             'b': b,
                             'omega': w})
     neuronalModel.couplingOp.setParms(SC)
-    # Now, simulate!
     # ============================================================================
+    # Now, simulate!
     simBOLD = simulator.simulateSingleSubject().T
     return simBOLD
 
@@ -72,12 +72,13 @@ def testSingleTimePoint(SC, a, b, w, y0):
 # OUTPUT:
 #   sols: (#runs) array with solutions stored as dictionaries
 # ----------------------------------------------------------------
-def computeMassModel(y0,  # Initial values, of size N*2 because we have 2 integration vars
-                     W,   # Coupling Matrix (N*N)
-                     parameterss=False,  # Here we should receive the model params
-                     t_span=(0,10), step=10**-4, atol=10**-6, rtol=10**-4,
-                     display=False, discard_y=False, cutoff=0,
-                     runID=False):
+def computeMassModel(W,   # Coupling Matrix (N*N)
+                     y0,  # Initial values, of size N*2 because we have 2 integration vars
+                     parameterss,  # Here we should receive the model params
+                     # t_span=(0,10), step=10**-4, atol=10**-6, rtol=10**-4,
+                     display=False, # discard_y=False, cutoff=0,
+                     # runID=False
+                     ):
     # input to the computeMassModel functions, for each trial and for each t, are:
     #   y0: a 2*N arrays with the initial values for the equation (x,y)
     #       remember that values are interleaved
@@ -100,15 +101,7 @@ def computeMassModel(y0,  # Initial values, of size N*2 because we have 2 integr
     # with open(path, 'wb') as f:
     #     np.savez(f, y0=y0, W=W, parameters=parameterss, allow_pickle=True)
     # ---------------------------------------------------------------- END DEBUG
-
-    # ----------------------------------------------------------------
-    # check if parameter array given
-    if parameterss is False:
-        parameterss = np.array([])
-        # parN, num_par = (1, 0)
-    else:
-        parameterss = np.array(parameterss)[0]  # 1*249 parameters
-        # parN, num_par = parameterss.shape
+    parameterss = np.array(parameterss)[0]  # 1*249 parameters
     # ----------------------------------------------------------------
 
     # ----------------------------------------------------------------
@@ -203,15 +196,16 @@ def constructSpreadInitialValues(N, w0, modelParms):
 # OUTPUT:
 #     ...
 # ----------------------------------------------------------------
-def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
-                  dyn_tspan, dyn_step, dyn_atol, dyn_rtol, dyn_cutoff,
+def solveDynModel(trials, dyn_y0,
+                  a, b, W_t, freqss,
+                  # dyn_tspan, dyn_step, dyn_atol, dyn_rtol, dyn_cutoff,
                   t0, t,
                   ):
     # SOLVE DYNAMICAL MODEL AT T0
     # initialize storage for trial simulations
     dyn_x = []
     dyn_y = []
-    N = len(dyn_y0)
+    # N = len(dyn_y0)
 
     # ------------------------------------------------------------------------------
     # solve dynamical model for each trial
@@ -230,7 +224,6 @@ def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
         # ------------------------------------------------------------------------------
         # solve dynamical model at time 0
         # ------------------------------------------------------------------------------
-        print(f'\tSolving dynamical model at year {t0} (trial {l + 1} of {trials}) ...')
         # input to the computeMassModel functions, for each trial and for each t, are:
         #    DE the compiled Delayed Equation
         #    dyn_y0_l: a 2*N arrays with the initial values for the equation (x,y)
@@ -242,12 +235,14 @@ def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
         #    dyn_atol and dyn_rtol: the tolerances (1e-6 and 0.0001)
         #    dyn_cutoff: 1
         #    Added by Gus: runID which is (time, trial)
-        dyn_sol = computeMassModel(dyn_y0_l, W_t,
+        print(f'\tSolving dynamical model at year {t0} (trial {l + 1} of {trials}) ...')
+        dyn_sol = computeMassModel(W_t, dyn_y0_l,
                                    parameterss=dyn_pars,
-                                   t_span=dyn_tspan, step=dyn_step,
-                                   atol=dyn_atol, rtol=dyn_rtol,
-                                   cutoff=dyn_cutoff,
-                                   runID=(t, l))
+                                   # t_span=dyn_tspan, step=dyn_step,
+                                   # atol=dyn_atol, rtol=dyn_rtol,
+                                   # cutoff=dyn_cutoff,
+                                   # runID=(t, l)
+                                   )
         # output is a (1) cell with a dictionary {'x':..., 'y':..., 't':...}
         #   'x' and 'y' are arrays N*timepoints
         #   't' is simply the timepoints
@@ -287,17 +282,23 @@ def solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
 # ----------------------------------------------------------------
 # ----------------------------------------------------------------
 def alzheimer(W0,
-              dyn_y0,
-              tau_seed=False, beta_seed=False, seed_amount=0.1,
+              massModelParms,
+              spreadingInitialParms,
+              # tau_seed=False, beta_seed=False, seed_amount=0.1,
+              modelParms,  # Propagation model parameters
+              # spread_tspan=False,
+              # spread_y0=False,  # Propagation model initial values
+              # freqss=np.empty([1,1]),
+              method='RK45',
+              # spread_max_step=0.125, as_dict=True,
+              # spread_atol=10**-6, spread_rtol=10**-3, dyn_atol=10**-6, dyn_rtol=10**-4,
+              # dyn_step=1/100, dyn_tspan=(0,10),
+              display=False,
+              trials=1,  # SDE=False,
               t_spread=False,
-              spread_tspan=False,
-              spread_y0=False,  # Propagation model initial values
-              modelParms=None,  # Propagation model parameters
-              freqss=np.empty([1,1]), method='RK45', spread_max_step=0.125, as_dict=True,
-              spread_atol=10**-6, spread_rtol=10**-3, dyn_atol=10**-6, dyn_rtol=10**-4,
-              dyn_step=1/100, dyn_tspan=(0,10), display=False, trials=1,  # SDE=False,
-              dyn_cutoff=0, kf=1, # bii_max=2, feedback=False,
-              adaptive=False):
+              # dyn_cutoff=0, kf=1, # bii_max=2, feedback=False,
+              adaptive=False
+              ):
     # ------------- first, let's instantiate a progression model (i.e., the RHS of a diff eq)
     model = progrModel.Alexandersen2023()
 
@@ -308,7 +309,7 @@ def alzheimer(W0,
 
     # set t_spread if not provided, and add end points if not inluded by user
     if t_spread.size == 0:
-        t_spread = [0,spread_tspan[-1]]
+        t_spread = [0, spreadingInitialParms['spread_tspan'][-1]]
     else:
         if 0 not in t_spread:
             t_spread = [0] + t_spread
@@ -318,11 +319,11 @@ def alzheimer(W0,
     dyn_sols = []
 
     # if only one initial condition given, repeat it for all trials
-    if len(dyn_y0.shape) == 1:
-        n_vars = dyn_y0.shape[0]
+    if len(massModelParms['dyn_y0'].shape) == 1:
+        n_vars = massModelParms['dyn_y0'].shape[0]
         new_dyn_y0 = np.empty((trials,n_vars))
         for l in range(trials):
-            new_dyn_y0[l,:] = dyn_y0
+            new_dyn_y0[l,:] = massModelParms['dyn_y0']
         dyn_y0 = new_dyn_y0
 
     # construct laplacian, list of edges, and list of neighours
@@ -341,24 +342,24 @@ def alzheimer(W0,
                 w0.append(W0[i,j])
 
     # construct spreading initial values, spread_y0
-    if not spread_y0:
+    if not spreadingInitialParms['spread_y0']:
         spread_y0, a, b = constructSpreadInitialValues(N, w0, modelParms)
 
     # seed tau and beta
-    if beta_seed:
-        for index in beta_seed:
+    if spreadingInitialParms['beta_seed']:
+        for index in spreadingInitialParms['beta_seed']:
             beta_index = N+index
-            if seed_amount:
-                spread_y0[beta_index] = seed_amount
+            if spreadingInitialParms['seed_amount']:
+                spread_y0[beta_index] = spreadingInitialParms['seed_amount']
             else:
-                spread_y0[beta_index] = (10**(-2)/len(beta_seed))*a0/ai
-    if tau_seed:
-        for index in tau_seed:
+                spread_y0[beta_index] = (10**(-2)/len(spreadingInitialParms['beta_seed']))*a0/ai
+    if spreadingInitialParms['tau_seed']:
+        for index in spreadingInitialParms['tau_seed']:
             tau_index = 3*N+index 
-            if seed_amount:
-                spread_y0[tau_index] = seed_amount
+            if spreadingInitialParms['seed_amount']:
+                spread_y0[tau_index] = spreadingInitialParms['seed_amount']
             else:
-                spread_y0[tau_index] = (10**(-2)/len(tau_seed))*b0/bi
+                spread_y0[tau_index] = (10**(-2)/len(spreadingInitialParms['tau_seed']))*b0/bi
 
     # define a and b limits
     if delta:
@@ -399,8 +400,10 @@ def alzheimer(W0,
     # ------------------------------------------------------------------------------
     t = 0;  i = 0 
     while t < Ts_final + 1:
-        dyn_sol_tup, dyn_x_l, dyn_y_l = solveDynModel(trials, dyn_y0, a, b, W_t, freqss,
-                                                      dyn_tspan, dyn_step, dyn_atol, dyn_rtol, dyn_cutoff,
+        dyn_sol_tup, dyn_x_l, dyn_y_l = solveDynModel(trials, massModelParms['dyn_y0'],
+                                                      a, b, W_t,
+                                                      massModelParms['freqs'],
+                                                      # dyn_tspan, dyn_step, dyn_atol, dyn_rtol, dyn_cutoff,
                                                       t0, t)
         dyn_sols.append(dyn_sol_tup)
 
@@ -436,7 +439,9 @@ def alzheimer(W0,
         model.serParms(modelParms)
         # ------------ solve the initial value problem!!!
         sol = solve_ivp(model.dfun, spread_tspan, spread_y0, method=method,
-                         max_step=spread_max_step, atol=spread_atol, rtol=spread_rtol)
+                        max_step=spreadingInitialParms['spread_max_step'],
+                        atol=spreadingInitialParms['spread_atol'],
+                        rtol=spreadingInitialParms['spread_rtol'])
         print('\tDone.')
 
         # ------------------------------------------------------------------------------
