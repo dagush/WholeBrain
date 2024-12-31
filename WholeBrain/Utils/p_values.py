@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------------------
-# Full pipeline for wilcoxon test processing
+# Full pipeline for statstical contrasts test processing
 #
 # --------------------------------------------------------------------------------------
 import os
@@ -22,7 +22,7 @@ def printAveragesAndStd(dataset):
             print(f'{setToPlot}: avg={np.nanmean(dataset[setToPlot])}, stdev={np.nanstd(dataset[setToPlot])}, len={len(dataset[setToPlot])}')
     else:
         for pos, setToPlot in enumerate(dataset.T):
-            print(f'{pos}: avg={np.nanmean(setToPlot)}, stdev={np.nanstd(setToPlot)}')
+            print(f'{pos}: avg={np.nanmean(setToPlot)}, stdev={np.nanstd(setToPlot)}, len={np.count_nonzero(~np.isnan(setToPlot))}')  # ~ inverts the boolean matrix returned from np.isnan
     print()
 
 
@@ -209,7 +209,7 @@ def padEqualLengthDicts(tests):
     return fixed
 
 
-def plotComparisonAcrossLabels2Ax(ax, tests, columnLables=None, graphLabel='', pairs=None):
+def plotComparisonAcrossLabels2Ax(ax, tests, custom_test=None, columnLables=None, graphLabel='', pairs=None):
     printAveragesAndStd(tests)
     if columnLables is None:
         columnLables = tests.keys()
@@ -221,15 +221,20 @@ def plotComparisonAcrossLabels2Ax(ax, tests, columnLables=None, graphLabel='', p
     if pairs == None:
         pairs = list(combinations(columnLables, 2))
     annotator = Annotator(ax, pairs, data=df, order=list(columnLables))
-    annotator.configure(test='Mann-Whitney', text_format='star', loc='inside')
+    if custom_test is None:
+        annotator.configure(test='Mann-Whitney')
+    else:
+        annotator.configure(test=custom_test)
+    annotator.configure(text_format='star', loc='inside')
     annotator.configure(comparisons_correction="BH", correction_format="replace")  # BH / Bonferroni
     annotator.apply_and_annotate()
     ax.set_title(graphLabel)
 
 
-def plotComparisonAcrossLabels2(tests, columnLables=None, graphLabel='', pairs=None):
+def plotComparisonAcrossLabels2(tests, custom_test=None, columnLables=None, graphLabel='', pairs=None):
     fig, ax = plt.subplots()
-    plotComparisonAcrossLabels2Ax(ax, tests, columnLables=columnLables, graphLabel=graphLabel, pairs=pairs)
+    plotComparisonAcrossLabels2Ax(ax, tests, custom_test=custom_test,
+                                  columnLables=columnLables, graphLabel=graphLabel, pairs=pairs)
     plt.show()
 
 

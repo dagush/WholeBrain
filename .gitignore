@@ -1,0 +1,13 @@
+.idea
+__pycache__/
+Data_Produced/
+Data_Raw/
+OLD/
+Results/
+TempTests/
+venv/
+WIP/
+*.xlsx
+*.mat
+*.m
+
