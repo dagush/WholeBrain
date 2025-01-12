@@ -42,7 +42,7 @@ def prepro_G_Optim():
 
     distanceSettings = {'FC': (FC, False), 'swFCD': (swFCD, True)}
 
-    wStart = 0.
+    wStart = 0.0
     step = 0.1  # 0.025
     wEnd = 2.5 + step
     WEs = np.arange(wStart, wEnd, step)  # 100 values values for constant G. Originally was np.arange(0,2.5,0.025)

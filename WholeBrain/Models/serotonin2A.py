@@ -36,6 +36,8 @@ def recompileSignatures():
     # However, this is "infinitely" cheaper than all the other computations we make around here ;-)
     phie.recompile(); phii.recompile()
     DMF.dfun.recompile()
+    dfun.recompile()
+    pass
 
 
 # Regional Drug Receptor Modulation (RDRM) constants for their transfer WholeBrain:

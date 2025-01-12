@@ -69,7 +69,7 @@ def evaluateForOneParm(currValue, modelParms, NumSimSubjects,
 
 
 def distanceForAll_Parms(tc,
-                         Parms,  # wStart=0.0, wEnd=6.0, wStep=0.05,
+                         Parms,
                          modelParms, NumSimSubjects,
                          observablesToUse,  # This is a dictionary of {name: (observable module, apply filters bool)}
                          doPreprocessing=True,
