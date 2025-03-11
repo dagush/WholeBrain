@@ -5,7 +5,7 @@ from statannotations.stats.StatTest import StatTest
 def nemenyi_test(group_data1, group_data2, **stats_params):
     data = np.array([group_data1, group_data2])
     res = sp.posthoc_nemenyi_friedman(data.T)
-    return np.NaN, res[0][1]
+    return np.nan, res[0][1]
 
 def custom_nemenyi():
     custom_long_name = 'Nemenyi post hoc test'

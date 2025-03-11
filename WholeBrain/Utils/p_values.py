@@ -189,7 +189,6 @@ def findMinMaxSpan(a,b):
 from itertools import combinations
 import pandas as pd
 pd.DataFrame.iteritems = pd.DataFrame.items  # internal Pandas bugfix for Pandas 2.0
-import seaborn as sns
 from statannotations.Annotator import Annotator
 
 
@@ -210,6 +209,7 @@ def padEqualLengthDicts(tests):
 
 
 def plotComparisonAcrossLabels2Ax(ax, tests, custom_test=None, columnLables=None, graphLabel='', pairs=None):
+    import seaborn as sns
     printAveragesAndStd(tests)
     if columnLables is None:
         columnLables = tests.keys()
