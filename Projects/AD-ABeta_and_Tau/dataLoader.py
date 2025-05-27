@@ -54,8 +54,8 @@ def getClassifications():
 # =====================================================================================
 def loadBurden(subject, modality, baseFolder, normalize=True):
     pet_path = baseFolder + "/PET_loads/"+subject+"/PET_PVC_MG/" + modality
-    RH_pet = np.loadtxt(pet_path+"/"+"L."+modality+"_load_MSMAll.pscalar.txt")
-    LH_pet = np.loadtxt(pet_path+"/"+"R."+modality+"_load_MSMAll.pscalar.txt")
+    RH_pet = np.loadtxt(pet_path+"/"+"R."+modality+"_load_MSMAll.pscalar.txt")
+    LH_pet = np.loadtxt(pet_path+"/"+"L."+modality+"_load_MSMAll.pscalar.txt")
     subcort_pet = np.loadtxt(pet_path+"/"+modality+"_load.subcortical.txt")[-19:]
     all_pet = np.concatenate((LH_pet,RH_pet,subcort_pet))
     if normalize:
