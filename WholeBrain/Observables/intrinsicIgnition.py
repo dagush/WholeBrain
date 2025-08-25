@@ -9,6 +9,7 @@
 # Deep Sleep, Gustavo Deco, Enzo Tagliazucchi, Helmut Laufs, Ana Sanjuán and Morten L. Kringelbach
 # eNeuro 15 September 2017, 4 (5) ENEURO.0106-17.2017; DOI: https://doi.org/10.1523/ENEURO.0106-17.2017
 #
+# Further used and explained in:
 # [EscrichsEtAl2019] Characterizing the Dynamical Complexity Underlying Meditation, Escrichs A, Sanjuán A, Atasoy S,
 # López-González A, Garrido C, Càmara E, Deco, G. Front. Syst. Neurosci., 10 July 2019
 # DOI: https://doi.org/10.3389/fnsys.2019.00027
@@ -18,6 +19,10 @@
 # Ramon Brugada, Joaquin Serena, Lluís Ramió-Torrentà, Gabriel Coll-De-Tuero, Luís Gallart, Jordi Barretina, Joan C
 # Vilanova, Jordi Mayneris-Perxachs, Marco Essig, Chase R Figley, Salvador Pedraza, Josep Puig, Gustavo Deco
 # Cereb Cortex. 2021 Mar 31;31(5):2466-2481. doi: 10.1093/cercor/bhaa367
+#
+# The concept for this observable is based on the perturbational integration, defined in
+# [DecoEtAl2015] Deco, G., Tononi, G., Boly, M. et al. Rethinking segregation and integration: contributions of
+# whole-brain modelling. Nat Rev Neurosci 16, 430–439 (2015). https://doi.org/10.1038/nrn3963
 #
 # Code by Gustavo Deco and Anira Escrichs
 # Adapted to python by Gustavo Patow
@@ -75,6 +80,7 @@ def dmperm(A):  # Dulmage-Mendelsohn decomposition
     return outp, outr
 
 
+# based on the code by J Goni, University of Navarra and Indiana University, 2009/2011
 # # @jit(nopython=True)
 def get_components(A):
     if A.shape[0] != A.shape[1]:
